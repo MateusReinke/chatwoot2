@@ -522,19 +522,33 @@ export default {
       });
 
       const plainTextSignature = extractTextFromMarkdown(this.messageSignature);
+      const signatureSettings = {
+        position: this.currentUser?.ui_settings?.signature_position || 'top',
+        separator:
+          this.currentUser?.ui_settings?.signature_separator || 'blank',
+      };
 
       if (!this.showRichContentEditor && this.messageSignature) {
         // remove the old signature -> extract text from markdown -> attach new signature
-        let message = removeSignature(this.message, this.messageSignature);
+        let message = removeSignature(
+          this.message,
+          this.messageSignature,
+          signatureSettings
+        );
         message = extractTextFromMarkdown(message);
-        message = appendSignature(message, plainTextSignature);
+        message = appendSignature(
+          message,
+          plainTextSignature,
+          signatureSettings
+        );
 
         this.message = message;
       } else {
         this.message = replaceSignature(
           this.message,
           plainTextSignature,
-          this.messageSignature
+          this.messageSignature,
+          signatureSettings
         );
       }
     },
@@ -574,9 +588,14 @@ export default {
         return message;
       }
 
+      const signatureSettings = {
+        position: this.currentUser?.ui_settings?.signature_position || 'top',
+        separator:
+          this.currentUser?.ui_settings?.signature_separator || 'blank',
+      };
       return this.sendWithSignature
-        ? appendSignature(message, this.signatureToApply)
-        : removeSignature(message, this.signatureToApply);
+        ? appendSignature(message, this.signatureToApply, signatureSettings)
+        : removeSignature(message, this.signatureToApply, signatureSettings);
     },
     removeFromDraft() {
       if (this.conversationIdByRoute) {
@@ -781,7 +800,16 @@ export default {
         // if signature is enabled, append it to the message
         // appendSignature ensures that the signature is not duplicated
         // so we don't need to check if the signature is already present
-        message = appendSignature(message, this.signatureToApply);
+        const signatureSettings = {
+          position: this.currentUser?.ui_settings?.signature_position || 'top',
+          separator:
+            this.currentUser?.ui_settings?.signature_separator || 'blank',
+        };
+        message = appendSignature(
+          message,
+          this.signatureToApply,
+          signatureSettings
+        );
       }
 
       const updatedMessage = replaceVariablesInMessage({
@@ -833,7 +861,16 @@ export default {
       this.message = '';
       if (this.sendWithSignature && !this.isPrivate) {
         // if signature is enabled, append it to the message
-        this.message = appendSignature(this.message, this.signatureToApply);
+        const signatureSettings = {
+          position: this.currentUser?.ui_settings?.signature_position || 'top',
+          separator:
+            this.currentUser?.ui_settings?.signature_separator || 'blank',
+        };
+        this.message = appendSignature(
+          this.message,
+          this.signatureToApply,
+          signatureSettings
+        );
       }
       this.attachedFiles = [];
       this.isRecordingAudio = false;
