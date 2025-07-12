@@ -761,8 +761,6 @@ export default {
       this.hideWhatsappTemplatesModal();
     },
     replaceText(message) {
-      // Remove signature logic - signatures will be applied at send time
-
       const updatedMessage = replaceVariablesInMessage({
         message,
         variables: this.messageVariables,
