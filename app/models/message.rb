@@ -252,6 +252,7 @@ class Message < ApplicationRecord
     html_content_quoted = content_attributes.dig(:email, :html_content, :quoted)
 
     message_content = text_content_quoted || html_content_quoted || content
+
     self.processed_message_content = message_content&.truncate(150_000)
   end
 

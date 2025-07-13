@@ -36,8 +36,6 @@ import { CONVERSATION_EVENTS } from '../../../helper/AnalyticsHelper/events';
 import fileUploadMixin from 'dashboard/mixins/fileUploadMixin';
 import {
   appendSignature,
-  removeSignature,
-  replaceSignature,
   extractTextFromMarkdown,
 } from 'dashboard/helper/editorHelper';
 
@@ -442,11 +440,7 @@ export default {
     },
     message(updatedMessage) {
       // Check if the message starts with a slash.
-      const bodyWithoutSignature = removeSignature(
-        updatedMessage,
-        this.signatureToApply
-      );
-      const startsWithSlash = bodyWithoutSignature.startsWith('/');
+      const startsWithSlash = updatedMessage.startsWith('/');
 
       // Determine if the user is potentially typing a slash command.
       // This is true if the message starts with a slash and the rich content editor is not active.
@@ -456,7 +450,7 @@ export default {
       // If a slash command is active, extract the command text after the slash.
       // If not, reset the mentionSearchKey.
       this.mentionSearchKey = this.hasSlashCommand
-        ? bodyWithoutSignature.substring(1)
+        ? updatedMessage.substring(1)
         : '';
 
       // Autosave the current message draft.
@@ -530,35 +524,10 @@ export default {
         display_rich_content_editor: !this.showRichContentEditor,
       });
 
-      const plainTextSignature = extractTextFromMarkdown(this.messageSignature);
-      const signatureSettings = {
-        position: this.currentUser?.ui_settings?.signature_position || 'top',
-        separator:
-          this.currentUser?.ui_settings?.signature_separator || 'blank',
-      };
-
       if (!this.showRichContentEditor && this.messageSignature) {
-        // remove the old signature -> extract text from markdown -> attach new signature
-        let message = removeSignature(
-          this.message,
-          this.messageSignature,
-          signatureSettings
-        );
-        message = extractTextFromMarkdown(message);
-        message = appendSignature(
-          message,
-          plainTextSignature,
-          signatureSettings
-        );
-
+        // extract text from markdown for plain text editor
+        let message = extractTextFromMarkdown(this.message);
         this.message = message;
-      } else {
-        this.message = replaceSignature(
-          this.message,
-          plainTextSignature,
-          this.messageSignature,
-          signatureSettings
-        );
       }
     },
     resetRecorderAndClearAttachments() {
@@ -587,24 +556,8 @@ export default {
         const key = `draft-${this.conversationIdByRoute}-${this.replyType}`;
         const messageFromStore =
           this.$store.getters['draftMessages/get'](key) || '';
-
-        // ensure that the message has signature set based on the ui setting
-        this.message = this.toggleSignatureForDraft(messageFromStore);
+        this.message = messageFromStore;
       }
-    },
-    toggleSignatureForDraft(message) {
-      if (this.isPrivate) {
-        return message;
-      }
-
-      const signatureSettings = {
-        position: this.currentUser?.ui_settings?.signature_position || 'top',
-        separator:
-          this.currentUser?.ui_settings?.signature_separator || 'blank',
-      };
-      return this.sendWithSignature
-        ? appendSignature(message, this.signatureToApply, signatureSettings)
-        : removeSignature(message, this.signatureToApply, signatureSettings);
     },
     removeFromDraft() {
       if (this.conversationIdByRoute) {
@@ -805,22 +758,6 @@ export default {
       this.hideWhatsappTemplatesModal();
     },
     replaceText(message) {
-      if (this.sendWithSignature && !this.private) {
-        // if signature is enabled, append it to the message
-        // appendSignature ensures that the signature is not duplicated
-        // so we don't need to check if the signature is already present
-        const signatureSettings = {
-          position: this.currentUser?.ui_settings?.signature_position || 'top',
-          separator:
-            this.currentUser?.ui_settings?.signature_separator || 'blank',
-        };
-        message = appendSignature(
-          message,
-          this.signatureToApply,
-          signatureSettings
-        );
-      }
-
       const updatedMessage = replaceVariablesInMessage({
         message,
         variables: this.messageVariables,
@@ -868,19 +805,6 @@ export default {
     },
     clearMessage() {
       this.message = '';
-      if (this.sendWithSignature && !this.isPrivate) {
-        // if signature is enabled, append it to the message
-        const signatureSettings = {
-          position: this.currentUser?.ui_settings?.signature_position || 'top',
-          separator:
-            this.currentUser?.ui_settings?.signature_separator || 'blank',
-        };
-        this.message = appendSignature(
-          this.message,
-          this.signatureToApply,
-          signatureSettings
-        );
-      }
       this.attachedFiles = [];
       this.isRecordingAudio = false;
       this.resetReplyToMessage();
@@ -1046,9 +970,24 @@ export default {
       return multipleMessagePayload;
     },
     getMessagePayload(message) {
+      // Apply signature at send time if enabled and not private
+      let finalMessage = message;
+      if (this.sendWithSignature && !this.isPrivate && this.signatureToApply) {
+        const signatureSettings = {
+          position: this.currentUser?.ui_settings?.signature_position || 'top',
+          separator:
+            this.currentUser?.ui_settings?.signature_separator || 'blank',
+        };
+        finalMessage = appendSignature(
+          message,
+          this.signatureToApply,
+          signatureSettings
+        );
+      }
+
       let messagePayload = {
         conversationId: this.currentChat.id,
-        message,
+        message: finalMessage,
         private: this.isPrivate,
         sender: this.sender,
       };
@@ -1219,9 +1158,6 @@ export default {
         class="rounded-none input"
         :placeholder="messagePlaceHolder"
         :min-height="4"
-        :signature="signatureToApply"
-        allow-signature
-        :send-with-signature="sendWithSignature"
         @typing-off="onTypingOff"
         @typing-on="onTypingOn"
         @focus="onFocus"
@@ -1238,8 +1174,6 @@ export default {
         :min-height="4"
         enable-variables
         :variables="messageVariables"
-        :signature="signatureToApply"
-        allow-signature
         :channel-type="channelType"
         @typing-off="onTypingOff"
         @typing-on="onTypingOn"
