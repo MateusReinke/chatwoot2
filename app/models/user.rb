@@ -157,11 +157,11 @@ class User < ApplicationRecord
   end
 
   def signature_position
-    ui_settings.fetch('signature_position', 'top')
+    ui_settings&.fetch('signature_position', 'top') || 'top'
   end
 
   def signature_separator
-    ui_settings.fetch('signature_separator', 'blank')
+    ui_settings&.fetch('signature_separator', 'blank') || 'blank'
   end
 
   def signature_settings_with_defaults
