@@ -440,8 +440,7 @@ export default {
     },
     message(updatedMessage) {
       // Check if the message starts with a slash.
-      const bodyWithoutSignature = updatedMessage;
-      const startsWithSlash = bodyWithoutSignature.startsWith('/');
+      const startsWithSlash = updatedMessage.startsWith('/');
 
       // Determine if the user is potentially typing a slash command.
       // This is true if the message starts with a slash and the rich content editor is not active.
@@ -451,7 +450,7 @@ export default {
       // If a slash command is active, extract the command text after the slash.
       // If not, reset the mentionSearchKey.
       this.mentionSearchKey = this.hasSlashCommand
-        ? bodyWithoutSignature.substring(1)
+        ? updatedMessage.substring(1)
         : '';
 
       // Autosave the current message draft.
