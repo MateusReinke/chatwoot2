@@ -556,8 +556,6 @@ export default {
         const key = `draft-${this.conversationIdByRoute}-${this.replyType}`;
         const messageFromStore =
           this.$store.getters['draftMessages/get'](key) || '';
-
-        // Remove signature logic - drafts should not contain signatures
         this.message = messageFromStore;
       }
     },
