@@ -99,6 +99,16 @@ export default {
     });
   },
   methods: {
+    getSignatureSettings() {
+      return {
+        position:
+          this.$store.getters.getCurrentUser?.ui_settings?.signature_position ||
+          'top',
+        separator:
+          this.$store.getters.getCurrentUser?.ui_settings
+            ?.signature_separator || 'blank',
+      };
+    },
     resizeTextarea() {
       this.$el.style.height = 'auto';
       if (!this.modelValue) {
@@ -111,14 +121,7 @@ export default {
     // watcher, this means that if the value is true, the signature
     // is supposed to be added, else we remove it.
     toggleSignatureInEditor(signatureEnabled) {
-      const signatureSettings = {
-        position:
-          this.$store.getters.getCurrentUser?.ui_settings?.signature_position ||
-          'top',
-        separator:
-          this.$store.getters.getCurrentUser?.ui_settings
-            ?.signature_separator || 'blank',
-      };
+      const signatureSettings = this.getSignatureSettings();
 
       const valueWithSignature = signatureEnabled
         ? appendSignature(
@@ -141,14 +144,7 @@ export default {
       });
     },
     setCursor() {
-      const signatureSettings = {
-        position:
-          this.$store.getters.getCurrentUser?.ui_settings?.signature_position ||
-          'top',
-        separator:
-          this.$store.getters.getCurrentUser?.ui_settings
-            ?.signature_separator || 'blank',
-      };
+      const signatureSettings = this.getSignatureSettings();
 
       const textarea = this.$refs.textarea;
       if (!textarea) return;
