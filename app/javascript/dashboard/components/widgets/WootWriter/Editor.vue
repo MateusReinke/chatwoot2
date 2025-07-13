@@ -298,11 +298,8 @@ function isBodyEmpty(content) {
   // if content is undefined, we assume that the body is empty
   if (!content) return true;
 
-  // Check if content is empty without signature manipulation
-  const bodyWithoutSignature = content;
-
   // trimming should remove all the whitespaces, so we can check the length
-  return bodyWithoutSignature.trim().length === 0;
+  return content.trim().length === 0;
 }
 
 function handleEmptyBodyWithSignature() {
