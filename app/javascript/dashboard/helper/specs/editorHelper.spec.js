@@ -121,6 +121,39 @@ describe('appendSignature', () => {
   });
 });
 
+describe('replaceSignature with enhanced settings', () => {
+  const testBody = 'This is a test message';
+  const oldSignature = 'Old signature';
+  const newSignature = 'New signature';
+
+  it('accepts settings object with position and separator', () => {
+    const bodyWithBottomSignature = `${testBody}\n\nOld signature`;
+    const settings = { position: 'top', separator: 'blank' };
+    const result = replaceSignature(
+      bodyWithBottomSignature,
+      oldSignature,
+      newSignature,
+      settings
+    );
+    expect(typeof result).toBe('string');
+    expect(result).toContain('New signature');
+  });
+
+  it('handles different separator settings', () => {
+    const bodyWithBlankSeparator = `${testBody}\n\nOld signature`;
+    const settings = { position: 'bottom', separator: '--' };
+    const result = replaceSignature(
+      bodyWithBlankSeparator,
+      oldSignature,
+      newSignature,
+      settings
+    );
+    expect(typeof result).toBe('string');
+    expect(result).toContain('New signature');
+    expect(result).toContain('--');
+  });
+});
+
 describe('cleanSignature', () => {
   it('removes any instance of horizontal rule', () => {
     const options = [
@@ -176,6 +209,72 @@ describe('removeSignature', () => {
     expect(removeSignature('This is a test\n\n--', 'This is a signature')).toBe(
       'This is a test\n\n'
     );
+  });
+});
+
+describe('appendSignature with enhanced settings', () => {
+  const testBody = 'This is a test message';
+  const testSignature = 'Best regards\nJohn Doe';
+
+  it('accepts settings object with position and separator', () => {
+    const settings = { position: 'top', separator: 'blank' };
+    const result = appendSignature(testBody, testSignature, settings);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('Best regards');
+    expect(result).toContain('This is a test message');
+  });
+
+  it('handles different position settings', () => {
+    const topResult = appendSignature(testBody, testSignature, {
+      position: 'top',
+      separator: 'blank',
+    });
+    const bottomResult = appendSignature(testBody, testSignature, {
+      position: 'bottom',
+      separator: 'blank',
+    });
+
+    expect(topResult).not.toBe(bottomResult);
+    expect(topResult).toContain('Best regards');
+    expect(bottomResult).toContain('Best regards');
+  });
+
+  it('handles different separator settings', () => {
+    const blankResult = appendSignature(testBody, testSignature, {
+      position: 'bottom',
+      separator: 'blank',
+    });
+    const lineResult = appendSignature(testBody, testSignature, {
+      position: 'bottom',
+      separator: '--',
+    });
+
+    expect(blankResult).not.toBe(lineResult);
+    expect(lineResult).toContain('--');
+    expect(blankResult).not.toContain('--');
+  });
+});
+
+describe('removeSignature with enhanced separator support', () => {
+  const testSignature = 'Best regards\nJohn Doe';
+
+  it('accepts separator parameter', () => {
+    const bodyWithSignature = `This is a test\n\nBest regards\nJohn Doe`;
+    const result = removeSignature(bodyWithSignature, testSignature, 'blank');
+    expect(typeof result).toBe('string');
+  });
+
+  it('handles different separator values', () => {
+    const bodyWithSignature = `This is a test\n\nBest regards\nJohn Doe`;
+    const blankResult = removeSignature(
+      bodyWithSignature,
+      testSignature,
+      'blank'
+    );
+    const lineResult = removeSignature(bodyWithSignature, testSignature, '--');
+
+    expect(typeof blankResult).toBe('string');
+    expect(typeof lineResult).toBe('string');
   });
 });
 

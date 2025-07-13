@@ -110,4 +110,60 @@ RSpec.describe User do
       expect(new_user.email).to eq('test123@test.com')
     end
   end
+
+  describe 'signature settings' do
+    describe '#signature_position' do
+      it 'returns default position when ui_settings is nil' do
+        user.ui_settings = nil
+        expect(user.signature_position).to eq('top')
+      end
+
+      it 'returns default position when signature_position is not set' do
+        user.ui_settings = {}
+        expect(user.signature_position).to eq('top')
+      end
+
+      it 'returns stored position from ui_settings' do
+        user.ui_settings = { 'signature_position' => 'bottom' }
+        expect(user.signature_position).to eq('bottom')
+      end
+    end
+
+    describe '#signature_separator' do
+      it 'returns default separator when ui_settings is nil' do
+        user.ui_settings = nil
+        expect(user.signature_separator).to eq('blank')
+      end
+
+      it 'returns default separator when signature_separator is not set' do
+        user.ui_settings = {}
+        expect(user.signature_separator).to eq('blank')
+      end
+
+      it 'returns stored separator from ui_settings' do
+        user.ui_settings = { 'signature_separator' => '--' }
+        expect(user.signature_separator).to eq('--')
+      end
+    end
+
+    describe '#signature_settings_with_defaults' do
+      it 'returns hash with default values when ui_settings is nil' do
+        user.ui_settings = nil
+        expected = { 'position' => 'top', 'separator' => 'blank' }
+        expect(user.signature_settings_with_defaults).to eq(expected)
+      end
+
+      it 'returns hash with stored values from ui_settings' do
+        user.ui_settings = { 'signature_position' => 'bottom', 'signature_separator' => '--' }
+        expected = { 'position' => 'bottom', 'separator' => '--' }
+        expect(user.signature_settings_with_defaults).to eq(expected)
+      end
+
+      it 'returns hash with mixed default and stored values' do
+        user.ui_settings = { 'signature_position' => 'bottom' }
+        expected = { 'position' => 'bottom', 'separator' => 'blank' }
+        expect(user.signature_settings_with_defaults).to eq(expected)
+      end
+    end
+  end
 end
