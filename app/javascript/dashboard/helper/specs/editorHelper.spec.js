@@ -133,6 +133,40 @@ describe('appendSignature', () => {
       ).toBeTruthy();
     });
   });
+
+  it('appends the signature at the top with -- separator', () => {
+    const { body, signature } = DOES_NOT_HAVE_SIGNATURE['no signature'];
+    const cleanedSignature = cleanSignature(signature);
+    expect(
+      appendSignature(body, signature, {
+        position: 'top',
+        separator: '--',
+      })
+    ).toBe(`${cleanedSignature}\n\n--\n\n${body}`);
+  });
+
+  it('appends the signature at the bottom with blank separator', () => {
+    const { body, signature } = DOES_NOT_HAVE_SIGNATURE['no signature'];
+    const cleanedSignature = cleanSignature(signature);
+    expect(
+      appendSignature(body, signature, {
+        position: 'bottom',
+        separator: 'blank',
+      })
+    ).toBe(`${body}\n\n${cleanedSignature}`);
+  });
+
+  it('appends the signature at the top with blank separator', () => {
+    const { body, signature } = DOES_NOT_HAVE_SIGNATURE['no signature'];
+    const cleanedSignature = cleanSignature(signature);
+    expect(
+      appendSignature(body, signature, {
+        position: 'top',
+        separator: 'blank',
+      })
+    ).toBe(`${cleanedSignature}\n\n${body}`);
+  });
+
   it('does not append signature if already present', () => {
     Object.keys(HAS_SIGNATURE).forEach(key => {
       const { body, signature } = HAS_SIGNATURE[key];
@@ -192,6 +226,25 @@ describe('removeSignature', () => {
     const { body, signature } = HAS_SIGNATURE['no text before signature'];
     expect(removeSignature(body, signature, '--')).toBe('');
   });
+
+  it('removes signature from top with -- separator', () => {
+    const signature = 'This is a signature';
+    const body = `${signature}\n\n--\n\nThis is a test`;
+    expect(removeSignature(body, signature, '--')).toBe('This is a test');
+  });
+
+  it('removes signature from bottom with blank separator', () => {
+    const signature = 'This is a signature';
+    const body = `This is a test\n\n${signature}`;
+    expect(removeSignature(body, signature, 'blank')).toBe('This is a test');
+  });
+
+  it('removes signature from top with blank separator', () => {
+    const signature = 'This is a signature';
+    const body = `${signature}\n\nThis is a test`;
+    expect(removeSignature(body, signature, 'blank')).toBe('This is a test');
+  });
+
   it('removes just the delimiter if no signature is present', () => {
     expect(removeSignature('This is a test\n\n--', 'This is a signature')).toBe(
       'This is a test\n\n--'
@@ -238,6 +291,39 @@ describe('replaceSignature', () => {
         separator: '--',
       })
     ).toBe(`\n\n--\n\n${NEW_SIGNATURE}`);
+  });
+
+  it('replaces signature at the top with -- separator', () => {
+    const signature = 'This is a signature';
+    const body = `${signature}\n\n--\n\nThis is a test`;
+    expect(
+      replaceSignature(body, signature, NEW_SIGNATURE, {
+        position: 'top',
+        separator: '--',
+      })
+    ).toBe(`${NEW_SIGNATURE}\n\n--\n\nThis is a test`);
+  });
+
+  it('replaces signature at the bottom with blank separator', () => {
+    const signature = 'This is a signature';
+    const body = `This is a test\n\n${signature}`;
+    expect(
+      replaceSignature(body, signature, NEW_SIGNATURE, {
+        position: 'bottom',
+        separator: 'blank',
+      })
+    ).toBe(`This is a test\n\n${NEW_SIGNATURE}`);
+  });
+
+  it('replaces signature at the top with blank separator', () => {
+    const signature = 'This is a signature';
+    const body = `${signature}\n\nThis is a test`;
+    expect(
+      replaceSignature(body, signature, NEW_SIGNATURE, {
+        position: 'top',
+        separator: 'blank',
+      })
+    ).toBe(`${NEW_SIGNATURE}\n\nThis is a test`);
   });
 });
 
