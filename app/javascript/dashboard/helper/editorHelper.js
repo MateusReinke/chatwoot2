@@ -113,14 +113,13 @@ export function removeSignature(body, signature, separator = 'blank') {
   }
 
   let newBody = body;
-  const actualSeparator = separator === '--' ? '\n--\n' : separator;
-  let delimiterLength;
+  let delimiterLength = 0;
   if (separator === 'blank') {
-    delimiterLength = 0;
+    delimiterLength = 2; // for the newlines around blank separator
   } else if (separator === '--') {
-    delimiterLength = actualSeparator.length;
+    delimiterLength = 6; // '\n\n--\n\n'.length
   } else {
-    delimiterLength = actualSeparator.length + 2;
+    delimiterLength = separator.length + 2; // custom separator + newlines
   }
   if (signatureFound.position === 'top') {
     // NOTE: Remove delimiter after signature: `<cleanedSignature>\n<separator>\n<messageContent>`
