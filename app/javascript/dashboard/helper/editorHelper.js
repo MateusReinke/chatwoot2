@@ -44,7 +44,7 @@ export function cleanSignature(signature) {
  * @param {string} body - The body to search for the signature.
  * @param {string} signature - The signature to search for.
  * @returns { { index: number, position: string } } - An object containing the index of the signature and its position ('start' or 'end').
- * If the signature is not found, returns -1.
+ * If the signature is not found, returns { index: -1, position: 'none' }.
  */
 export function findSignatureInBody(body, signature) {
   const trimmedBody = body.trimEnd();
@@ -57,7 +57,7 @@ export function findSignatureInBody(body, signature) {
     return { index: cleanedSignature.length, position: 'top' };
   }
 
-  return -1;
+  return { index: -1, position: 'none' };
 }
 
 /**
@@ -73,7 +73,7 @@ export function appendSignature(body, signature, settings = {}) {
   const separator = settings.separator || 'blank';
   const cleanedSignature = cleanSignature(signature);
   // if signature is already present, return body
-  if (findSignatureInBody(body, cleanedSignature) > -1) {
+  if (findSignatureInBody(body, cleanedSignature).index === -1) {
     return body;
   }
 
@@ -108,17 +108,15 @@ export function removeSignature(body, signature, separator = 'blank') {
   const signatureFound = findSignatureInBody(body, cleanedSignature);
 
   // NOTE: Signature not found, return original body
-  if (signatureFound === -1) {
+  if (signatureFound.index === -1) {
     return body;
   }
 
   let newBody = body;
-  const actualSeparator = separator === '--' ? '\n--\n' : separator;
+  const actualSeparator = separator === '--' ? '\n\n--\n\n' : separator;
   let delimiterLength;
   if (separator === 'blank') {
     delimiterLength = 0;
-  } else if (separator === '--') {
-    delimiterLength = actualSeparator.length;
   } else {
     delimiterLength = actualSeparator.length + 2;
   }
