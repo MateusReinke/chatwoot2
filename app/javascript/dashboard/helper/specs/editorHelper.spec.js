@@ -109,13 +109,13 @@ describe('findSignatureInBody', () => {
   it('returns -1 if there is no signature', () => {
     Object.keys(DOES_NOT_HAVE_SIGNATURE).forEach(key => {
       const { body, signature } = DOES_NOT_HAVE_SIGNATURE[key];
-      expect(findSignatureInBody(body, signature)).toBe(-1);
+      expect(findSignatureInBody(body, signature).index).toBe(-1);
     });
   });
   it('returns the index of the signature if there is one', () => {
     Object.keys(HAS_SIGNATURE).forEach(key => {
       const { body, signature } = HAS_SIGNATURE[key];
-      expect(findSignatureInBody(body, signature)).toBeGreaterThan(0);
+      expect(findSignatureInBody(body, signature).index).toBeGreaterThan(0);
     });
   });
 });
@@ -126,7 +126,10 @@ describe('appendSignature', () => {
       const { body, signature } = DOES_NOT_HAVE_SIGNATURE[key];
       const cleanedSignature = cleanSignature(signature);
       expect(
-        appendSignature(body, signature).includes(cleanedSignature)
+        appendSignature(body, signature, {
+          position: 'bottom',
+          separator: '--',
+        }).includes(cleanedSignature)
       ).toBeTruthy();
     });
   });
@@ -178,20 +181,20 @@ describe('removeSignature', () => {
   });
   it('removes signature if present at the end', () => {
     const { body, signature } = HAS_SIGNATURE['signature at end'];
-    expect(removeSignature(body, signature)).toBe('This is a test\n\n');
+    expect(removeSignature(body, signature, '--')).toBe('This is a test');
   });
   it('removes signature if present with spaces and new lines', () => {
     const { body, signature } =
       HAS_SIGNATURE['signature at end with spaces and new lines'];
-    expect(removeSignature(body, signature)).toBe('This is a test\n\n');
+    expect(removeSignature(body, signature, '--')).toBe('This is a test');
   });
   it('removes signature if present without text before it', () => {
     const { body, signature } = HAS_SIGNATURE['no text before signature'];
-    expect(removeSignature(body, signature)).toBe('\n\n');
+    expect(removeSignature(body, signature, '--')).toBe('');
   });
   it('removes just the delimiter if no signature is present', () => {
     expect(removeSignature('This is a test\n\n--', 'This is a signature')).toBe(
-      'This is a test\n\n'
+      'This is a test\n\n--'
     );
   });
 });
@@ -200,29 +203,41 @@ describe('replaceSignature', () => {
   it('appends the new signature if not present', () => {
     Object.keys(DOES_NOT_HAVE_SIGNATURE).forEach(key => {
       const { body, signature } = DOES_NOT_HAVE_SIGNATURE[key];
-      expect(replaceSignature(body, signature, NEW_SIGNATURE)).toBe(
-        `${body}\n\n--\n\n${NEW_SIGNATURE}`
-      );
+      expect(
+        replaceSignature(body, signature, NEW_SIGNATURE, {
+          position: 'bottom',
+          separator: '--',
+        })
+      ).toBe(`${body.trimEnd()}\n\n--\n\n${NEW_SIGNATURE}`);
     });
   });
   it('removes signature if present at the end', () => {
     const { body, signature } = HAS_SIGNATURE['signature at end'];
-    expect(replaceSignature(body, signature, NEW_SIGNATURE)).toBe(
-      `This is a test\n\n--\n\n${NEW_SIGNATURE}`
-    );
+    expect(
+      replaceSignature(body, signature, NEW_SIGNATURE, {
+        position: 'bottom',
+        separator: '--',
+      })
+    ).toBe(`This is a test\n\n--\n\n${NEW_SIGNATURE}`);
   });
   it('removes signature if present with spaces and new lines', () => {
     const { body, signature } =
       HAS_SIGNATURE['signature at end with spaces and new lines'];
-    expect(replaceSignature(body, signature, NEW_SIGNATURE)).toBe(
-      `This is a test\n\n--\n\n${NEW_SIGNATURE}`
-    );
+    expect(
+      replaceSignature(body, signature, NEW_SIGNATURE, {
+        position: 'bottom',
+        separator: '--',
+      })
+    ).toBe(`This is a test\n\n--\n\n${NEW_SIGNATURE}`);
   });
   it('removes signature if present without text before it', () => {
     const { body, signature } = HAS_SIGNATURE['no text before signature'];
-    expect(replaceSignature(body, signature, NEW_SIGNATURE)).toBe(
-      `\n\n--\n\n${NEW_SIGNATURE}`
-    );
+    expect(
+      replaceSignature(body, signature, NEW_SIGNATURE, {
+        position: 'bottom',
+        separator: '--',
+      })
+    ).toBe(`\n\n--\n\n${NEW_SIGNATURE}`);
   });
 });
 
