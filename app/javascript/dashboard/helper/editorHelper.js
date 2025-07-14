@@ -38,7 +38,7 @@ export function cleanSignature(signature) {
 }
 
 /**
- * Check if there's an unedited signature at the the body
+ * Check if there's an unedited signature at the body
  * If there is, return the index of the signature, If there isn't, return -1
  *
  * @param {string} body - The body to search for the signature.
