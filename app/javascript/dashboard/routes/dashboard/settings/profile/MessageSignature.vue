@@ -78,14 +78,14 @@ const handleSeparatorChange = value => {
       <div class="w-1/4 flex flex-col gap-2">
         <label>
           {{
-            $t(
+            t(
               'PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.SIGNATURE_POSITION.LABEL'
             )
           }}
         </label>
         <label>
           {{
-            $t(
+            t(
               'PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.SIGNATURE_SEPARATOR.LABEL'
             )
           }}
