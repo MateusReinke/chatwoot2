@@ -53,9 +53,12 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
       'reaction'
     elsif msg.key?(:editedMessage)
       'edited'
+    elsif msg.key?(:contactMessage)
+      match_phone_number = msg.dig(:contactMessage, :vcard).match(/waid=(\d+)/)
+      match_phone_number ? 'contact' : 'unsupported'
     elsif msg.key?(:protocolMessage)
       'protocol'
-    elsif msg.key?(:messageContextInfo)
+    elsif msg.key?(:messageContextInfo) && msg.keys.count == 1
       'context'
     else
       'unsupported'
@@ -75,6 +78,15 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
         @raw_message.dig(:message, :documentWithCaptionMessage, :message, :documentMessage, :caption)
     when 'reaction'
       @raw_message.dig(:message, :reactionMessage, :text)
+    when 'contact'
+      # FIXME: Missing specs
+      display_name = @raw_message.dig(:message, :contactMessage, :displayName)
+      match_phone_number = @raw_message.dig(:message, :contactMessage, :vcard).match(/waid=(\d+)/)
+
+      return display_name unless match_phone_number
+      return match_phone_number[1] if display_name.start_with?('+')
+
+      "#{display_name} - #{match_phone_number[1]}" if match_phone_number
     end
   end
 
