@@ -38,20 +38,7 @@ else
   exit 1
 fi
 
-echo "Moving extracted files to $TARGET_DIR/..."
-
-if ls "$EXTRACT_DIR"/*.* >/dev/null 2>&1; then
-  echo "Moving files from root extraction directory..."
-  mv "$EXTRACT_DIR"/*.* "$TARGET_DIR/" 2>/dev/null || true
-fi
-
-for subdir in "$EXTRACT_DIR"/*/; do
-  if [ -d "$subdir" ]; then
-    echo "Moving files from subdirectory: $(basename "$subdir")"
-    if ls "$subdir"*.* >/dev/null 2>&1; then
-      mv "$subdir"*.* "$TARGET_DIR/" 2>/dev/null || true
-    fi
-  fi
-done
+echo "Flattening all files from extracted archive…"
+find "$EXTRACT_DIR" -type f -exec mv -f {} "$TARGET_DIR/" \;
 
 echo "Process completed."
