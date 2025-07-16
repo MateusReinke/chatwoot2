@@ -65,7 +65,7 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     end
   end
 
-  def message_content # rubocop:disable Metrics/CyclomaticComplexity
+  def message_content # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
     case message_type
     when 'text'
       @raw_message.dig(:message, :conversation) || @raw_message.dig(:message, :extendedTextMessage, :text)
@@ -81,10 +81,11 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     when 'contact'
       # FIXME: Missing specs
       display_name = @raw_message.dig(:message, :contactMessage, :displayName)
-      match_phone_number = @raw_message.dig(:message, :contactMessage, :vcard).match(/waid=(\d+)/)
+      vcard = @raw_message.dig(:message, :contactMessage, :vcard)
+      match_phone_number = vcard&.match(/waid=(\d+)/)
 
       return display_name unless match_phone_number
-      return match_phone_number[1] if display_name.start_with?('+')
+      return match_phone_number[1] if display_name&.start_with?('+')
 
       "#{display_name} - #{match_phone_number[1]}" if match_phone_number
     end
