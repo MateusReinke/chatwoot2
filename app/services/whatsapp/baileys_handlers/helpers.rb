@@ -54,7 +54,7 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     elsif msg.key?(:editedMessage)
       'edited'
     elsif msg.key?(:contactMessage)
-      match_phone_number = msg.dig(:contactMessage, :vcard).match(/waid=(\d+)/)
+      match_phone_number = msg.dig(:contactMessage, :vcard)&.match(/waid=(\d+)/)
       match_phone_number ? 'contact' : 'unsupported'
     elsif msg.key?(:protocolMessage)
       'protocol'
