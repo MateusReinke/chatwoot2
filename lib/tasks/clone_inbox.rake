@@ -29,12 +29,11 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
     # Clone contact_inboxes and map old IDs to new ones
     old_to_new_contact_inbox = {}
     source_inbox.contact_inboxes.find_each do |ci|
-      # Do not copy pubsub_token to allow has_secure_token to generate a unique token
-      new_ci = destination_inbox.contact_inboxes.create!(
-        contact_id: ci.contact_id,
+      new_ci = ContactInboxWithContactBuilder.new(
         source_id: ci.source_id,
-        hmac_verified: ci.hmac_verified
-      )
+        inbox: destination_inbox,
+        contact_attributes: { name: ci.contact.name, phone_number: ci.contact.phone_number }
+      ).perform
       old_to_new_contact_inbox[ci.id] = new_ci.id
     end
 
@@ -53,10 +52,8 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
         snoozed_until: conv.snoozed_until,
         waiting_since: conv.waiting_since,
         last_activity_at: conv.last_activity_at,
-        display_id: conv.display_id,
         additional_attributes: conv.additional_attributes,
-        custom_attributes: conv.custom_attributes,
-        uuid: conv.uuid
+        custom_attributes: conv.custom_attributes
       )
       old_to_new_conversation[conv.id] = new_conv.id
 
