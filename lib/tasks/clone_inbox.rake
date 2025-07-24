@@ -91,7 +91,9 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
         source_id: original_message.source_id
       )
 
-      if new_message.save
+      begin
+        # Skip validations (e.g., message flood prevention) for cloning
+        new_message.save!(validate: false)
         cloned_messages_count += 1
         # Clone attachments if any
         original_message.attachments.each do |attachment|
@@ -101,9 +103,9 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
             file: attachment.file.blob
           )
         end
-      else
+      rescue StandardError => e
         failed_messages_count += 1
-        puts "Failed to clone message ID: #{original_message.id}. Errors: #{new_message.errors.full_messages.join(', ')}"
+        puts "Failed to clone message ID: #{original_message.id}. Errors: #{e.message}"
       end
       print "Cloned: #{cloned_messages_count} | Failed: #{failed_messages_count}\r"
     end
