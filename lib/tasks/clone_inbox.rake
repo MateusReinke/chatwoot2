@@ -26,18 +26,30 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
 
     puts "Cloning messages from '#{source_inbox.name}' (ID: #{source_inbox.id}) to '#{destination_inbox.name}' (ID: #{destination_inbox.id})..."
 
-    # Clone contact_inboxes and map old IDs to new ones
+    # NOTE: Clone contact_inboxes and map old IDs to new ones
     old_to_new_contact_inbox = {}
     source_inbox.contact_inboxes.find_each do |ci|
+      contact_attrs = {
+        name: ci.contact.name,
+        phone_number: ci.contact.phone_number,
+        email: ci.contact.email,
+        identifier: ci.contact.identifier,
+        additional_attributes: ci.contact.additional_attributes,
+        custom_attributes: ci.contact.custom_attributes
+      }
       new_ci = ContactInboxWithContactBuilder.new(
         source_id: ci.source_id,
         inbox: destination_inbox,
-        contact_attributes: { name: ci.contact.name, phone_number: ci.contact.phone_number }
+        contact_attributes: contact_attrs
       ).perform
+      # NOTE: Copy tag labels
+      new_contact = new_ci.contact
+      new_contact.label_list = ci.contact.label_list if ci.contact.respond_to?(:label_list)
+      new_contact.save!
       old_to_new_contact_inbox[ci.id] = new_ci.id
     end
 
-    # Clone conversations and related data
+    # NOTE: Clone conversations
     old_to_new_conversation = {}
     source_inbox.conversations.find_each do |conv|
       new_conv = destination_inbox.conversations.create!(
@@ -57,7 +69,7 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
       )
       old_to_new_conversation[conv.id] = new_conv.id
 
-      # Clone participants
+      # NOTE: Clone participants
       conv.conversation_participants.find_each do |cp|
         new_conv.conversation_participants.create!(
           user_id: cp.user_id,
@@ -65,17 +77,17 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
         )
       end
 
-      # Clone CSAT survey response if present
-      if (resp = conv.csat_survey_response)
-        new_conv.create_csat_survey_response!(resp.attributes.except('id', 'conversation_id', 'created_at', 'updated_at'))
-      end
+      # # NOTE: Clone CSAT survey response if present
+      # if (resp = conv.csat_survey_response)
+      #   new_conv.create_csat_survey_response!(resp.attributes.except('id', 'conversation_id', 'created_at', 'updated_at'))
+      # end
     end
 
     cloned_messages_count = 0
     failed_messages_count = 0
 
     source_inbox.messages.find_each do |original_message|
-      # Map to newly cloned conversation ID
+      # NOTE: Map to newly cloned conversation ID
       new_conv_id = old_to_new_conversation[original_message.conversation_id]
       new_message = destination_inbox.messages.new(
         account_id: destination_inbox.account_id,
@@ -92,10 +104,10 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
       )
 
       begin
-        # Skip validations (e.g., message flood prevention) for cloning
+        # NOTE: Skip validations (e.g., message flood prevention) for cloning
         new_message.save!(validate: false)
         cloned_messages_count += 1
-        # Clone attachments if any
+        # NOTE: Clone attachments if any
         original_message.attachments.each do |attachment|
           new_message.attachments.create(
             file_type: attachment.file_type,
