@@ -117,9 +117,12 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
 
   def phone_number_from_jid
     reference_field = jid_type == 'lid' ? :senderPn : :remoteJid
+    jid = @raw_message[:key][reference_field]
+    return unless jid
+
     # NOTE: jid shape is `<user>_<agent>:<device>@<server>`
     # https://github.com/WhiskeySockets/Baileys/blob/v6.7.16/src/WABinary/jid-utils.ts#L19
-    @raw_message[:key][reference_field].split('@').first.split(':').first.split('_').first
+    jid.split('@').first.split(':').first.split('_').first
   end
 
   def contact_name
