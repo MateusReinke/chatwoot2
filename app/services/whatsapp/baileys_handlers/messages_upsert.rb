@@ -21,7 +21,7 @@ module Whatsapp::BaileysHandlers::MessagesUpsert
   end
 
   def handle_message # rubocop:disable Metrics/CyclomaticComplexity
-    return if %w[lid user].exclude?(jid_type)
+    return unless %w[lid user].include?(jid_type)
     return if jid_type == 'lid' && !phone_number_from_jid
     return if ignore_message?
     return if find_message_by_source_id(raw_message_id) || message_under_process?
