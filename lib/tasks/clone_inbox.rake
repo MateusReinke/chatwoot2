@@ -99,7 +99,8 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
         new_message = destination_inbox.messages.new(message_attrs)
 
         begin
-          new_message.save!(validate: false)
+          new_message.skip_message_flooding_validation = true
+          new_message.save!
           cloned_messages_count += 1
           original_message.attachments.each do |attachment|
             new_message.attachments.create!(
