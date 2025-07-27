@@ -11,115 +11,109 @@ namespace :inbox do # rubocop:disable Metrics/BlockLength
       next
     end
 
-    source_inbox = Inbox.find_by(id: source_inbox_id)
-    destination_inbox = Inbox.find_by(id: destination_inbox_id)
-
-    unless source_inbox
-      puts "Error: Source inbox with ID #{source_inbox_id} not found."
+    if source_inbox_id == destination_inbox_id
+      puts "ERROR: Source and destination inbox IDs are the same (ID: #{source_inbox_id}). Please provide different IDs."
       next
     end
 
-    unless destination_inbox
-      puts "Error: Destination inbox with ID #{destination_inbox_id} not found."
+    source_inbox = Inbox.find(source_inbox_id)
+    destination_inbox = Inbox.find(destination_inbox_id)
+
+    if source_inbox.account_id != destination_inbox.account_id
+      puts "ERROR: Source and destination inboxes are in different accounts (Source Account ID: #{source_inbox.account_id}, " \
+           "Destination Account ID: #{destination_inbox.account_id})"
       next
     end
 
     puts "Cloning messages from '#{source_inbox.name}' (ID: #{source_inbox.id}) to '#{destination_inbox.name}' (ID: #{destination_inbox.id})..."
 
-    # NOTE: Clone contact_inboxes and map old IDs to new ones
     old_to_new_contact_inbox = {}
-    source_inbox.contact_inboxes.find_each do |ci|
-      contact_attrs = {
-        name: ci.contact.name,
-        phone_number: ci.contact.phone_number,
-        email: ci.contact.email,
-        identifier: ci.contact.identifier,
-        additional_attributes: ci.contact.additional_attributes,
-        custom_attributes: ci.contact.custom_attributes
-      }
-      new_ci = ContactInboxWithContactBuilder.new(
-        source_id: ci.source_id,
-        inbox: destination_inbox,
-        contact_attributes: contact_attrs
-      ).perform
-      # NOTE: Copy tag labels
-      new_contact = new_ci.contact
-      new_contact.label_list = ci.contact.label_list if ci.contact.respond_to?(:label_list)
-      new_contact.save!
-      old_to_new_contact_inbox[ci.id] = new_ci.id
-    end
-
-    # NOTE: Clone conversations
     old_to_new_conversation = {}
-    source_inbox.conversations.find_each do |conv|
-      new_conv = destination_inbox.conversations.create!(
-        account_id: destination_inbox.account_id,
-        contact_id: conv.contact_id,
-        contact_inbox_id: old_to_new_contact_inbox[conv.contact_inbox_id],
-        assignee_id: conv.assignee_id,
-        team_id: conv.team_id,
-        campaign_id: conv.campaign_id,
-        status: conv.status,
-        priority: conv.priority,
-        snoozed_until: conv.snoozed_until,
-        waiting_since: conv.waiting_since,
-        last_activity_at: conv.last_activity_at,
-        additional_attributes: conv.additional_attributes,
-        custom_attributes: conv.custom_attributes
-      )
-      old_to_new_conversation[conv.id] = new_conv.id
-
-      # NOTE: Clone participants
-      conv.conversation_participants.find_each do |cp|
-        new_conv.conversation_participants.create!(
-          user_id: cp.user_id,
-          account_id: new_conv.account_id
-        )
-      end
-
-      # # NOTE: Clone CSAT survey response if present
-      # if (resp = conv.csat_survey_response)
-      #   new_conv.create_csat_survey_response!(resp.attributes.except('id', 'conversation_id', 'created_at', 'updated_at'))
-      # end
-    end
-
     cloned_messages_count = 0
     failed_messages_count = 0
 
-    source_inbox.messages.find_each do |original_message|
-      # NOTE: Map to newly cloned conversation ID
-      new_conv_id = old_to_new_conversation[original_message.conversation_id]
-      new_message = destination_inbox.messages.new(
-        account_id: destination_inbox.account_id,
-        conversation_id: new_conv_id,
-        message_type: original_message.message_type,
-        content: original_message.content,
-        private: original_message.private,
-        content_type: original_message.content_type,
-        content_attributes: original_message.content_attributes,
-        sender_id: original_message.sender_id,
-        sender_type: original_message.sender_type,
-        external_source_ids: original_message.external_source_ids,
-        source_id: original_message.source_id
-      )
+    ActiveRecord::Base.transaction do # rubocop:disable Metrics/BlockLength
+      puts 'Cloning contacts and contact inboxes...'
+      source_inbox.contact_inboxes.includes(:contact).find_each do |contact_inbox|
+        contact_attrs = contact_inbox.contact.attributes.except('id', 'created_at', 'updated_at', 'account_id')
 
-      begin
-        # NOTE: Skip validations (e.g., message flood prevention) for cloning
-        new_message.save!(validate: false)
-        cloned_messages_count += 1
-        # NOTE: Clone attachments if any
-        original_message.attachments.each do |attachment|
-          new_message.attachments.create(
-            file_type: attachment.file_type,
-            account_id: destination_inbox.account_id,
-            file: attachment.file.blob
-          )
+        new_contact_inbox = ContactInboxWithContactBuilder.new(
+          source_id: contact_inbox.source_id,
+          inbox: destination_inbox,
+          contact_attributes: contact_attrs
+        ).perform
+        new_contact = new_contact_inbox.contact
+
+        # Clone contact labels if they exist
+        if contact_inbox.contact.respond_to?(:label_list) && contact_inbox.contact.label_list.present?
+          new_contact.label_list = contact_inbox.contact.label_list
         end
-      rescue StandardError => e
-        failed_messages_count += 1
-        puts "Failed to clone message ID: #{original_message.id}. Errors: #{e.message}"
+
+        # Clone contact custom attributes if they exist
+        new_contact.custom_attributes = contact_inbox.contact.custom_attributes.dup if contact_inbox.contact.custom_attributes.present?
+
+        new_contact.save!
+        old_to_new_contact_inbox[contact_inbox.id] = new_contact_inbox.id
       end
-      print "Cloned: #{cloned_messages_count} | Failed: #{failed_messages_count}\r"
+      puts "Cloned #{old_to_new_contact_inbox.count} contact inboxes."
+
+      puts 'Cloning conversations...'
+      source_inbox.conversations.includes(:conversation_participants, :csat_survey_response).find_each do |conversation|
+        new_conversation_attrs = conversation.attributes.except('id', 'display_id', 'updated_at', 'uuid')
+        new_conversation_attrs['inbox_id'] = destination_inbox.id
+        new_conversation_attrs['contact_inbox_id'] = old_to_new_contact_inbox[conversation.contact_inbox_id]
+
+        new_conversation = destination_inbox.conversations.create!(new_conversation_attrs)
+        old_to_new_conversation[conversation.id] = new_conversation.id
+
+        # Clone conversation labels
+        if conversation.label_list.present?
+          new_conversation.label_list = conversation.label_list
+          new_conversation.save!
+        end
+
+        # Clone conversation custom attributes
+        new_conversation.update!(custom_attributes: conversation.custom_attributes.dup) if conversation.custom_attributes.present?
+
+        conversation.conversation_participants.each do |conversation_participant|
+          participant_attrs = conversation_participant.attributes.except('id', 'created_at', 'updated_at')
+          participant_attrs['conversation_id'] = new_conversation.id
+          new_conversation.conversation_participants.create!(participant_attrs)
+        end
+
+        if (csat_response = conversation.csat_survey_response)
+          new_conversation.create_csat_survey_response!(csat_response.attributes.except('id', 'conversation_id', 'updated_at'))
+        end
+      end
+      puts "Cloned #{old_to_new_conversation.count} conversations."
+
+      puts 'Cloning messages...'
+      source_inbox.messages.includes(:attachments).find_each do |original_message|
+        new_conv_id = old_to_new_conversation[original_message.conversation_id]
+        next unless new_conv_id
+
+        message_attrs = original_message.attributes.except('id', 'updated_at')
+        message_attrs['conversation_id'] = new_conv_id
+        message_attrs['inbox_id'] = destination_inbox.id
+
+        new_message = destination_inbox.messages.new(message_attrs)
+
+        begin
+          new_message.save!(validate: false)
+          cloned_messages_count += 1
+          original_message.attachments.each do |attachment|
+            new_message.attachments.create!(
+              file_type: attachment.file_type,
+              account_id: destination_inbox.account_id,
+              file: attachment.file.blob
+            )
+          end
+        rescue StandardError => e
+          failed_messages_count += 1
+          puts "Failed to clone message ID: #{original_message.id}. Errors: #{e.message}"
+        end
+        print "Progress: Cloned: #{cloned_messages_count} | Failed: #{failed_messages_count}\r"
+      end
     end
 
     puts "\nCloning complete."
