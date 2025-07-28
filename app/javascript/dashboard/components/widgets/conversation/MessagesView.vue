@@ -475,6 +475,7 @@ export default {
       this.store
         .dispatch('inboxes/setupChannelProvider', this.inbox.id)
         .catch(e => {
+          // eslint-disable-next-line no-console
           console.error('Error setting up provider connection:', e);
           useAlert('Failed to reconnect. Please try again or contact support.');
         });
