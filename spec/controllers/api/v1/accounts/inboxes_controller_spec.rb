@@ -994,7 +994,7 @@ RSpec.describe 'Inboxes API', type: :request do
              headers: admin.create_new_auth_token,
              as: :json
 
-        expect(response).to have_http_status(:internal_server_error)
+        expect(response).to have_http_status(:ok)
         expect(channel.reload.provider_connection).to eq('connection' => 'close')
       end
     end
