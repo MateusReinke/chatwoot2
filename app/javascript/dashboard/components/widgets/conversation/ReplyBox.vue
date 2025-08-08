@@ -899,6 +899,11 @@ export default {
     onFinishRecorder(file) {
       this.recordingAudioState = 'stopped';
       this.hasRecordedAudio = true;
+
+      this.attachedFiles = this.attachedFiles.filter(
+        attachment => !attachment.isRecordedAudio
+      );
+
       // Added a new key isRecordedAudio to the file to find it's and recorded audio
       // Because to filter and show only non recorded audio and other attachments
       const autoRecordedFile = {
@@ -925,6 +930,12 @@ export default {
       const reader = new FileReader();
       reader.readAsDataURL(file.file);
       reader.onloadend = () => {
+        if (file?.isRecordedAudio) {
+          this.attachedFiles = this.attachedFiles.filter(
+            attachment => !attachment.isRecordedAudio
+          );
+        }
+
         this.attachedFiles.push({
           currentChatId: this.currentChat.id,
           resource: blob || file,
