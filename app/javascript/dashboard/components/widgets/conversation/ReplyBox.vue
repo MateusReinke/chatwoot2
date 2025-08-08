@@ -117,7 +117,6 @@ export default {
       showVariablesMenu: false,
       newConversationModalActive: false,
       showArticleSearchPopover: false,
-      hasRecordedAudio: false,
     };
   },
   computed: {
@@ -293,6 +292,9 @@ export default {
     },
     hasAttachments() {
       return this.attachedFiles.length;
+    },
+    hasRecordedAudio() {
+      return this.attachedFiles.some(file => file.isRecordedAudio);
     },
     isRichEditorEnabled() {
       return this.isAWebWidgetInbox || this.isAnEmailChannel;
@@ -898,7 +900,6 @@ export default {
     },
     onFinishRecorder(file) {
       this.recordingAudioState = 'stopped';
-      this.hasRecordedAudio = true;
 
       this.attachedFiles = this.attachedFiles.filter(
         attachment => !attachment.isRecordedAudio
@@ -1105,7 +1106,6 @@ export default {
       this.recordingAudioDurationText = '00:00';
       this.isRecordingAudio = false;
       this.recordingAudioState = '';
-      this.hasRecordedAudio = false;
       // Only clear the recorded audio when we click toggle button.
       this.attachedFiles = this.attachedFiles.filter(
         file => !file?.isRecordedAudio
