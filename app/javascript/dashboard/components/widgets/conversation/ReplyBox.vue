@@ -901,9 +901,7 @@ export default {
     onFinishRecorder(file) {
       this.recordingAudioState = 'stopped';
 
-      this.attachedFiles = this.attachedFiles.filter(
-        attachment => !attachment.isRecordedAudio
-      );
+      this.removeRecordedAudio();
 
       // Added a new key isRecordedAudio to the file to find it's and recorded audio
       // Because to filter and show only non recorded audio and other attachments
@@ -928,15 +926,13 @@ export default {
       });
     },
     attachFile({ blob, file }) {
+      if (file?.isRecordedAudio) {
+        this.removeRecordedAudio();
+      }
+
       const reader = new FileReader();
       reader.readAsDataURL(file.file);
       reader.onloadend = () => {
-        if (file?.isRecordedAudio) {
-          this.attachedFiles = this.attachedFiles.filter(
-            attachment => !attachment.isRecordedAudio
-          );
-        }
-
         this.attachedFiles.push({
           currentChatId: this.currentChat.id,
           resource: blob || file,
@@ -1107,6 +1103,9 @@ export default {
       this.isRecordingAudio = false;
       this.recordingAudioState = '';
       // Only clear the recorded audio when we click toggle button.
+      this.removeRecordedAudio();
+    },
+    removeRecordedAudio() {
       this.attachedFiles = this.attachedFiles.filter(
         file => !file?.isRecordedAudio
       );
