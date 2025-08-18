@@ -76,7 +76,8 @@ const formattedSignature = computed(() => {
 const messagePreview = computed(() => {
   if (!signature.value) return sampleMessage.value;
 
-  const separator = signatureSeparator.value === 'blank' ? '<p/>' : '<p>--</p>';
+  const separator =
+    signatureSeparator.value === 'blank' ? '<p></p>' : '<p>--</p>';
 
   if (signaturePosition.value === 'top') {
     return `${formattedSignature.value}${separator}${sampleMessage.value}`;

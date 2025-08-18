@@ -968,7 +968,7 @@ export default {
     },
     getMessagePayload(message) {
       let finalMessage = message;
-      if (this.sendWithSignature && !this.isPrivate && this.signatureToApply) {
+      if (this.sendWithSignature && !this.isPrivate && this.messageSignature) {
         const { signature_position, signature_separator } =
           this.currentUser?.ui_settings || {};
         const signatureSettings = {
@@ -977,7 +977,7 @@ export default {
         };
         finalMessage = appendSignature(
           message,
-          this.signatureToApply,
+          this.messageSignature,
           signatureSettings
         );
       }
