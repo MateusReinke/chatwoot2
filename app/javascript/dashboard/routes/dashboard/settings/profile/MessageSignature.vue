@@ -132,46 +132,62 @@ const handleSeparatorChange = value => {
 <template>
   <form class="flex flex-col gap-6" @submit.prevent="updateSignature()">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Select
-        v-model="signaturePosition"
-        name="signaturePosition"
-        :label="
-          t(
-            'PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.SIGNATURE_POSITION.LABEL'
-          )
-        "
-        :options="positionOptions"
-        @update:model-value="handlePositionChange"
-      >
-        <option
-          v-for="option in positionOptions"
-          :key="option.value"
-          :value="option.value"
-          :selected="option.value === signaturePosition"
+      <div class="flex flex-col gap-2">
+        <label
+          for="signaturePosition"
+          class="text-sm font-medium text-n-slate-12"
         >
-          {{ option.label }}
-        </option>
-      </Select>
-      <Select
-        v-model="signatureSeparator"
-        name="signatureSeparator"
-        :label="
-          t(
-            'PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.SIGNATURE_SEPARATOR.LABEL'
-          )
-        "
-        :options="separatorOptions"
-        @update:model-value="handleSeparatorChange"
-      >
-        <option
-          v-for="option in separatorOptions"
-          :key="option.value"
-          :value="option.value"
-          :selected="option.value === signatureSeparator"
+          {{
+            t(
+              'PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.SIGNATURE_POSITION.LABEL'
+            )
+          }}
+        </label>
+        <select
+          id="signaturePosition"
+          v-model="signaturePosition"
+          name="signaturePosition"
+          class="block w-full px-3 py-2 pr-6 mb-0 shadow-sm appearance-none rounded-xl select-caret leading-6 bg-white dark:bg-n-slate-3 border border-n-slate-3 dark:border-n-slate-7"
+          @change="handlePositionChange($event.target.value)"
         >
-          {{ option.label }}
-        </option>
-      </Select>
+          <option
+            v-for="option in positionOptions"
+            :key="option.value"
+            :value="option.value"
+            :selected="option.value === signaturePosition"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+      <div class="flex flex-col gap-2">
+        <label
+          for="signatureSeparator"
+          class="text-sm font-medium text-n-slate-12"
+        >
+          {{
+            t(
+              'PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.SIGNATURE_SEPARATOR.LABEL'
+            )
+          }}
+        </label>
+        <select
+          id="signatureSeparator"
+          v-model="signatureSeparator"
+          name="signatureSeparator"
+          class="block w-full px-3 py-2 pr-6 mb-0 shadow-sm appearance-none rounded-xl select-caret leading-6 bg-white dark:bg-n-slate-3 border border-n-slate-3 dark:border-n-slate-7"
+          @change="handleSeparatorChange($event.target.value)"
+        >
+          <option
+            v-for="option in separatorOptions"
+            :key="option.value"
+            :value="option.value"
+            :selected="option.value === signatureSeparator"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
     </div>
     <WootMessageEditor
       id="message-signature-input"
@@ -183,15 +199,6 @@ const handleSeparatorChange = value => {
       :enable-suggestions="false"
       show-image-resize-toolbar
     />
-    <<<<<<< HEAD
-    <div>
-      <NextButton
-        type="submit"
-        :label="$t('PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.BTN_TEXT')"
-      />
-    </div>
-    =======
-
     <div
       class="flex flex-col gap-3 p-4 bg-n-slate-1 dark:bg-n-slate-2 rounded-lg border border-n-slate-4 dark:border-n-slate-8"
     >
@@ -221,15 +228,21 @@ const handleSeparatorChange = value => {
         {{ $t('PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.PREVIEW.NOTE') }}
       </p>
     </div>
-
-    <FormButton
-      type="submit"
-      color-scheme="primary"
-      variant="solid"
-      size="large"
-    >
-      {{ $t('PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.BTN_TEXT') }}
-    </FormButton>
-    >>>>>>> 1f58c7503 (feat: switch -> select)
+    <div>
+      <NextButton
+        type="submit"
+        :label="$t('PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.BTN_TEXT')"
+      />
+    </div>
   </form>
 </template>
+
+<style scoped>
+.select-caret {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' width='32' height='24' viewBox='0 0 32 24'><polygon points='0,0 32,0 16,24' style='fill: rgb%28110, 111, 115%29'></polygon></svg>");
+  background-origin: content-box;
+  background-position: right -1rem center;
+  background-repeat: no-repeat;
+  background-size: 9px 6px;
+}
+</style>
