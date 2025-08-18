@@ -100,13 +100,11 @@ export default {
   },
   methods: {
     getSignatureSettings() {
+      const { signature_position, signature_separator } =
+        this.$store.getters.getCurrentUser?.ui_settings || {};
       return {
-        position:
-          this.$store.getters.getCurrentUser?.ui_settings?.signature_position ||
-          'top',
-        separator:
-          this.$store.getters.getCurrentUser?.ui_settings
-            ?.signature_separator || 'blank',
+        position: signature_position || 'top',
+        separator: signature_separator || 'blank',
       };
     },
     resizeTextarea() {
