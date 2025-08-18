@@ -28,8 +28,6 @@ const props = defineProps({
     validator: value => ['info', 'error', 'success'].includes(value),
   },
   signature: { type: String, default: '' },
-  signaturePosition: { type: String, default: 'top' }, // 'top' or 'bottom'
-  signatureSeparator: { type: String, default: 'blank' }, // 'blank' or '--'
   sendWithSignature: { type: Boolean, default: false }, // add this as a prop, so that we won't have to add useUISettings
   allowSignature: { type: Boolean, default: false }, // allowSignature is a kill switch, ensuring no signature methods are triggered except when this flag is true
 });
@@ -68,34 +66,14 @@ const adjustHeight = () => {
 const setCursor = () => {
   if (!textareaRef.value) return;
 
-  // Get signature settings from store if available
-  const signaturePosition = props.signaturePosition || 'top';
-  const signatureSeparator = props.signatureSeparator || 'blank';
-  let cursorPosition;
-
-  if (
-    signaturePosition === 'top' &&
-    props.signature &&
-    props.sendWithSignature
-  ) {
-    // Position cursor after signature when signature is at start
-    const signatureLength = cleanedSignature.value.length;
-    let separatorLength = 2;
-    if (signatureSeparator !== 'blank') {
-      separatorLength += signatureSeparator.length;
-    }
-    cursorPosition = signatureLength + separatorLength;
-  } else {
-    // Default behavior: position at end of body without signature
-    const bodyWithoutSignature = removeSignature(
-      props.modelValue,
-      cleanedSignature.value
-    );
-    cursorPosition = bodyWithoutSignature.trimEnd().length;
-  }
+  const bodyWithoutSignature = removeSignature(
+    props.modelValue,
+    cleanedSignature.value
+  );
+  const bodyEndsAt = bodyWithoutSignature.trimEnd().length;
 
   textareaRef.value.focus();
-  textareaRef.value.setSelectionRange(cursorPosition, cursorPosition);
+  textareaRef.value.setSelectionRange(bodyEndsAt, bodyEndsAt);
 };
 
 const toggleSignatureInEditor = signatureEnabled => {
