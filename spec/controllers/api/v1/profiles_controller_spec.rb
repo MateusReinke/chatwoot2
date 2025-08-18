@@ -158,10 +158,10 @@ RSpec.describe 'Profile API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
+
         json_response = response.parsed_body
-        agent.reload
         expect(json_response['ui_settings']['signature_position']).to eq('bottom')
-        expect(agent.ui_settings['signature_position']).to eq('bottom')
+        expect(agent.reload.ui_settings['signature_position']).to eq('bottom')
       end
 
       it 'updates signature separator in ui_settings' do
@@ -171,10 +171,10 @@ RSpec.describe 'Profile API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
+
         json_response = response.parsed_body
-        agent.reload
         expect(json_response['ui_settings']['signature_separator']).to eq('--')
-        expect(agent.ui_settings['signature_separator']).to eq('--')
+        expect(agent.reload.ui_settings['signature_separator']).to eq('--')
       end
 
       it 'updates both position and separator in ui_settings' do
@@ -184,11 +184,11 @@ RSpec.describe 'Profile API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:success)
+
         json_response = response.parsed_body
-        agent.reload
         expect(json_response['ui_settings']['signature_position']).to eq('bottom')
         expect(json_response['ui_settings']['signature_separator']).to eq('--')
-        expect(agent.ui_settings['signature_position']).to eq('bottom')
+        expect(agent.reload.ui_settings['signature_position']).to eq('bottom')
         expect(agent.ui_settings['signature_separator']).to eq('--')
       end
     end
