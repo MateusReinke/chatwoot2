@@ -111,26 +111,9 @@ export default {
     // watcher, this means that if the value is true, the signature
     // is supposed to be added, else we remove it.
     toggleSignatureInEditor(signatureEnabled) {
-      const signatureSettings = {
-        position:
-          this.$store.getters.getCurrentUser?.ui_settings?.signature_position ||
-          'top',
-        separator:
-          this.$store.getters.getCurrentUser?.ui_settings
-            ?.signature_separator || 'blank',
-      };
-
       const valueWithSignature = signatureEnabled
-        ? appendSignature(
-            this.modelValue,
-            this.cleanedSignature,
-            signatureSettings
-          )
-        : removeSignature(
-            this.modelValue,
-            this.cleanedSignature,
-            signatureSettings
-          );
+        ? appendSignature(this.modelValue, this.cleanedSignature)
+        : removeSignature(this.modelValue, this.cleanedSignature);
 
       this.$emit('update:modelValue', valueWithSignature);
       this.$emit('input', valueWithSignature);
