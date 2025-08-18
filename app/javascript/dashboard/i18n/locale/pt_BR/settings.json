@@ -75,6 +75,12 @@
             "BLANK": "Linha em branco",
             "HORIZONTAL_LINE": "Linha horizontal (--)"
           }
+        },
+        "PREVIEW": {
+          "TITLE": "Pré-visualização da Assinatura",
+          "NOTE": "Esta é a aparência da sua assinatura nas mensagens",
+          "EMPTY": "Digite uma assinatura acima para ver a pré-visualização",
+          "SAMPLE_MESSAGE": "Olá! Obrigado por entrar em contato. Como posso ajudá-lo hoje?"
         }
       },
       "MESSAGE_SIGNATURE": {

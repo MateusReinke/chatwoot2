@@ -75,6 +75,12 @@
             "BLANK": "Blank line",
             "HORIZONTAL_LINE": "Horizontal line (--)"
           }
+        },
+        "PREVIEW": {
+          "TITLE": "Signature Preview",
+          "NOTE": "This is how your signature will appear in messages",
+          "EMPTY": "Enter a signature above to see the preview",
+          "SAMPLE_MESSAGE": "Hello! Thank you for contacting us. How can I help you today?"
         }
       },
       "MESSAGE_SIGNATURE": {
