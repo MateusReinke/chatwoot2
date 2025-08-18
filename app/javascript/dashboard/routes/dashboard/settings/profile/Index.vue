@@ -107,15 +107,15 @@ export default {
       this.avatarUrl = this.currentUser.avatar_url;
       this.displayName = this.currentUser.display_name;
       this.messageSignature = this.currentUser.message_signature;
-      this.signaturePosition =
-        this.currentUser.ui_settings?.signature_position || 'top';
-      this.signatureSeparator =
-        this.currentUser.ui_settings?.signature_separator || 'blank';
+
+      const { signature_position, signature_separator } =
+        this.currentUser.ui_settings || {};
+      this.signaturePosition = signature_position || 'top';
+      this.signatureSeparator = signature_separator || 'blank';
     },
     async dispatchUpdate(payload, successMessage, errorMessage) {
       let alertMessage = '';
       try {
-        // Dispatch the update action
         await this.$store.dispatch('updateProfile', payload);
         alertMessage = successMessage;
 
@@ -171,8 +171,9 @@ export default {
         this.signaturePosition = signaturePosition;
         this.signatureSeparator = signatureSeparator;
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error updating signature:', error);
+        useAlert(
+          this.$t('PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.API_ERROR')
+        );
       }
     },
     updateProfilePicture({ file, url }) {
