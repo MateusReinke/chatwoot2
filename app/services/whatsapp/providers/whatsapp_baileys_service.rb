@@ -323,5 +323,6 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
                       :update_presence,
                       :read_messages,
                       :unread_message,
-                      :received_messages
+                      :received_messages,
+                      :on_whatsapp
 end
