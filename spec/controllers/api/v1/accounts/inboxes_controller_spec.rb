@@ -1081,7 +1081,7 @@ RSpec.describe 'Inboxes API', type: :request do
 
         post "/api/v1/accounts/#{account.id}/inboxes/#{inbox.id}/on_whatsapp",
              headers: admin.create_new_auth_token,
-             params: { phone_number: '+123456789', exists: false, lid: nil },
+             params: { phone_number: '+123456789' },
              as: :json
 
         expect(response).to have_http_status(:ok)

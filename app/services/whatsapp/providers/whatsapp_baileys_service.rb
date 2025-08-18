@@ -202,7 +202,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
     raise ProviderUnavailableError unless process_response(response)
 
-    response.parsed_response&.first
+    response.parsed_response&.first || { 'jid' => remote_jid, 'exists' => false, 'lid' => nil }
   end
 
   private

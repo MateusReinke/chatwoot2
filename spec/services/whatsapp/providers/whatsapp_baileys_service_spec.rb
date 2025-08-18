@@ -660,6 +660,20 @@ describe Whatsapp::Providers::WhatsappBaileysService do
 
         expect(response).to eq({ 'jid' => "#{phone_number.delete('+')}@s.whatsapp.net", 'exists' => true, 'lid' => '123@lid' })
       end
+
+      it 'returns default check response' do
+        stub_request(:post, request_path)
+          .with(headers: stub_headers(whatsapp_channel), body: { jids: ["#{phone_number.delete('+')}@s.whatsapp.net"] }.to_json)
+          .to_return(
+            status: 200,
+            headers: { 'Content-Type' => 'application/json' },
+            body: [].to_json
+          )
+
+        response = service.on_whatsapp(phone_number)
+
+        expect(response).to eq({ 'jid' => "#{phone_number.delete('+')}@s.whatsapp.net", 'exists' => false, 'lid' => nil })
+      end
     end
 
     context 'when response is unsuccessful' do

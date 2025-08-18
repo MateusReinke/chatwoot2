@@ -103,7 +103,6 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
     end
 
     response = channel.on_whatsapp(phone_number)
-    response ||= { jid: "#{phone_number.delete('+')}@s.whatsapp.net", exists: false, lid: nil }
 
     render json: response, status: :ok
   end
