@@ -120,6 +120,7 @@ RSpec.describe User do
   context 'when the user has signature position set' do
     it 'returns the user signature position' do
       user.update!(ui_settings: { signature_position: 'bottom' })
+
       expect(user.signature_position).to eq('bottom')
     end
   end
@@ -133,6 +134,7 @@ RSpec.describe User do
   context 'when the user has signature separator set' do
     it 'returns the user signature separator' do
       user.update!(ui_settings: { signature_separator: '--' })
+
       expect(user.signature_separator).to eq('--')
     end
   end
