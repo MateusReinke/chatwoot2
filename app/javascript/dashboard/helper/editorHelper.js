@@ -38,26 +38,23 @@ export function cleanSignature(signature) {
 }
 
 /**
- * Check if there's an unedited signature at the body
+ * Check if there's an unedited signature at the end of the body
  * If there is, return the index of the signature, If there isn't, return -1
  *
  * @param {string} body - The body to search for the signature.
  * @param {string} signature - The signature to search for.
- * @returns { { index: number, position: string } } - An object containing the index of the signature and its position ('start' or 'end').
- * If the signature is not found, returns { index: -1, position: 'not found' }.
+ * @returns {number} - The index of the last occurrence of the signature in the body, or -1 if not found.
  */
 export function findSignatureInBody(body, signature) {
   const trimmedBody = body.trimEnd();
   const cleanedSignature = cleanSignature(signature);
+
   // check if body ends with signature
   if (trimmedBody.endsWith(cleanedSignature)) {
-    return { index: body.lastIndexOf(cleanedSignature), position: 'bottom' };
-  }
-  if (trimmedBody.startsWith(cleanedSignature)) {
-    return { index: cleanedSignature.length, position: 'top' };
+    return body.lastIndexOf(cleanedSignature);
   }
 
-  return { index: -1, position: 'not found' };
+  return -1;
 }
 
 /**
@@ -77,22 +74,16 @@ export function appendSignature(body, signature, settings = {}) {
     return body;
   }
 
-  let delimiter = '';
-  if (separator === 'blank') {
-    delimiter = '';
-  } else if (separator === '--') {
-    delimiter = '\n\n--\n\n';
-  } else {
-    delimiter = separator;
-  }
+  const delimiter =
+    {
+      blank: '\n\n',
+      '--': '\n\n--\n\n',
+    }[separator] || separator;
+
   if (position === 'top') {
-    return separator === '--'
-      ? `${cleanedSignature}${delimiter}${body.trimStart()}`
-      : `${cleanedSignature}\n${delimiter}\n${body.trimStart()}`;
+    return `${cleanedSignature}${delimiter}${body.trimStart()}`;
   }
-  return separator === '--'
-    ? `${body.trimEnd()}${delimiter}${cleanedSignature}`
-    : `${body.trimEnd()}\n${delimiter}\n${cleanedSignature}`;
+  return `${body.trimEnd()}${delimiter}${cleanedSignature}`;
 }
 
 /**
@@ -100,37 +91,35 @@ export function appendSignature(body, signature, settings = {}) {
  *
  * @param {string} body - The body to remove the signature from.
  * @param {string} signature - The signature to remove.
- * @param {Object} settings - The signature settings (position, separator).
  * @returns {string} - The body with the signature removed.
  */
-export function removeSignature(body, signature, separator = 'blank') {
+export function removeSignature(body, signature) {
+  // this will find the index of the signature if it exists
+  // Regardless of extra spaces or new lines after the signature, the index will be the same if present
   const cleanedSignature = cleanSignature(signature);
-  const signatureFound = findSignatureInBody(body, cleanedSignature);
+  const signatureIndex = findSignatureInBody(body, cleanedSignature);
 
-  // NOTE: Signature not found, return original body
-  if (signatureFound.index === -1) {
-    return body;
-  }
-
+  // no need to trim the ends here, because it will simply be removed in the next method
   let newBody = body;
-  let delimiterLength = 0;
-  if (separator === 'blank') {
-    delimiterLength = 2; // for the newlines around blank separator
-  } else if (separator === '--') {
-    delimiterLength = 6; // '\n\n--\n\n'.length
-  } else {
-    delimiterLength = separator.length + 2; // custom separator + newlines
-  }
-  if (signatureFound.position === 'top') {
-    // NOTE: Remove delimiter after signature: `<cleanedSignature>\n<separator>\n<messageContent>`
-    const signatureEndIndex = signatureFound.index + delimiterLength;
-    newBody = newBody.substring(signatureEndIndex).trimStart();
-  } else if (signatureFound.position === 'bottom') {
-    // NOTE: Remove delimiter before signature: `<messageContent>\n<separator>\n<cleanedSignature>`
-    const signatureStartIndex = signatureFound.index - delimiterLength;
-    newBody = newBody.substring(0, signatureStartIndex).trimEnd();
+
+  // if signature is present, remove it and trim it
+  // trimming will ensure any spaces or new lines before the signature are removed
+  // This means we will have the delimiter at the end
+  if (signatureIndex > -1) {
+    newBody = newBody.substring(0, signatureIndex).trimEnd();
   }
 
+  // let's find the delimiter and remove it
+  const delimiterIndex = newBody.lastIndexOf(SIGNATURE_DELIMITER);
+  if (
+    delimiterIndex !== -1 &&
+    delimiterIndex === newBody.length - SIGNATURE_DELIMITER.length // this will ensure the delimiter is at the end
+  ) {
+    // if the delimiter is at the end, remove it
+    newBody = newBody.substring(0, delimiterIndex);
+  }
+
+  // return the value
   return newBody;
 }
 
@@ -141,22 +130,12 @@ export function removeSignature(body, signature, separator = 'blank') {
  * @param {string} body - The body to replace the signature in.
  * @param {string} oldSignature - The signature to replace.
  * @param {string} newSignature - The signature to replace the old signature with.
- * @param {Object} settings - The signature settings (position, separator).
  * @returns {string} - The body with the old signature replaced with the new signature.
  *
  */
-export function replaceSignature(
-  body,
-  oldSignature,
-  newSignature,
-  settings = {}
-) {
-  const withoutSignature = removeSignature(
-    body,
-    oldSignature,
-    settings.separator || 'blank'
-  );
-  return appendSignature(withoutSignature, newSignature, settings);
+export function replaceSignature(body, oldSignature, newSignature) {
+  const withoutSignature = removeSignature(body, oldSignature);
+  return appendSignature(withoutSignature, newSignature);
 }
 
 /**

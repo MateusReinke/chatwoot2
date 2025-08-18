@@ -970,13 +970,13 @@ export default {
       return multipleMessagePayload;
     },
     getMessagePayload(message) {
-      // Apply signature at send time if enabled and not private
       let finalMessage = message;
       if (this.sendWithSignature && !this.isPrivate && this.signatureToApply) {
+        const { signature_position, signature_separator } =
+          this.currentUser?.ui_settings || {};
         const signatureSettings = {
-          position: this.currentUser?.ui_settings?.signature_position || 'top',
-          separator:
-            this.currentUser?.ui_settings?.signature_separator || 'blank',
+          position: signature_position || 'top',
+          separator: signature_separator || 'blank',
         };
         finalMessage = appendSignature(
           message,

@@ -99,14 +99,6 @@ export default {
     });
   },
   methods: {
-    getSignatureSettings() {
-      const { signature_position, signature_separator } =
-        this.$store.getters.getCurrentUser?.ui_settings || {};
-      return {
-        position: signature_position || 'top',
-        separator: signature_separator || 'blank',
-      };
-    },
     resizeTextarea() {
       this.$el.style.height = 'auto';
       if (!this.modelValue) {
@@ -119,7 +111,14 @@ export default {
     // watcher, this means that if the value is true, the signature
     // is supposed to be added, else we remove it.
     toggleSignatureInEditor(signatureEnabled) {
-      const signatureSettings = this.getSignatureSettings();
+      const signatureSettings = {
+        position:
+          this.$store.getters.getCurrentUser?.ui_settings?.signature_position ||
+          'top',
+        separator:
+          this.$store.getters.getCurrentUser?.ui_settings
+            ?.signature_separator || 'blank',
+      };
 
       const valueWithSignature = signatureEnabled
         ? appendSignature(
@@ -142,29 +141,19 @@ export default {
       });
     },
     setCursor() {
-      const signatureSettings = this.getSignatureSettings();
+      const bodyWithoutSignature = removeSignature(
+        this.modelValue,
+        this.cleanedSignature
+      );
 
+      // only trim at end, so if there are spaces at the start, those are not removed
+      const bodyEndsAt = bodyWithoutSignature.trimEnd().length;
       const textarea = this.$refs.textarea;
-      if (!textarea) return;
 
-      let cursorPosition;
-      if (signatureSettings.position === 'top' && this.cleanedSignature) {
-        // Position cursor after signature when signature is at start
-        // const signatureLength = this.cleanedSignature.length;
-        // const separatorLength = signatureSettings.separator === '--' ? 4 : 2; // "\n--\n" vs "\n\n"
-        cursorPosition = this.modelValue.trimEnd().length; // signatureLength + separatorLength;
-      } else {
-        // Default behavior: position at end of body without signature
-        const bodyWithoutSignature = removeSignature(
-          this.modelValue,
-          this.cleanedSignature,
-          signatureSettings
-        );
-        cursorPosition = bodyWithoutSignature.trimEnd().length;
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(bodyEndsAt, bodyEndsAt);
       }
-
-      textarea.focus();
-      textarea.setSelectionRange(cursorPosition, cursorPosition);
     },
     onInput(event) {
       this.$emit('update:modelValue', event.target.value);
