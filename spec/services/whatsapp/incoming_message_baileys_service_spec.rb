@@ -146,6 +146,8 @@ describe Whatsapp::IncomingMessageBaileysService do
     end
 
     context 'when processing messages.upsert event' do
+      before { stub_profile_pic_fetch }
+
       let(:timestamp) { Time.current.to_i }
       let(:raw_message) do
         {
@@ -166,14 +168,20 @@ describe Whatsapp::IncomingMessageBaileysService do
         }
       end
 
-      it 'creates message with external_created_at' do
+      it 'creates message with external_created_at and processes avatar' do
+        stub_avatar_job
+
         described_class.new(inbox: inbox, params: params).perform
 
         conversation = inbox.conversations.last
         message = conversation.messages.last
+        contact = conversation.contact
 
         expect(message).to be_present
         expect(message.content_attributes[:external_created_at]).to eq(timestamp)
+        expect(contact.name).to eq('John Doe')
+        expect(Avatar::AvatarFromUrlJob).to have_received(:perform_later)
+          .with(contact, 'https://example.com/avatar.jpg')
       end
 
       context 'when message type is unsupported' do
@@ -828,5 +836,17 @@ describe Whatsapp::IncomingMessageBaileysService do
     allow(Down).to receive(:download)
       .with('https://baileys.api/media/msg_123', headers: inbox.channel.api_headers)
       .and_return(StringIO.new('Media data'))
+  end
+
+  def stub_profile_pic_fetch
+    stub_request(:get, /profile-pic/)
+      .to_return(
+        status: 200,
+        body: { data: { profilePictureUrl: 'https://example.com/avatar.jpg' } }.to_json
+      )
+  end
+
+  def stub_avatar_job
+    allow(Avatar::AvatarFromUrlJob).to receive(:perform_later)
   end
 end
