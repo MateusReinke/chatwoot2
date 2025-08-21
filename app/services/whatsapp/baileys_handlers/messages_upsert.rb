@@ -1,4 +1,4 @@
-module Whatsapp::BaileysHandlers::MessagesUpsert
+module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/ModuleLength
   include Whatsapp::BaileysHandlers::Helpers
   include BaileysHelper
 
@@ -44,17 +44,31 @@ module Whatsapp::BaileysHandlers::MessagesUpsert
   def set_contact
     push_name = contact_name
     source_id = phone_number_from_jid
+    profile_pic_url = fetch_profile_picture_url(source_id)
     contact_inbox = ::ContactInboxWithContactBuilder.new(
       # FIXME: update the source_id to complete jid in future
       source_id: source_id,
       inbox: inbox,
-      contact_attributes: { name: push_name, phone_number: "+#{source_id}" }
+      contact_attributes: {
+        name: push_name,
+        phone_number: "+#{source_id}",
+        avatar_url: profile_pic_url
+      }
     ).perform
 
     @contact_inbox = contact_inbox
     @contact = contact_inbox.contact
 
-    @contact.update!(name: push_name) if @contact.name == source_id
+    @contact.update!(name: push_name) if @contact&.name == source_id
+  end
+
+  def fetch_profile_picture_url(phone_number)
+    jid = "#{phone_number}@s.whatsapp.net"
+    response = inbox.channel.provider_service.get_profile_pic(jid)
+    response&.dig('data', 'profilePictureUrl')
+  rescue StandardError => e
+    Rails.logger.error "Failed to fetch profile picture for #{phone_number}: #{e.message}"
+    nil
   end
 
   def handle_create_message
