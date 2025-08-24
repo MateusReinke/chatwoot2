@@ -44,22 +44,18 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
   def set_contact
     push_name = contact_name
     source_id = phone_number_from_jid
-    profile_pic_url = fetch_profile_picture_url(source_id)
     contact_inbox = ::ContactInboxWithContactBuilder.new(
       # FIXME: update the source_id to complete jid in future
       source_id: source_id,
       inbox: inbox,
-      contact_attributes: {
-        name: push_name,
-        phone_number: "+#{source_id}",
-        avatar_url: profile_pic_url
-      }
+      contact_attributes: { name: push_name, phone_number: "+#{source_id}" }
     ).perform
 
     @contact_inbox = contact_inbox
     @contact = contact_inbox.contact
 
     @contact.update!(name: push_name) if @contact&.name == source_id
+    try_update_contact_avatar
   end
 
   def fetch_profile_picture_url(phone_number)
@@ -69,6 +65,13 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
   rescue StandardError => e
     Rails.logger.error "Failed to fetch profile picture for #{phone_number}: #{e.message}"
     nil
+  end
+
+  def try_update_contact_avatar
+    return if @contact.avatar.attached?
+
+    profile_pic_url = fetch_profile_picture_url(phone_number_from_jid)
+    ::Avatar::AvatarFromUrlJob.perform_later(@contact, profile_pic_url) if profile_pic_url
   end
 
   def handle_create_message
