@@ -193,15 +193,13 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     response = HTTParty.get(
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/profile-picture-url",
       headers: api_headers,
-      query: { jid: jid }
+      query: { jid: jid },
+      format: :json
     )
 
     return nil unless process_response(response)
 
-    JSON.parse(response.body)
-  rescue JSON::ParserError => e
-    Rails.logger.error "Failed to parse profile pic response: #{e.message}"
-    nil
+    response.parsed_response
   end
 
   def on_whatsapp(phone_number)
