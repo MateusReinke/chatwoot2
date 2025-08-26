@@ -839,7 +839,7 @@ describe Whatsapp::IncomingMessageBaileysService do
   end
 
   def stub_profile_pic_fetch
-    stub_request(:get, /profile-pic/)
+    stub_request(:get, /profile-picture-url/)
       .to_return(
         status: 200,
         body: { data: { profilePictureUrl: 'https://example.com/avatar.jpg' } }.to_json
