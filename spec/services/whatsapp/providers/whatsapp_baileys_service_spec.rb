@@ -874,25 +874,23 @@ describe Whatsapp::Providers::WhatsappBaileysService do
                                }
                              })
       end
+    end
 
-      it 'returns parsed JSON response when no profile picture exists' do
+    context 'when response fails' do
+      it 'returns nil when profile picture not found (404)' do
         stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-picture-url")
           .with(
             headers: stub_headers(whatsapp_channel),
             query: { jid: test_jid }
           )
           .to_return(
-            status: 200,
-            body: { data: { jid: test_jid } }.to_json
+            status: 404,
+            body: { error: 'Profile picture not found' }.to_json
           )
 
         result = service.get_profile_pic(test_jid)
 
-        expect(result).to eq({
-                               'data' => {
-                                 'jid' => test_jid
-                               }
-                             })
+        expect(result).to be_nil
       end
     end
   end
