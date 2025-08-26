@@ -168,17 +168,24 @@ describe Whatsapp::IncomingMessageBaileysService do
         }
       end
 
-      it 'creates message with external_created_at and processes avatar' do
+      it 'creates message with external_created_at' do
+        described_class.new(inbox: inbox, params: params).perform
+
+        conversation = inbox.conversations.last
+        message = conversation.messages.last
+
+        expect(message).to be_present
+        expect(message.content_attributes[:external_created_at]).to eq(timestamp)
+      end
+
+      it 'processes contact avatar when profile picture is available' do
         stub_avatar_job
 
         described_class.new(inbox: inbox, params: params).perform
 
         conversation = inbox.conversations.last
-        message = conversation.messages.last
         contact = conversation.contact
 
-        expect(message).to be_present
-        expect(message.content_attributes[:external_created_at]).to eq(timestamp)
         expect(contact.name).to eq('John Doe')
         expect(Avatar::AvatarFromUrlJob).to have_received(:perform_later)
           .with(contact, 'https://example.com/avatar.jpg')
