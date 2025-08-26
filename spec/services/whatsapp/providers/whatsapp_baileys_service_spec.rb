@@ -855,7 +855,7 @@ describe Whatsapp::Providers::WhatsappBaileysService do
 
     context 'when response is successful' do
       it 'returns parsed JSON response with profile picture URL' do
-        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-pic")
+        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-picture-url")
           .with(
             headers: stub_headers(whatsapp_channel),
             query: { jid: test_jid }
@@ -876,7 +876,7 @@ describe Whatsapp::Providers::WhatsappBaileysService do
       end
 
       it 'returns parsed JSON response when no profile picture exists' do
-        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-pic")
+        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-picture-url")
           .with(
             headers: stub_headers(whatsapp_channel),
             query: { jid: test_jid }
@@ -898,7 +898,7 @@ describe Whatsapp::Providers::WhatsappBaileysService do
 
     context 'when response fails' do
       it 'returns nil when API returns error status' do
-        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-pic")
+        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-picture-url")
           .with(
             headers: stub_headers(whatsapp_channel),
             query: { jid: test_jid }
@@ -911,7 +911,7 @@ describe Whatsapp::Providers::WhatsappBaileysService do
       end
 
       it 'returns nil and logs error when JSON parsing fails' do
-        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-pic")
+        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-picture-url")
           .with(
             headers: stub_headers(whatsapp_channel),
             query: { jid: test_jid }
