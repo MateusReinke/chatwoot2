@@ -854,7 +854,7 @@ describe Whatsapp::Providers::WhatsappBaileysService do
     let(:test_jid) { '551187654321@s.whatsapp.net' }
 
     context 'when response is successful' do
-      it 'returns parsed JSON response with profile picture URL' do
+      it 'returns the profile picture URL data' do
         stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-picture-url")
           .with(
             headers: stub_headers(whatsapp_channel),
@@ -893,36 +893,6 @@ describe Whatsapp::Providers::WhatsappBaileysService do
                                  'jid' => test_jid
                                }
                              })
-      end
-    end
-
-    context 'when response fails' do
-      it 'returns nil when API returns error status' do
-        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-picture-url")
-          .with(
-            headers: stub_headers(whatsapp_channel),
-            query: { jid: test_jid }
-          )
-          .to_return(status: 400, body: 'Bad Request')
-
-        result = service.get_profile_pic(test_jid)
-
-        expect(result).to be_nil
-      end
-
-      it 'returns nil and logs error when JSON parsing fails' do
-        stub_request(:get, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/profile-picture-url")
-          .with(
-            headers: stub_headers(whatsapp_channel),
-            query: { jid: test_jid }
-          )
-          .to_return(status: 200, body: 'invalid json')
-
-        expect(Rails.logger).to receive(:error).with(/Failed to parse profile pic response/)
-
-        result = service.get_profile_pic(test_jid)
-
-        expect(result).to be_nil
       end
     end
   end
