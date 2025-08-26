@@ -54,7 +54,7 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
     @contact_inbox = contact_inbox
     @contact = contact_inbox.contact
 
-    @contact.update!(name: push_name) if @contact&.name == source_id
+    @contact.update!(name: push_name) if @contact.name == source_id
     try_update_contact_avatar
   end
 
