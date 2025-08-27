@@ -15,31 +15,34 @@ describe Whatsapp::Providers::WhatsappBaileysService do
 
   describe '.status' do
     context 'when DEFAULT_URL or DEFAULT_API_KEY are missing' do
-      it 'returns missing setup message when DEFAULT_URL is blank' do
+      it 'raises ProviderUnavailableError when DEFAULT_URL is blank' do
         stub_const('Whatsapp::Providers::WhatsappBaileysService::DEFAULT_URL', '')
         stub_const('Whatsapp::Providers::WhatsappBaileysService::DEFAULT_API_KEY', 'test_key')
 
-        result = described_class.status
-
-        expect(result).to eq({ version: 'Missing BAILEYS_PROVIDER_DEFAULT_URL or BAILEYS_PROVIDER_DEFAULT_API_KEY setup' })
+        expect do
+          described_class.status
+        end.to raise_error(Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError,
+                           'Missing BAILEYS_PROVIDER_DEFAULT_URL or BAILEYS_PROVIDER_DEFAULT_API_KEY setup')
       end
 
-      it 'returns missing setup message when DEFAULT_API_KEY is blank' do
+      it 'raises ProviderUnavailableError when DEFAULT_API_KEY is blank' do
         stub_const('Whatsapp::Providers::WhatsappBaileysService::DEFAULT_URL', 'http://test.com')
         stub_const('Whatsapp::Providers::WhatsappBaileysService::DEFAULT_API_KEY', '')
 
-        result = described_class.status
-
-        expect(result).to eq({ version: 'Missing BAILEYS_PROVIDER_DEFAULT_URL or BAILEYS_PROVIDER_DEFAULT_API_KEY setup' })
+        expect do
+          described_class.status
+        end.to raise_error(Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError,
+                           'Missing BAILEYS_PROVIDER_DEFAULT_URL or BAILEYS_PROVIDER_DEFAULT_API_KEY setup')
       end
 
-      it 'returns missing setup message when both are blank' do
+      it 'raises ProviderUnavailableError when both are blank' do
         stub_const('Whatsapp::Providers::WhatsappBaileysService::DEFAULT_URL', nil)
         stub_const('Whatsapp::Providers::WhatsappBaileysService::DEFAULT_API_KEY', nil)
 
-        result = described_class.status
-
-        expect(result).to eq({ version: 'Missing BAILEYS_PROVIDER_DEFAULT_URL or BAILEYS_PROVIDER_DEFAULT_API_KEY setup' })
+        expect do
+          described_class.status
+        end.to raise_error(Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError,
+                           'Missing BAILEYS_PROVIDER_DEFAULT_URL or BAILEYS_PROVIDER_DEFAULT_API_KEY setup')
       end
     end
 
@@ -66,7 +69,7 @@ describe Whatsapp::Providers::WhatsappBaileysService do
       end
 
       context 'when response is unsuccessful' do
-        it 'logs the error and returns unavailable message' do
+        it 'logs the error and raises ProviderUnavailableError' do
           stub_request(:get, 'http://test.com/status')
             .with(headers: { 'x-api-key' => 'test_key' })
             .to_return(
@@ -77,9 +80,10 @@ describe Whatsapp::Providers::WhatsappBaileysService do
 
           allow(Rails.logger).to receive(:error)
 
-          result = described_class.status
+          expect do
+            described_class.status
+          end.to raise_error(Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError, 'Baileys API is unavailable')
 
-          expect(result).to eq({ version: 'Baileys API is unavailable' })
           expect(Rails.logger).to have_received(:error).with('Internal Server Error')
         end
       end
