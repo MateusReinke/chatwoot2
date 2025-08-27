@@ -8,6 +8,27 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
   DEFAULT_URL = ENV.fetch('BAILEYS_PROVIDER_DEFAULT_URL', nil)
   DEFAULT_API_KEY = ENV.fetch('BAILEYS_PROVIDER_DEFAULT_API_KEY', nil)
 
+  def self.status
+    if DEFAULT_URL.blank? || DEFAULT_API_KEY.blank?
+      return { version: 'Missing BAILEYS_PROVIDER_DEFAULT_URL or BAILEYS_PROVIDER_DEFAULT_API_KEY setup' }
+    end
+
+    response = HTTParty.get(
+      "#{DEFAULT_URL}/status",
+      headers: { 'x-api-key' => DEFAULT_API_KEY }
+    )
+
+    unless response.success?
+      Rails.logger.error response.body
+      return { version: 'Baileys API is unavailable' }
+    end
+
+    response.parsed_response.deep_symbolize_keys
+  rescue StandardError => e
+    Rails.logger.error("Error fetching Baileys API status: #{e.message}")
+    { version: 'Baileys API is unavailable' }
+  end
+
   def setup_channel_provider
     response = HTTParty.post(
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}",

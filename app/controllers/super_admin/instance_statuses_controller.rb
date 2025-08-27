@@ -7,6 +7,7 @@ class SuperAdmin::InstanceStatusesController < SuperAdmin::ApplicationController
     redis_metrics
     chatwoot_edition
     instance_meta
+    baileys_api_version
   end
 
   def chatwoot_edition
@@ -55,5 +56,9 @@ class SuperAdmin::InstanceStatusesController < SuperAdmin::ApplicationController
     end
   rescue Redis::CannotConnectError
     @metrics['Redis alive'] = false
+  end
+
+  def baileys_api_version
+    @metrics['Baileys API version'] = Whatsapp::Providers::WhatsappBaileysService.status[:packageInfo][:version]
   end
 end
