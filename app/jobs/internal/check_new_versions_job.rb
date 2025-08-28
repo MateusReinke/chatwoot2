@@ -4,16 +4,26 @@ class Internal::CheckNewVersionsJob < ApplicationJob
   def perform
     return unless Rails.env.production?
 
-    @instance_info = ChatwootHub.sync_with_hub
-    update_version_info
+    latest_version = fetch_latest_github_release
+    update_version_info(latest_version) if latest_version.present?
   end
 
   private
 
-  def update_version_info
-    return if @instance_info['version'].blank?
+  def fetch_latest_github_release
+    response = HTTParty.get('https://api.github.com/repos/fazer-ai/chatwoot/releases/latest')
+    return nil unless response.success?
 
-    ::Redis::Alfred.set(::Redis::Alfred::LATEST_CHATWOOT_VERSION, @instance_info['version'])
+    response['tag_name']&.sub(/^v/, '')
+  rescue StandardError => e
+    Rails.logger.error "Failed to fetch latest GitHub release: #{e.message}"
+    nil
+  end
+
+  def update_version_info(version)
+    return if version.blank?
+
+    ::Redis::Alfred.set(::Redis::Alfred::LATEST_CHATWOOT_VERSION, version)
   end
 end
 
