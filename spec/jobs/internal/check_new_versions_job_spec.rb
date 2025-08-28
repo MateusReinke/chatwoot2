@@ -46,10 +46,12 @@ RSpec.describe Internal::CheckNewVersionsJob do
       before do
         stub_request(:get, 'https://api.github.com/repos/fazer-ai/chatwoot/releases/latest')
           .to_return(status: 404)
+        allow(Rails.logger).to receive(:error)
       end
 
       it 'does not update redis when response is not successful' do
         expect { job }.not_to change { Redis::Alfred.get(Redis::Alfred::LATEST_CHATWOOT_VERSION) }.from(nil)
+        expect(Rails.logger).to have_received(:error).with(/Failed to fetch latest GitHub release: HTTP 404 - /)
       end
     end
 

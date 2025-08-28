@@ -11,8 +11,11 @@ class Internal::CheckNewVersionsJob < ApplicationJob
   private
 
   def fetch_latest_github_release
-    response = HTTParty.get('https://api.github.com/repos/fazer-ai/chatwoot/releases/latest')
-    return nil unless response.success?
+    response = HTTParty.get('https://api.github.com/repos/fazer-ai/chatwoot/releases/latest', timeout: 5)
+    unless response.success?
+      Rails.logger.error "Failed to fetch latest GitHub release: HTTP #{response.code} - #{response.body}"
+      return nil
+    end
 
     response['tag_name']&.sub(/^v/, '')
   rescue StandardError => e
