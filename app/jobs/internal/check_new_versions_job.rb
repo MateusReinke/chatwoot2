@@ -5,7 +5,7 @@ class Internal::CheckNewVersionsJob < ApplicationJob
     return unless Rails.env.production?
 
     latest_version = fetch_latest_github_release
-    update_version_info(latest_version) if latest_version.present?
+    ::Redis::Alfred.set(::Redis::Alfred::LATEST_CHATWOOT_VERSION, latest_version) if latest_version.present?
   end
 
   private
@@ -21,12 +21,6 @@ class Internal::CheckNewVersionsJob < ApplicationJob
   rescue StandardError => e
     Rails.logger.error "Failed to fetch latest GitHub release: #{e.message}"
     nil
-  end
-
-  def update_version_info(version)
-    return if version.blank?
-
-    ::Redis::Alfred.set(::Redis::Alfred::LATEST_CHATWOOT_VERSION, version)
   end
 end
 
