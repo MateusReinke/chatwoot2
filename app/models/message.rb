@@ -334,7 +334,7 @@ class Message < ApplicationRecord
   def dispatch_update_event
     # ref: https://github.com/rails/rails/issues/44500
     # we want to skip the update event if the message is not updated
-    return if previous_changes.blank?
+    return if previous_changes.blank? && !saved_change_to_content_attributes?
 
     send_update_event
   end

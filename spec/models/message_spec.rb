@@ -286,6 +286,19 @@ RSpec.describe Message do
     end
   end
 
+  context 'when message is updated' do
+    let(:message) { create(:message, account: create(:account)) }
+
+    it 'dispatches a message updated event when content_attributes is updated' do
+      dispatcher = double
+      allow(Rails.configuration).to receive(:dispatcher).and_return(dispatcher)
+      allow(dispatcher).to receive(:dispatch)
+
+      message.update!(content_attributes: { 'test' => 'test' })
+      expect(dispatcher).to have_received(:dispatch).with(MESSAGE_UPDATED, anything, a_hash_including(message: message))
+    end
+  end
+
   context 'when message is created' do
     let(:message) { build(:message, account: create(:account)) }
 
