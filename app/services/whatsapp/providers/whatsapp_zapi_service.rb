@@ -85,7 +85,10 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
       headers: api_headers
     )
 
-    whatsapp_channel.update_provider_connection!(connection: 'open') if response.parsed_response['connected']
+    if response.parsed_response['connected']
+      whatsapp_channel.update_provider_connection!(connection: 'open')
+      return
+    end
 
     return unless process_response(response)
 
