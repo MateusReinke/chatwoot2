@@ -3,23 +3,6 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
 
   API_BASE_PATH = 'https://api.z-api.io'.freeze
 
-  def api_instance_path
-    "#{API_BASE_PATH}/instances/#{whatsapp_channel.provider_config['instance_id']}"
-  end
-
-  def api_instance_path_with_token
-    "#{api_instance_path}/token/#{whatsapp_channel.provider_config['token']}"
-  end
-
-  def api_headers
-    { 'Content-Type' => 'application/json', 'Client-Token' => whatsapp_channel.provider_config['client_token'] }
-  end
-
-  def process_response(response)
-    Rails.logger.error response.body unless response.success?
-    response.success?
-  end
-
   def send_template(phone_number, template_info); end
 
   def sync_templates; end
@@ -126,6 +109,23 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
 
   private
 
+  def api_instance_path
+    "#{API_BASE_PATH}/instances/#{whatsapp_channel.provider_config['instance_id']}"
+  end
+
+  def api_instance_path_with_token
+    "#{api_instance_path}/token/#{whatsapp_channel.provider_config['token']}"
+  end
+
+  def api_headers
+    { 'Content-Type' => 'application/json', 'Client-Token' => whatsapp_channel.provider_config['client_token'] }
+  end
+
+  def process_response(response)
+    Rails.logger.error response.body unless response.success?
+    response.success?
+  end
+
   def send_text_message(phone, message, **params)
     response = HTTParty.post(
       "#{api_instance_path_with_token}/send-text",
@@ -163,8 +163,6 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
       send_audio_message(phone, message, buffer, **params)
     when 'file'
       send_document_message(phone, message, attachment, buffer, **params)
-    when 'sticker'
-      send_sticker_message(phone, message, buffer, **params)
     when 'video'
       send_video_message(phone, message, buffer, **params)
     end
@@ -176,8 +174,6 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
       5.megabytes
     when 'audio', 'video'
       16.megabytes
-    when 'sticker'
-      100.kilobytes
     else
       100.megabytes
     end
