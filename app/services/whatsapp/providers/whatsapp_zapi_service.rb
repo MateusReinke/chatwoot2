@@ -1,4 +1,4 @@
-class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseService
+class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseService # rubocop:disable Metrics/ClassLength
   class ProviderUnavailableError < StandardError; end
 
   API_BASE_PATH = 'https://api.z-api.io'.freeze
@@ -23,6 +23,24 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
   def send_template(phone_number, template_info); end
 
   def sync_templates; end
+
+  def send_message(phone_number, message)
+    phone = phone_number.delete('+')
+    params = message.content_attributes[:zapi_args] || {}
+
+    params[:messageId] = message.in_reply_to_external_id if message.in_reply_to.present?
+
+    if message.content_attributes[:is_reaction]
+      send_reaction_message(phone, message, **params)
+    elsif message.attachments.present?
+      handle_message_with_attachment(message, phone, **params)
+    elsif message.content.present?
+      send_text_message(phone, message, **params)
+    else
+      message.update!(is_unsupported: true)
+      nil
+    end
+  end
 
   def validate_provider_config?
     response = HTTParty.get(
@@ -72,5 +90,179 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
     return unless process_response(response)
 
     response.parsed_response['value']
+  end
+
+  def read_messages(messages, phone_number:, **)
+    # NOTE: Z-API will handle marking previous messages as read.
+    last_message = messages.last
+
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/read-message",
+      headers: api_headers,
+      body: {
+        phone: phone_number.delete('+'),
+        messageId: last_message.source_id
+      }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    true
+  end
+
+  def on_whatsapp(phone_number)
+    response = HTTParty.get(
+      "#{api_instance_path_with_token}/phone-exists/#{phone_number.delete('+')}",
+      headers: api_headers
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response || { 'exists' => false, 'phone' => nil, 'lid' => nil }
+  end
+
+  private
+
+  def send_text_message(phone, message, **params)
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/send-text",
+      headers: api_headers,
+      body: {
+        phone: phone,
+        message: message.content,
+        **params
+      }.compact.to_json
+    )
+
+    unless process_response(response)
+      message.update!(status: :failed, external_error: response.parsed_response&.dig('error'))
+      raise ProviderUnavailableError
+    end
+
+    response.parsed_response&.dig('messageId')
+  end
+
+  def handle_message_with_attachment(message, phone, **params)
+    attachment = message.attachments.first
+    base64_data = Base64.strict_encode64(attachment.file.download)
+    buffer = "data:#{attachment.file.content_type};base64,#{base64_data}"
+
+    case attachment.file_type
+    when 'image'
+      send_image_message(phone, message, buffer, **params)
+    when 'audio'
+      send_audio_message(phone, message, buffer, **params)
+    when 'file'
+      send_document_message(phone, message, attachment, buffer, **params)
+    when 'sticker'
+      send_sticker_message(phone, message, buffer, **params)
+    when 'video'
+      send_video_message(phone, message, buffer, **params)
+    end
+  end
+
+  def send_image_message(phone, message, buffer, **params)
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/send-image",
+      headers: api_headers,
+      body: {
+        phone: phone,
+        image: buffer,
+        caption: message.content,
+        **params
+      }.compact.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('messageId')
+  end
+
+  def send_audio_message(phone, _message, buffer, **params)
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/send-audio",
+      headers: api_headers,
+      body: {
+        phone: phone,
+        audio: buffer,
+        waveform: true,
+        **params
+      }.compact.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('messageId')
+  end
+
+  def send_document_message(phone, message, attachment, buffer, **params)
+    file_extension = File.extname(attachment.file.filename.to_s).delete('.')
+    file_extension = 'pdf' if file_extension.blank?
+
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/send-document/#{file_extension}",
+      headers: api_headers,
+      body: {
+        phone: phone,
+        document: buffer,
+        fileName: attachment.file.filename.to_s,
+        caption: message.content,
+        **params
+      }.compact.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('messageId')
+  end
+
+  def send_video_message(phone, message, buffer, **params)
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/send-video",
+      headers: api_headers,
+      body: {
+        phone: phone,
+        video: buffer,
+        caption: message.content,
+        **params
+      }.compact.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('messageId')
+  end
+
+  def send_sticker_message(phone, _message, buffer, **params)
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/send-sticker",
+      headers: api_headers,
+      body: {
+        phone: phone,
+        sticker: buffer,
+        **params
+      }.compact.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('messageId')
+  end
+
+  def send_reaction_message(phone, message, **params)
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/send-reaction",
+      headers: api_headers,
+      body: {
+        phone: phone,
+        reaction: message.content,
+        messageId: message.in_reply_to_external_id,
+        **params
+      }.compact.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('messageId')
   end
 end
