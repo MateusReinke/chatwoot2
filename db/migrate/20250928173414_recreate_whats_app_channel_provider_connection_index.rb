@@ -7,7 +7,8 @@ class RecreateWhatsAppChannelProviderConnectionIndex < ActiveRecord::Migration[7
     add_index :channel_whatsapp, :provider_connection,
               using: :gin,
               where: "provider IN ('baileys', 'zapi')",
-              name: 'index_channel_whatsapp_provider_connection'
+              name: 'index_channel_whatsapp_provider_connection',
+              algorithm: :concurrently
   end
 
   def down
@@ -16,6 +17,7 @@ class RecreateWhatsAppChannelProviderConnectionIndex < ActiveRecord::Migration[7
     add_index :channel_whatsapp, :provider_connection,
               using: :gin,
               where: "provider = 'baileys'",
-              name: 'index_channel_whatsapp_baileys_connection'
+              name: 'index_channel_whatsapp_baileys_connection',
+              algorithm: :concurrently
   end
 end
