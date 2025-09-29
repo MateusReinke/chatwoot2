@@ -26,9 +26,9 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
 
   def send_message(phone_number, message)
     phone = phone_number.delete('+')
-    params = message.content_attributes[:zapi_args] || {}
+    params = message.content_attributes[:zapi_args].presence || {}
 
-    params[:messageId] = message.in_reply_to_external_id if message.in_reply_to.present?
+    params[:messageId] = message.in_reply_to_external_id if message.in_reply_to_external_id.present?
 
     if message.content_attributes[:is_reaction]
       send_reaction_message(phone, message, **params)
@@ -147,6 +147,12 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
 
   def handle_message_with_attachment(message, phone, **params)
     attachment = message.attachments.first
+
+    if attachment.file.byte_size > max_size(attachment)
+      message.update!(status: :failed, external_error: 'File too large')
+      return
+    end
+
     base64_data = Base64.strict_encode64(attachment.file.download)
     buffer = "data:#{attachment.file.content_type};base64,#{base64_data}"
 
@@ -161,6 +167,19 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
       send_sticker_message(phone, message, buffer, **params)
     when 'video'
       send_video_message(phone, message, buffer, **params)
+    end
+  end
+
+  def max_size(attachment)
+    case attachment.file_type
+    when 'image'
+      5.megabytes
+    when 'audio', 'video'
+      16.megabytes
+    when 'sticker'
+      100.kilobytes
+    else
+      100.megabytes
     end
   end
 
@@ -200,7 +219,10 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
 
   def send_document_message(phone, message, attachment, buffer, **params)
     file_extension = File.extname(attachment.file.filename.to_s).delete('.')
-    file_extension = 'pdf' if file_extension.blank?
+    if file_extension.blank?
+      Rails.logger.warn "Missing file extension for attachment: #{attachment.id}"
+      file_extension = 'bin'
+    end
 
     response = HTTParty.post(
       "#{api_instance_path_with_token}/send-document/#{file_extension}",
