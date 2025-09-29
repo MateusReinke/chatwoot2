@@ -39,7 +39,7 @@ class Channel::Whatsapp < ApplicationRecord
   after_create :sync_templates
   before_destroy :teardown_webhooks
 
-  before_destroy :disconnect_channel_provider, if: -> { %(baileys zapi).include?(provider) }
+  before_destroy :disconnect_channel_provider, if: -> { provider_service.respond_to?(:disconnect_channel_provider) }
 
   def name
     'Whatsapp'
