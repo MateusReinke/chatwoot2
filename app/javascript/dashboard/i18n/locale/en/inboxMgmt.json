@@ -731,7 +731,7 @@
       "WHATSAPP_TOKEN_SUBHEADER": "Your Z-API instance Token.",
       "WHATSAPP_TOKEN_UPDATE_TITLE": "Update Token",
       "WHATSAPP_TOKEN_UPDATE_SUBHEADER": "Enter the new instance Token here",
-      "WHATSAPP_CLIENT_TOKEN_TITLE": "Client Token",
+      "WHATSAPP_CLIENT_TOKEN_TITLE": "Security Token",
       "WHATSAPP_CLIENT_TOKEN_SUBHEADER": "Your Z-API Client Token (see Security tab on Z-API dashboard).",
       "WHATSAPP_CLIENT_TOKEN_UPDATE_TITLE": "Update Security Token",
       "WHATSAPP_CLIENT_TOKEN_UPDATE_SUBHEADER": "Enter the new Security Token here"
