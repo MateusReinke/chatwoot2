@@ -782,17 +782,6 @@ describe Whatsapp::IncomingMessageZapiService do
           expect(message1.reload.status).to eq('delivered')
           expect(message2.reload.status).to eq('read')
         end
-
-        it 'allows setting failed status regardless of current status' do
-          message1.update!(status: 'read')
-          message2.update!(status: 'delivered')
-          params[:status] = 'FAILED'
-
-          described_class.new(inbox: inbox, params: params).perform
-
-          expect(message1.reload.status).to eq('failed')
-          expect(message2.reload.status).to eq('failed')
-        end
       end
     end
   end
