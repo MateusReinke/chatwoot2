@@ -254,22 +254,6 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
     response.parsed_response&.dig('messageId')
   end
 
-  def send_sticker_message(phone, _message, buffer, **params)
-    response = HTTParty.post(
-      "#{api_instance_path_with_token}/send-sticker",
-      headers: api_headers,
-      body: {
-        phone: phone,
-        sticker: buffer,
-        **params
-      }.compact.to_json
-    )
-
-    raise ProviderUnavailableError unless process_response(response)
-
-    response.parsed_response&.dig('messageId')
-  end
-
   def send_reaction_message(phone, message, **params)
     response = HTTParty.post(
       "#{api_instance_path_with_token}/send-reaction",
