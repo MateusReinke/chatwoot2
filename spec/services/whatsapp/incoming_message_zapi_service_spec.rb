@@ -716,6 +716,88 @@ describe Whatsapp::IncomingMessageZapiService do
 
         expect(Rails.logger).to have_received(:warn).with('Unknown ZAPI status: UNKNOWN_STATUS')
       end
+
+      context 'when status transition is not allowed' do
+        it 'does not downgrade read message to delivered' do
+          message1.update!(status: 'read')
+          params[:status] = 'DELIVERED'
+
+          expect do
+            described_class.new(inbox: inbox, params: params).perform
+          end.not_to(change { message1.reload.status })
+        end
+
+        it 'does not downgrade read message to sent' do
+          message1.update!(status: 'read')
+          params[:status] = 'SENT'
+
+          expect do
+            described_class.new(inbox: inbox, params: params).perform
+          end.not_to(change { message1.reload.status })
+
+          expect(message1.status).to eq('read')
+        end
+
+        it 'does not downgrade delivered message to sent' do
+          message1.update!(status: 'delivered')
+          params[:status] = 'SENT'
+
+          expect do
+            described_class.new(inbox: inbox, params: params).perform
+          end.not_to(change { message1.reload.status })
+
+          expect(message1.status).to eq('delivered')
+        end
+
+        it 'allows upgrading delivered message to read' do
+          message1.update!(status: 'delivered')
+          params[:status] = 'READ'
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(message1.reload.status).to eq('read')
+        end
+
+        it 'allows upgrading sent message to delivered' do
+          message1.update!(status: 'sent')
+          params[:status] = 'DELIVERED'
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(message1.reload.status).to eq('delivered')
+        end
+
+        it 'allows upgrading sent message to read' do
+          message1.update!(status: 'sent')
+          params[:status] = 'READ'
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(message1.reload.status).to eq('read')
+        end
+
+        it 'handles mixed status transitions correctly' do
+          message1.update!(status: 'sent')
+          message2.update!(status: 'read')
+          params[:status] = 'DELIVERED'
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(message1.reload.status).to eq('delivered')
+          expect(message2.reload.status).to eq('read')
+        end
+
+        it 'allows setting failed status regardless of current status' do
+          message1.update!(status: 'read')
+          message2.update!(status: 'delivered')
+          params[:status] = 'FAILED'
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(message1.reload.status).to eq('failed')
+          expect(message2.reload.status).to eq('failed')
+        end
+      end
     end
   end
 
