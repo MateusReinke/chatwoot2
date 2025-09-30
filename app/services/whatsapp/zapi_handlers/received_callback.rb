@@ -64,14 +64,12 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
   end
 
   def contact_name
-    @raw_message[:chatName] || @raw_message[:senderName]
+    @raw_message[:chatName] || @raw_message[:senderName] || @raw_message[:phone]
   end
 
   def set_contact
     push_name = contact_name
     source_id = @raw_message[:phone]
-
-    return unless source_id
 
     contact_inbox = ::ContactInboxWithContactBuilder.new(
       source_id: source_id,
@@ -198,21 +196,13 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
   end
 
   def handle_edited_message
-    edit_message_id = @raw_message[:messageId]
-    return unless edit_message_id
-
-    @message = find_message_by_source_id(edit_message_id)
+    @message = find_message_by_source_id(@raw_message[:messageId])
     return unless @message
 
-    content = message_content
-    return unless content
-
     @message.update!(
-      content: content,
+      content: message_content,
       is_edited: true,
       previous_content: @message.content
     )
-  rescue StandardError => e
-    Rails.logger.error "Failed to handle edited message #{edit_message_id}: #{e.message}"
   end
 end

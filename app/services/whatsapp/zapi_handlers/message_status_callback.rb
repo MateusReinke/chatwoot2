@@ -4,8 +4,6 @@ module Whatsapp::ZapiHandlers::MessageStatusCallback
   private
 
   def process_message_status_callback
-    return unless processed_params[:ids].present? && processed_params[:status].present?
-
     status = map_zapi_status_to_chatwoot(processed_params[:status])
     return unless status
 
