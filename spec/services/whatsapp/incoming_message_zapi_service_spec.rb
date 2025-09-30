@@ -8,24 +8,20 @@ describe Whatsapp::IncomingMessageZapiService do
     let(:inbox) { whatsapp_channel.inbox }
 
     context 'when type is blank' do
-      it 'returns early and does nothing' do
+      it 'does nothing' do
         params = { type: '' }
-        service = described_class.new(inbox: inbox, params: params)
-        allow(service).to receive(:respond_to?)
 
-        service.perform
-
-        expect(service).not_to have_received(:respond_to?)
+        expect do
+          described_class.new(inbox: inbox, params: params).perform
+        end.not_to change(Message, :count)
       end
 
-      it 'returns early when type is nil' do
+      it 'does nothing when type is nil' do
         params = {}
-        service = described_class.new(inbox: inbox, params: params)
-        allow(service).to receive(:respond_to?)
 
-        service.perform
-
-        expect(service).not_to have_received(:respond_to?)
+        expect do
+          described_class.new(inbox: inbox, params: params).perform
+        end.not_to change(Message, :count)
       end
     end
 
