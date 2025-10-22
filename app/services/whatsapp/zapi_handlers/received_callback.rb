@@ -33,7 +33,8 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
     !@raw_message[:isGroup] &&
       !@raw_message[:isNewsletter] &&
       !@raw_message[:broadcast] &&
-      !@raw_message[:isStatusReply]
+      !@raw_message[:isStatusReply] &&
+      !@raw_message.key?(:action)
   end
 
   def message_type # rubocop:disable Metrics/CyclomaticComplexity
