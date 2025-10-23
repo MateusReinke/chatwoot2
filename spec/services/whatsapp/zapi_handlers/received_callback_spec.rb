@@ -455,6 +455,14 @@ describe Whatsapp::ZapiHandlers::ReceivedCallback do
       end.not_to change(Message, :count)
     end
 
+    it 'does not process messages with notification key' do
+      notification_params = params.merge(notification: 'REVOKE')
+
+      expect do
+        Whatsapp::IncomingMessageZapiService.new(inbox: inbox, params: notification_params).perform
+      end.not_to change(Message, :count)
+    end
+
     it 'handles edited messages' do
       service.perform
       original_message = Message.last
