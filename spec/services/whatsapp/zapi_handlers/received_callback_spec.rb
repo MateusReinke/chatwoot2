@@ -303,8 +303,19 @@ describe Whatsapp::ZapiHandlers::ReceivedCallback do
         )
       end
 
-      context 'when chatName is present' do
-        let(:params) { params_with_lid.merge(chatName: 'John from Chat') }
+      context 'when senderName is present' do
+        let(:params) { params_with_lid.merge(senderName: 'John Sender', chatName: 'John from Chat') }
+
+        it 'uses senderName as contact name (higher priority)' do
+          service.perform
+
+          contact = Contact.last
+          expect(contact.name).to eq('John Sender')
+        end
+      end
+
+      context 'when senderName is absent but chatName is present' do
+        let(:params) { params_with_lid.merge(senderName: nil, chatName: 'John from Chat') }
 
         it 'uses chatName as contact name' do
           service.perform
@@ -314,19 +325,8 @@ describe Whatsapp::ZapiHandlers::ReceivedCallback do
         end
       end
 
-      context 'when chatName is absent but senderName is present' do
-        let(:params) { params_with_lid.merge(chatName: nil, senderName: 'John Sender') }
-
-        it 'uses senderName as contact name' do
-          service.perform
-
-          contact = Contact.last
-          expect(contact.name).to eq('John Sender')
-        end
-      end
-
-      context 'when both chatName and senderName are absent' do
-        let(:params) { params_with_lid.merge(chatName: nil, senderName: nil) }
+      context 'when both senderName and chatName are absent' do
+        let(:params) { params_with_lid.merge(senderName: nil, chatName: nil) }
 
         it 'uses phone as contact name' do
           service.perform
