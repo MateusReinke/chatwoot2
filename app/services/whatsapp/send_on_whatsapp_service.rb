@@ -56,7 +56,8 @@ class Whatsapp::SendOnWhatsappService < Base::SendOnChannelService
     if message.conversation.contact.phone_number.present?
       message.conversation.contact.phone_number.gsub(/[^\d]/, '')
     else
-      "#{message.conversation.contact_inbox.source_id}@lid"
+      # NOTE: `identifier` is the WhatsApp LID format. See `Whatsapp::ZapiHandlers::ReceivedCallback#set_contact`
+      message.conversation.contact.identifier
     end
   end
 
