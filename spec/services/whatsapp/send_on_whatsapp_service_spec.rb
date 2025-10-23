@@ -428,8 +428,8 @@ describe Whatsapp::SendOnWhatsappService do
           described_class.new(message: message).perform
         end
 
-        it 'uses source_id with @lid suffix when contact has no phone_number for session messages' do
-          conversation.contact.update!(phone_number: nil)
+        it 'uses identifier with @lid suffix when contact has no phone_number for session messages' do
+          conversation.contact.update!(phone_number: nil, identifier: '123456789@lid')
           create(:message, message_type: :incoming, content: 'test', conversation: conversation)
           message = create(:message, message_type: :outgoing, content: 'test', conversation: conversation)
 

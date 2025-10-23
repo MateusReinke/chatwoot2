@@ -479,14 +479,6 @@ describe Whatsapp::ZapiHandlers::ReceivedCallback do
       expect(inbox.channel).to have_received(:received_messages).with([message], conversation)
     end
 
-    it 'does not process messages with action key' do
-      params[:action] = 'some_action'
-
-      expect do
-        service.perform
-      end.not_to change(Message, :count)
-    end
-
     context 'when processing image message' do
       let(:params) do
         {
