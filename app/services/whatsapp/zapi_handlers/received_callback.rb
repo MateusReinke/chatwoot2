@@ -30,6 +30,8 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
   end
 
   def should_process_message?
+    return false if @raw_message[:notification] == 'REVOKE'
+
     !@raw_message[:isGroup] &&
       !@raw_message[:isNewsletter] &&
       !@raw_message[:broadcast] &&
