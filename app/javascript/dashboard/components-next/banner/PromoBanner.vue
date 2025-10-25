@@ -78,7 +78,6 @@ const handleCtaClick = () => {
     class="relative flex items-start gap-3 p-4 rounded-lg border"
     :class="variantClasses.container"
   >
-    <!-- Logo or Icon -->
     <div v-if="logoSrc || showIcon" class="flex-shrink-0 mt-0.5">
       <img
         v-if="logoSrc"
@@ -89,7 +88,6 @@ const handleCtaClick = () => {
       <i v-else class="w-5 h-5" :class="variantClasses.icon" />
     </div>
 
-    <!-- Content -->
     <div class="flex-1 min-w-0">
       <h3 class="text-sm font-semibold mb-1" :class="variantClasses.text">
         {{ title }}
@@ -98,7 +96,6 @@ const handleCtaClick = () => {
         {{ description }}
       </p>
 
-      <!-- CTA Button -->
       <div v-if="ctaText" class="mt-3">
         <a
           v-if="ctaLink"
