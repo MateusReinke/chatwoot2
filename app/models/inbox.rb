@@ -169,9 +169,7 @@ class Inbox < ApplicationRecord
   def webhook_data
     {
       id: id,
-      name: name,
-      channel_type: channel_type,
-      channel_provider: channel.provider
+      name: name
     }
   end
 
