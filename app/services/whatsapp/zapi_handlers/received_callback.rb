@@ -168,13 +168,15 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
   end
 
   def attach_contact(phone, contact_data)
+    name_parts = contact_data[:displayName]&.split || []
+
     @message.attachments.new(
       account_id: @message.account_id,
       file_type: :contact,
-      fallback_title: phone.is_a?(String) ? phone : phone.to_s,
+      fallback_title: phone.to_s,
       meta: {
-        firstName: contact_data[:displayName]&.split&.first,
-        lastName: contact_data[:displayName]&.split&.drop(1)&.join(' ')
+        firstName: name_parts.first,
+        lastName: name_parts.drop(1).join(' ')
       }.compact_blank
     )
   end
