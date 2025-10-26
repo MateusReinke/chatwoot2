@@ -23,6 +23,7 @@ const clientToken = ref('');
 
 const uiFlags = computed(() => store.getters['inboxes/getUIFlags']);
 
+// NOTE: Affiliate link is left intentionally hardcoded.
 const zapiAffiliateUrl =
   'https://app.z-api.io/app/auth/new-account?afilliate=3E0B31343E6CB0297B567AC1D8277FBB';
 

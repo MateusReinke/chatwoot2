@@ -113,31 +113,28 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
     end
   end
 
-  def create_contact_message # rubocop:disable Metrics/CyclomaticComplexity
+  def create_contact_message
     contact_data = @raw_message[:contact]
     phones = contact_data[:phones] || []
     phones = ['Phone number is not available'] if phones.blank?
 
     phones.each do |phone|
-      @message = @conversation.messages.build(
-        content: message_content,
-        account_id: @inbox.account_id,
-        inbox_id: @inbox.id,
-        source_id: raw_message_id,
-        sender: incoming_message? ? @contact : @inbox.account.account_users.first.user,
-        sender_type: incoming_message? ? 'Contact' : 'User',
-        message_type: incoming_message? ? :incoming : :outgoing,
-        content_attributes: message_content_attributes
-      )
-
+      build_message
       attach_contact(phone, contact_data)
       @message.save!
     end
 
-    inbox.channel.received_messages([@message], @conversation) if incoming_message?
+    notify_channel_of_received_message
   end
 
   def create_message(attach_media: false)
+    build_message
+    handle_attach_media if attach_media
+    @message.save!
+    notify_channel_of_received_message
+  end
+
+  def build_message
     @message = @conversation.messages.build(
       content: message_content,
       account_id: @inbox.account_id,
@@ -148,11 +145,9 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
       message_type: incoming_message? ? :incoming : :outgoing,
       content_attributes: message_content_attributes
     )
+  end
 
-    handle_attach_media if attach_media
-
-    @message.save!
-
+  def notify_channel_of_received_message
     inbox.channel.received_messages([@message], @conversation) if incoming_message?
   end
 
@@ -173,13 +168,15 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
   end
 
   def attach_contact(phone, contact_data)
+    name_parts = contact_data[:displayName]&.split || []
+
     @message.attachments.new(
       account_id: @message.account_id,
       file_type: :contact,
-      fallback_title: phone.is_a?(String) ? phone : phone.to_s,
+      fallback_title: phone.to_s,
       meta: {
-        firstName: contact_data[:displayName]&.split&.first,
-        lastName: contact_data[:displayName]&.split&.drop(1)&.join(' ')
+        firstName: name_parts.first,
+        lastName: name_parts.drop(1).join(' ')
       }.compact_blank
     )
   end
