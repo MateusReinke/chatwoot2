@@ -53,13 +53,14 @@ module Whatsapp::BaileysHandlers::MessagesUpsert
     @contact = contact_inbox.contact
 
     update_contact_information
-    try_update_contact_avatar
   end
 
   def update_contact_information
     @contact.update!(identifier: sender_lid) if @contact.identifier.blank?
     @contact.update!(phone_number: "+#{phone_number_from_jid}") if @contact.phone_number.blank?
     @contact.update!(name: contact_name) if @contact.name == phone_number_from_jid || @contact.name == sender_lid
+
+    try_update_contact_avatar
   end
 
   def handle_create_message
