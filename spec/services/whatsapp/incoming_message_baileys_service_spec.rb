@@ -171,7 +171,7 @@ describe Whatsapp::IncomingMessageBaileysService do
       let(:timestamp) { Time.current.to_i }
       let(:raw_message) do
         {
-          key: { id: 'msg_123', remoteJid: '5511912345678@s.whatsapp.net', fromMe: false },
+          key: { id: 'msg_123', remoteJid: '5511912345678@s.whatsapp.net', fromMe: false, senderLid: '12345678@lid' },
           pushName: 'John Doe',
           messageTimestamp: timestamp,
           message: { conversation: 'Hello from Baileys' }
@@ -784,6 +784,34 @@ describe Whatsapp::IncomingMessageBaileysService do
         described_class.new(inbox: inbox, params: params).perform
 
         expect(inbox.conversations).to be_empty
+      end
+
+      context 'when handling senderLid field' do
+        it 'creates contact with identifier from senderLid' do
+          described_class.new(inbox: inbox, params: params).perform
+
+          contact = inbox.contacts.last
+
+          expect(contact.identifier).to eq('12345678@lid')
+        end
+
+        it 'updates contact identifier for existing contacts without identifier' do
+          contact = create(:contact, account: inbox.account, phone_number: '+5511912345678', identifier: nil)
+          create(:contact_inbox, inbox: inbox, contact: contact, source_id: '5511912345678')
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(contact.reload.identifier).to eq('12345678@lid')
+        end
+
+        it 'does not update contact identifier if already present' do
+          contact = create(:contact, account: inbox.account, phone_number: '+5511912345678', identifier: 'existing@lid')
+          create(:contact_inbox, inbox: inbox, contact: contact, source_id: '5511912345678')
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(contact.reload.identifier).to eq('existing@lid')
+        end
       end
     end
 
