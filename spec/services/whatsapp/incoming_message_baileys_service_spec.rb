@@ -69,6 +69,25 @@ describe Whatsapp::IncomingMessageBaileysService do
       end
     end
 
+    it 'dispatches the provider.event_received event' do
+      params = {
+        webhookVerifyToken: webhook_verify_token,
+        event: 'some.event',
+        data: 'some-data'
+      }
+      allow(Rails.configuration.dispatcher).to receive(:dispatch)
+
+      described_class.new(inbox: inbox, params: params).perform
+
+      expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+        Events::Types::PROVIDER_EVENT_RECEIVED,
+        kind_of(Time),
+        inbox: inbox,
+        event: params[:event],
+        payload: params[:data]
+      )
+    end
+
     context 'when processing connection.update event' do
       let(:base_params) { { webhookVerifyToken: webhook_verify_token, event: 'connection.update' } }
 
