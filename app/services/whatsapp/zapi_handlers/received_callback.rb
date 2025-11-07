@@ -77,9 +77,11 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
     identifier = @raw_message[:chatLid]
 
     contact_attributes = { name: push_name, identifier: identifier }
-    contact_attributes[:phone_number] = "+#{@raw_message[:phone]}" unless @raw_message[:phone].ends_with?('@lid')
 
-    update_existing_contact_inbox(@raw_message[:phone], source_id, identifier) if contact_attributes[:phone_number]
+    unless @raw_message[:phone].ends_with?('@lid')
+      contact_attributes[:phone_number] = "+#{@raw_message[:phone]}"
+      update_existing_contact_inbox(@raw_message[:phone], source_id, identifier)
+    end
 
     contact_inbox = ::ContactInboxWithContactBuilder.new(
       source_id: source_id,
