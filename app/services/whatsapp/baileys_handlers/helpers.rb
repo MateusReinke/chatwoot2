@@ -7,12 +7,6 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     @raw_message[:key][:id]
   end
 
-  def sender_lid
-    return @raw_message[:key][:senderLid] if @raw_message[:key].key?(:senderLid)
-
-    @raw_message[:key][:remoteJid] if jid_type == 'lid'
-  end
-
   def incoming?
     !@raw_message[:key][:fromMe]
   end
@@ -97,6 +91,23 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     end
   end
 
+  def reply_to_message_id # rubocop:disable Metrics/CyclomaticComplexity
+    message_key = case message_type
+                  when 'text' then :extendedTextMessage
+                  when 'image' then :imageMessage
+                  when 'sticker' then :stickerMessage
+                  when 'audio' then :audioMessage
+                  when 'video' then :videoMessage
+                  when 'contact' then :contactMessage
+                  when 'file'
+                    context_info = @raw_message.dig(:message, :documentMessage, :contextInfo).presence ||
+                                   @raw_message.dig(:message, :documentWithCaptionMessage, :message, :documentMessage, :contextInfo)
+                    return context_info&.dig(:stanzaId)
+                  end
+
+    @raw_message.dig(:message, message_key, :contextInfo, :stanzaId) if message_key
+  end
+
   def file_content_type
     return :image if message_type.in?(%w[image sticker])
     return :video if message_type.in?(%w[video video_note])
@@ -121,13 +132,13 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     end
   end
 
-  def phone_number_from_jid
-    reference_field = jid_type == 'lid' ? :senderPn : :remoteJid
+  def extract_from_jid(type:)
+    reference_field = @raw_message[:key][:addressingMode] == type ? :remoteJid : :remoteJidAlt
     jid = @raw_message[:key][reference_field]
     return unless jid
 
     # NOTE: jid shape is `<user>_<agent>:<device>@<server>`
-    # https://github.com/WhiskeySockets/Baileys/blob/v6.7.16/src/WABinary/jid-utils.ts#L19
+    # https://github.com/WhiskeySockets/Baileys/blob/v7.0.0-rc.6/src/WABinary/jid-utils.ts#L52
     jid.split('@').first.split(':').first.split('_').first
   end
 
@@ -136,12 +147,15 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     name = @raw_message[:verifiedBizName].presence || @raw_message[:pushName]
     return name if name.presence && (self_message? || incoming?)
 
-    phone_number_from_jid
+    extract_from_jid(type: 'pn') || extract_from_jid(type: 'lid')
   end
 
   def self_message?
-    # TODO: Handle denormalized Brazilian phone numbers
-    phone_number_from_jid == inbox.channel.phone_number.delete('+')
+    normalize_phone_number(extract_from_jid(type: 'pn')) == normalize_phone_number(inbox.channel.phone_number.delete('+'))
+  end
+
+  def normalize_phone_number(phone_number)
+    Whatsapp::PhoneNormalizers::BrazilPhoneNormalizer.new.normalize(phone_number)
   end
 
   def ignore_message?
@@ -162,22 +176,22 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     # TODO: Current logic will never update the contact avatar if their profile picture changes on WhatsApp.
     return if @contact.avatar.attached?
 
-    profile_pic_url = fetch_profile_picture_url(phone_number_from_jid)
+    profile_pic_url = fetch_profile_picture_url(extract_from_jid(type: 'pn'))
     ::Avatar::AvatarFromUrlJob.perform_later(@contact, profile_pic_url) if profile_pic_url
   end
 
   def message_under_process?
-    key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: raw_message_id)
+    key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "#{inbox.id}_#{raw_message_id}")
     Redis::Alfred.get(key)
   end
 
   def cache_message_source_id_in_redis
-    key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: raw_message_id)
+    key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "#{inbox.id}_#{raw_message_id}")
     ::Redis::Alfred.setex(key, true)
   end
 
   def clear_message_source_id_from_redis
-    key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: raw_message_id)
+    key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "#{inbox.id}_#{raw_message_id}")
     ::Redis::Alfred.delete(key)
   end
 end
