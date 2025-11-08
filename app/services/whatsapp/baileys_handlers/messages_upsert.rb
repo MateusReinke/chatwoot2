@@ -66,9 +66,16 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
     existing_contact_inbox = inbox.contact_inboxes.find_by(source_id: phone)
     return unless existing_contact_inbox
 
+    existing_contact = existing_contact_inbox.contact
+    conflicting_identifier = inbox.account.contacts.find_by(identifier: identifier)
+    conflicting_phone = inbox.account.contacts.find_by(phone_number: "+#{phone}")
+
+    return if conflicting_identifier && conflicting_identifier.id != existing_contact.id
+    return if conflicting_phone && conflicting_phone.id != existing_contact.id
+
     ActiveRecord::Base.transaction do
       existing_contact_inbox.update!(source_id: source_id)
-      existing_contact_inbox.contact.update!(identifier: identifier, phone_number: "+#{phone}")
+      existing_contact.update!(identifier: identifier, phone_number: "+#{phone}")
     end
   end
 
