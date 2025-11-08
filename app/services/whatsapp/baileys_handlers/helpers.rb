@@ -180,7 +180,8 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     # TODO: Current logic will never update the contact avatar if their profile picture changes on WhatsApp.
     return if @contact.avatar.attached?
 
-    profile_pic_url = fetch_profile_picture_url(extract_from_jid(type: 'pn'))
+    phone = extract_from_jid(type: 'pn')
+    profile_pic_url = fetch_profile_picture_url(phone) if phone
     ::Avatar::AvatarFromUrlJob.perform_later(@contact, profile_pic_url) if profile_pic_url
   end
 
