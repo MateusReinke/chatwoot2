@@ -115,9 +115,10 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
 
   def message_content_attributes
     type = message_type
+    msg = unwrap_ephemeral_message(@raw_message[:message])
     content_attributes = { external_created_at: baileys_extract_message_timestamp(@raw_message[:messageTimestamp]) }
     if type == 'reaction'
-      content_attributes[:in_reply_to_external_id] = @raw_message.dig(:message, :reactionMessage, :key, :id)
+      content_attributes[:in_reply_to_external_id] = msg.dig(:reactionMessage, :key, :id)
       content_attributes[:is_reaction] = true
     elsif reply_to_message_id
       content_attributes[:in_reply_to_external_id] = reply_to_message_id
@@ -130,13 +131,14 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
 
   def handle_attach_media
     attachment_file = download_attachment_file
+    msg = unwrap_ephemeral_message(@raw_message[:message])
 
     attachment = @message.attachments.build(
       account_id: @message.account_id,
       file_type: file_content_type.to_s,
       file: { io: attachment_file, filename: filename, content_type: message_mimetype }
     )
-    attachment.meta = { is_recorded_audio: true } if @raw_message.dig(:message, :audioMessage, :ptt)
+    attachment.meta = { is_recorded_audio: true } if msg.dig(:audioMessage, :ptt)
   rescue Down::Error => e
     @message.update!(is_unsupported: true)
 
@@ -148,7 +150,8 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
   end
 
   def filename
-    filename = @raw_message.dig(:message, :documentMessage, :fileName)
+    msg = unwrap_ephemeral_message(@raw_message[:message])
+    filename = msg.dig(:documentMessage, :fileName)
     return filename if filename.present?
 
     ext = ".#{message_mimetype.split(';').first.split('/').last}" if message_mimetype.present?

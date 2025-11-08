@@ -3,6 +3,10 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
 
   private
 
+  def unwrap_ephemeral_message(msg)
+    msg.key?(:ephemeralMessage) ? msg.dig(:ephemeralMessage, :message) : msg
+  end
+
   def raw_message_id
     @raw_message[:key][:id]
   end
@@ -36,7 +40,7 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
   end
 
   def message_type # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/AbcSize
-    msg = @raw_message[:message]
+    msg = unwrap_ephemeral_message(@raw_message[:message])
     if msg.key?(:conversation) || msg.dig(:extendedTextMessage, :text).present?
       'text'
     elsif msg.key?(:imageMessage)
@@ -66,22 +70,23 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
   end
 
   def message_content # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
+    msg = unwrap_ephemeral_message(@raw_message[:message])
     case message_type
     when 'text'
-      @raw_message.dig(:message, :conversation) || @raw_message.dig(:message, :extendedTextMessage, :text)
+      msg[:conversation] || msg.dig(:extendedTextMessage, :text)
     when 'image'
-      @raw_message.dig(:message, :imageMessage, :caption)
+      msg.dig(:imageMessage, :caption)
     when 'video'
-      @raw_message.dig(:message, :videoMessage, :caption)
+      msg.dig(:videoMessage, :caption)
     when 'file'
-      @raw_message.dig(:message, :documentMessage, :caption).presence ||
-        @raw_message.dig(:message, :documentWithCaptionMessage, :message, :documentMessage, :caption)
+      msg.dig(:documentMessage, :caption).presence ||
+        msg.dig(:documentWithCaptionMessage, :message, :documentMessage, :caption)
     when 'reaction'
-      @raw_message.dig(:message, :reactionMessage, :text)
+      msg.dig(:reactionMessage, :text)
     when 'contact'
       # FIXME: Missing specs
-      display_name = @raw_message.dig(:message, :contactMessage, :displayName)
-      vcard = @raw_message.dig(:message, :contactMessage, :vcard)
+      display_name = msg.dig(:contactMessage, :displayName)
+      vcard = msg.dig(:contactMessage, :vcard)
       match_phone_number = vcard&.match(/waid=(\d+)/)
 
       return display_name unless match_phone_number
@@ -92,6 +97,7 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
   end
 
   def reply_to_message_id # rubocop:disable Metrics/CyclomaticComplexity
+    msg = unwrap_ephemeral_message(@raw_message[:message])
     message_key = case message_type
                   when 'text' then :extendedTextMessage
                   when 'image' then :imageMessage
@@ -100,12 +106,12 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
                   when 'video' then :videoMessage
                   when 'contact' then :contactMessage
                   when 'file'
-                    context_info = @raw_message.dig(:message, :documentMessage, :contextInfo).presence ||
-                                   @raw_message.dig(:message, :documentWithCaptionMessage, :message, :documentMessage, :contextInfo)
+                    context_info = msg.dig(:documentMessage, :contextInfo).presence ||
+                                   msg.dig(:documentWithCaptionMessage, :message, :documentMessage, :contextInfo)
                     return context_info&.dig(:stanzaId)
                   end
 
-    @raw_message.dig(:message, message_key, :contextInfo, :stanzaId) if message_key
+    msg.dig(message_key, :contextInfo, :stanzaId) if message_key
   end
 
   def file_content_type
@@ -117,18 +123,19 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
   end
 
   def message_mimetype
+    msg = unwrap_ephemeral_message(@raw_message[:message])
     case message_type
     when 'image'
-      @raw_message.dig(:message, :imageMessage, :mimetype)
+      msg.dig(:imageMessage, :mimetype)
     when 'sticker'
-      @raw_message.dig(:message, :stickerMessage, :mimetype)
+      msg.dig(:stickerMessage, :mimetype)
     when 'video'
-      @raw_message.dig(:message, :videoMessage, :mimetype)
+      msg.dig(:videoMessage, :mimetype)
     when 'audio'
-      @raw_message.dig(:message, :audioMessage, :mimetype)
+      msg.dig(:audioMessage, :mimetype)
     when 'file'
-      @raw_message.dig(:message, :documentMessage, :mimetype).presence ||
-        @raw_message.dig(:message, :documentWithCaptionMessage, :message, :documentMessage, :mimetype)
+      msg.dig(:documentMessage, :mimetype).presence ||
+        msg.dig(:documentWithCaptionMessage, :message, :documentMessage, :mimetype)
     end
   end
 
