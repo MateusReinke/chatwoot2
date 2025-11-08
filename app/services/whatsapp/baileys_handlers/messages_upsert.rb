@@ -65,6 +65,7 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
     # With this, when we receive a message from that contact, we can link it properly.
     existing_contact_inbox = inbox.contact_inboxes.find_by(source_id: phone)
     return unless existing_contact_inbox
+    return if inbox.contact_inboxes.exists?(source_id: source_id)
 
     existing_contact = existing_contact_inbox.contact
     conflicting_identifier = inbox.account.contacts.find_by(identifier: identifier)

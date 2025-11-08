@@ -120,6 +120,36 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
         end
       end
 
+      context 'when LID contact_inbox already exists (race condition)' do
+        it 'does not raise unique constraint error and skips the update' do
+          original_contact = create(:contact, account: inbox.account, phone_number: nil, identifier: nil)
+          create(:contact_inbox, inbox: inbox, contact: original_contact, source_id: phone)
+
+          lid_contact = create(:contact, account: inbox.account, phone_number: "+#{phone}", identifier: identifier)
+          create(:contact_inbox, inbox: inbox, contact: lid_contact, source_id: source_id)
+
+          raw_message = {
+            key: { id: 'msg_123', remoteJid: "#{lid}@lid", remoteJidAlt: "#{phone}@s.whatsapp.net", fromMe: false, addressingMode: 'lid' },
+            pushName: 'John Doe',
+            messageTimestamp: timestamp,
+            message: { conversation: 'Hello' }
+          }
+          params = {
+            webhookVerifyToken: webhook_verify_token,
+            event: 'messages.upsert',
+            data: { type: 'notify', messages: [raw_message] }
+          }
+
+          expect do
+            Whatsapp::IncomingMessageBaileysService.new(inbox: inbox, params: params).perform
+          end.not_to raise_error
+
+          message = inbox.messages.last
+          expect(message).to be_present
+          expect(message.sender).to eq(lid_contact)
+        end
+      end
+
       context 'when updating the same contact (no conflict)' do
         it 'successfully updates the contact' do
           contact = create(:contact, account: inbox.account, phone_number: "+#{phone}", identifier: nil)
