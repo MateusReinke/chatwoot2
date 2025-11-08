@@ -379,6 +379,23 @@ describe Whatsapp::IncomingMessageBaileysService do
             expect(conversation.contact.name).to eq('Verified John')
           end
 
+          it 'creates contact with LID only when phone number is not present' do
+            raw_message[:key][:remoteJid] = '87654321@lid'
+            raw_message[:key][:remoteJidAlt] = nil
+
+            described_class.new(inbox: inbox, params: params).perform
+
+            conversation = inbox.conversations.last
+            contact = conversation.contact
+            contact_inbox = conversation.contact_inbox
+
+            expect(contact).to be_present
+            expect(contact.phone_number).to be_nil
+            expect(contact.identifier).to eq('87654321@lid')
+            expect(contact.name).to eq('John Doe')
+            expect(contact_inbox.source_id).to eq('87654321')
+          end
+
           it 'creates contact with phone number as name on outgoing message' do
             raw_message[:key][:fromMe] = true
             create(:account_user, account: inbox.account)
@@ -397,6 +414,20 @@ describe Whatsapp::IncomingMessageBaileysService do
 
             conversation = inbox.conversations.last
             expect(conversation.contact.name).to eq('5511912345678')
+          end
+
+          it 'migrates existing phone-based contact inbox to LID-based when receiving message with LID' do
+            contact = create(:contact, account: inbox.account, name: 'Existing Contact', phone_number: '+5511912345678')
+            contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: '5511912345678')
+
+            described_class.new(inbox: inbox, params: params).perform
+
+            contact_inbox.reload
+            contact.reload
+
+            expect(contact_inbox.source_id).to eq('12345678')
+            expect(contact.identifier).to eq('12345678@lid')
+            expect(contact.phone_number).to eq('+5511912345678')
           end
 
           it 'creates a message on an existing conversation' do

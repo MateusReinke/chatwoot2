@@ -158,8 +158,8 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     true
   end
 
-  def unread_message(phone_number, message) # rubocop:disable Metrics/MethodLength
-    @recipient_id = phone_number
+  def unread_message(recipient_id, message) # rubocop:disable Metrics/MethodLength
+    @recipient_id = recipient_id
 
     response = HTTParty.post(
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/chat-modify",

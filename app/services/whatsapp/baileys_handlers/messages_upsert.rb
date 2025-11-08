@@ -51,7 +51,7 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
     contact_inbox = ::ContactInboxWithContactBuilder.new(
       source_id: source_id,
       inbox: inbox,
-      contact_attributes: { name: contact_name, phone_number: "+#{phone}", identifier: identifier }
+      contact_attributes: { name: contact_name, phone_number: ("+#{phone}" if phone), identifier: identifier }
     ).perform
 
     @contact_inbox = contact_inbox

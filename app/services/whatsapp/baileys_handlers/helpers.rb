@@ -133,7 +133,9 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
   end
 
   def extract_from_jid(type:)
-    reference_field = @raw_message[:key][:addressingMode] == type ? :remoteJid : :remoteJidAlt
+    addressing_mode = @raw_message[:key][:addressingMode]
+    reference_field = addressing_mode && addressing_mode != type ? :remoteJidAlt : :remoteJid
+
     jid = @raw_message[:key][reference_field]
     return unless jid
 
@@ -155,6 +157,8 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
   end
 
   def normalize_phone_number(phone_number)
+    return unless phone_number
+
     Whatsapp::PhoneNormalizers::BrazilPhoneNormalizer.new.normalize(phone_number)
   end
 

@@ -102,8 +102,11 @@ class Channel::Whatsapp < ApplicationRecord
     # NOTE: This is the default behavior, so `mark_as_read` being `nil` is the same as `true`.
     return if provider_config&.dig('mark_as_read') == false
 
-    recipient_id = conversation.contact.phone_number if provider == 'zapi'
-    recipient_id ||= conversation.contact.identifier || conversation.contact.phone_number
+    recipient_id = if provider == 'zapi'
+                     conversation.contact.phone_number
+                   else
+                     conversation.contact.identifier || conversation.contact.phone_number
+                   end
 
     provider_service.read_messages(messages, recipient_id: recipient_id)
   end
