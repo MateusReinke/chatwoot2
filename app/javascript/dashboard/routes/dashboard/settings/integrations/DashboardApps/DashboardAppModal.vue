@@ -65,7 +65,7 @@ export default {
     if (this.mode === 'UPDATE' && this.selectedAppData) {
       this.app.title = this.selectedAppData.title;
       this.app.content = this.selectedAppData.content[0];
-      this.app.show_on_sidebar = this.selectedAppData.show_on_sidebar || false;
+      this.app.show_on_sidebar = this.selectedAppData.show_on_sidebar ?? false;
     }
   },
   methods: {
