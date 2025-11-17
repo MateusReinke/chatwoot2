@@ -216,6 +216,9 @@
         "EDIT_TOOLTIP": "Edit app",
         "DELETE_TOOLTIP": "Delete app"
       },
+      "VIEW": {
+        "NOT_FOUND": "We couldn't find that dashboard app."
+      },
       "FORM": {
         "TITLE_LABEL": "Name",
         "TITLE_PLACEHOLDER": "Enter a name for your dashboard app",
