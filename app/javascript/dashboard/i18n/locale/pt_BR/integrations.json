@@ -219,6 +219,9 @@
         "EDIT_TOOLTIP": "Alterar aplicativo",
         "DELETE_TOOLTIP": "Excluir aplicativo"
       },
+      "VIEW": {
+        "NOT_FOUND": "Não encontramos este aplicativo do painel."
+      },
       "FORM": {
         "TITLE_LABEL": "Nome",
         "TITLE_PLACEHOLDER": "Digite um nome para o aplicativo",
