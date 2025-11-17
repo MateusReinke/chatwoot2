@@ -25,7 +25,7 @@ export default {
   },
   data() {
     return {
-      hasOpenedAtleastOnce: false,
+      hasOpenedAtleastOnce: this.isVisible,
       iframeLoading: true,
     };
   },
@@ -46,10 +46,13 @@ export default {
     },
   },
   watch: {
-    isVisible() {
-      if (this.isVisible) {
-        this.hasOpenedAtleastOnce = true;
-      }
+    isVisible: {
+      immediate: true,
+      handler(value) {
+        if (value) {
+          this.hasOpenedAtleastOnce = true;
+        }
+      },
     },
   },
   mounted() {
