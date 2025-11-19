@@ -98,16 +98,21 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
   end
 
   def update_existing_contact_inbox(phone, source_id, identifier)
-    # NOTE: This is useful when we create a new contact manually, so we don't have information about contact LID;
-    # With this, when we receive a message from that contact, we can link it properly.
-    existing_contact_inbox = inbox.contact_inboxes.find_by(source_id: phone)
-    return unless existing_contact_inbox
+  # NOTE: This is useful when we create a new contact manually, so we don't have information about contact LID;
+  # With this, when we receive a message from that contact, we can link it properly.
+  existing_contact_inbox = inbox.contact_inboxes.find_by(source_id: phone)
+  return unless existing_contact_inbox
 
+  begin
     ActiveRecord::Base.transaction do
       existing_contact_inbox.update!(source_id: source_id)
       existing_contact_inbox.contact.update!(identifier: identifier)
     end
+  rescue ActiveRecord::RecordNotUnique
+    Rails.logger.warn("Duplicate contact_inbox detected for source_id: #{source_id}, removing old record")
+    existing_contact_inbox.destroy
   end
+end
 
   def update_contact_phone_number
     return if @contact.phone_number.present?
