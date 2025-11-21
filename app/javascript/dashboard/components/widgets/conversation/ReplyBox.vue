@@ -940,7 +940,7 @@ export default {
       const conversationId = this.currentChat.id;
       const isPrivate = this.isPrivate;
 
-      if (!conversationId || isPrivate) {
+      if (!conversationId) {
         return;
       }
 
