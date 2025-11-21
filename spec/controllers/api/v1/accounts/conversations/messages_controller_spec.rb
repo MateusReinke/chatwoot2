@@ -81,6 +81,31 @@ RSpec.describe 'Conversation Messages API', type: :request do
         expect(conversation.messages.last.attachments.first.file_type).to eq('image')
       end
 
+      it 'triggers typing off event for non-private messages' do
+        params = { content: 'test-message' }
+        allow(Rails.configuration.dispatcher).to receive(:dispatch)
+          .with('conversation.typing_off', kind_of(Time), hash_including(conversation: conversation, user: agent))
+
+        post api_v1_account_conversation_messages_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: params,
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch)
+      end
+
+      it 'does not trigger typing off event for private messages' do
+        params = { content: 'test-message', private: true }
+        allow(Rails.configuration.dispatcher).to receive(:dispatch)
+
+        post api_v1_account_conversation_messages_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: params,
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(Rails.configuration.dispatcher).not_to have_received(:dispatch)
+      end
+
       context 'when api inbox' do
         let(:api_channel) { create(:channel_api, account: account) }
         let(:api_inbox) { create(:inbox, channel: api_channel, account: account) }
