@@ -90,6 +90,7 @@ RSpec.describe 'Conversation Messages API', type: :request do
              headers: agent.create_new_auth_token,
              as: :json
 
+        expect(response).to have_http_status(:success)
         expect(Rails.configuration.dispatcher).to have_received(:dispatch)
           .with('conversation.typing_off', kind_of(Time), hash_including(conversation: conversation, user: agent, is_private: false))
       end
@@ -103,6 +104,7 @@ RSpec.describe 'Conversation Messages API', type: :request do
              headers: agent.create_new_auth_token,
              as: :json
 
+        expect(response).to have_http_status(:success)
         expect(Rails.configuration.dispatcher).to have_received(:dispatch)
           .with('conversation.typing_off', kind_of(Time), hash_including(conversation: conversation, user: agent, is_private: true))
       end
