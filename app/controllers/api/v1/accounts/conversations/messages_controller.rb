@@ -12,7 +12,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     mb = Messages::MessageBuilder.new(user, @conversation, params)
     @message = mb.perform
 
-    trigger_typing_event(CONVERSATION_TYPING_OFF) unless params[:private]
+    trigger_typing_event(CONVERSATION_TYPING_OFF)
   rescue StandardError => e
     render_could_not_create_error(e.message)
   end
@@ -86,6 +86,6 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
     user = Current.user || @resource
     return unless user.is_a?(User)
 
-    Rails.configuration.dispatcher.dispatch(event, Time.zone.now, conversation: @conversation, user: user)
+    Rails.configuration.dispatcher.dispatch(event, Time.zone.now, conversation: @conversation, user: user, is_private: params[:private])
   end
 end
