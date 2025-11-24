@@ -5,7 +5,7 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
 
   attr_reader :message
 
-  def initialize(user, conversation, params) # rubocop:disable Metrics/CyclomaticComplexity
+  def initialize(user, conversation, params) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
     @params = params
     @private = params[:private] || false
     @conversation = conversation
@@ -20,6 +20,7 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
     @in_reply_to = content_attributes&.dig(:in_reply_to)
     @is_reaction = content_attributes&.dig(:is_reaction)
     @items = content_attributes&.dig(:items)
+    @zapi_args = content_attributes&.dig(:zapi_args)
   end
 
   def perform
@@ -160,7 +161,8 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
       in_reply_to: @in_reply_to,
       is_reaction: @is_reaction,
       echo_id: @params[:echo_id],
-      source_id: @params[:source_id]
+      source_id: @params[:source_id],
+      zapi_args: @zapi_args
     }.merge(external_created_at).merge(automation_rule_id).merge(campaign_id).merge(template_params)
   end
 
