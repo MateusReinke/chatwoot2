@@ -148,6 +148,10 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
     AgentBot.where(account_id: [nil, @conversation.account.id]).find_by(id: @params[:sender_id])
   end
 
+  def zapi_args
+    @zapi_args.present? ? { zapi_args: @zapi_args } : {}
+  end
+
   def message_params
     {
       account_id: @conversation.account_id,
@@ -161,9 +165,8 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
       in_reply_to: @in_reply_to,
       is_reaction: @is_reaction,
       echo_id: @params[:echo_id],
-      source_id: @params[:source_id],
-      zapi_args: @zapi_args
-    }.merge(external_created_at).merge(automation_rule_id).merge(campaign_id).merge(template_params)
+      source_id: @params[:source_id]
+    }.merge(external_created_at).merge(automation_rule_id).merge(campaign_id).merge(template_params).merge(zapi_args)
   end
 
   def email_inbox?
