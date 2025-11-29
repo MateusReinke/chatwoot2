@@ -13,6 +13,8 @@ module Enterprise::SuperAdmin::AppConfigsController
       return super if ChatwootHub.pricing_plan == 'community'
 
       @allowed_configs = captain_config_options
+    when 'saml'
+      @allowed_configs = saml_config_options
     else
       super
     end
@@ -47,5 +49,9 @@ module Enterprise::SuperAdmin::AppConfigsController
       CAPTAIN_EMBEDDING_MODEL
       CAPTAIN_FIRECRAWL_API_KEY
     ]
+  end
+
+  def saml_config_options
+    %w[ENABLE_SAML_SSO_LOGIN]
   end
 end
