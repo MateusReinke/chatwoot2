@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 
 export const useLoadWithRetry = (config = {}) => {
-  const maxRetry = config.max_retry || 3;
+  const maxRetry = config.maxRetry || 3;
   const backoff = config.backoff || 1000;
   const type = config.type || '';
 

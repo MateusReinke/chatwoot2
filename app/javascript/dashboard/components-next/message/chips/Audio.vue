@@ -45,8 +45,8 @@ const playbackSpeed = ref(1);
 const { uid } = getCurrentInstance();
 
 const onLoadedMetadata = () => {
-  duration.value = audioPlayer.value?.duration;
   if (audioPlayer.value) {
+    duration.value = audioPlayer.value.duration;
     audioPlayer.value.playbackRate = playbackSpeed.value;
   }
 };
