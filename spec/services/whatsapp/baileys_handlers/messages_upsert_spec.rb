@@ -321,7 +321,10 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
     let(:phone) { '5511912345678' }
 
     before do
-      stub_request(:get, %r{https://baileys\.api/media/.*}).to_return(status: 200, body: 'fake content')
+      %w[msg_doc_1 msg_doc_2 msg_image_1 msg_audio_1].each do |message_id|
+        stub_request(:get, whatsapp_channel.media_url(message_id))
+          .to_return(status: 200, body: 'fake content')
+      end
     end
 
     context 'when receiving a document message with filename' do
