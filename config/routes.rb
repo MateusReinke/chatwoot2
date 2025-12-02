@@ -145,6 +145,16 @@ Rails.application.routes.draw do
             end
           end
 
+          # Kanban routes
+          resources :kanban, only: [:index] do
+            collection do
+              get :export
+            end
+            member do
+              put :move
+            end
+          end
+
           resources :search, only: [:index] do
             collection do
               get :conversations

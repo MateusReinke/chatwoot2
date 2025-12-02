@@ -1,0 +1,60 @@
+{
+  "KANBAN": {
+    "TITLE": "Lead Kanban",
+    "LEADS": "leads",
+    "REFRESH": "Refresh",
+    "EMPTY_COLUMN": "No leads in this stage",
+    "STATUS": {
+      "NOVO_LEAD": "New Lead",
+      "AQUECIMENTO": "Warming Up",
+      "QUALIFICADO": "Qualified",
+      "CONVERTIDO": "Converted",
+      "AGENDADO": "Scheduled",
+      "VENDIDO": "Sold",
+      "PERDIDO": "Lost"
+    },
+    "FILTERS": {
+      "SEARCH": "Search by name or phone",
+      "TEMPERATURA": "Temperature",
+      "SCORE": "Score Range",
+      "INBOX": "Inbox",
+      "ALL": "All",
+      "CLEAR_ALL": "Clear Filters",
+      "TEMPERATURA_OPTIONS": {
+        "ALL": "All Temperatures",
+        "QUENTE": "🔥 Hot",
+        "MORNO": "☀️ Warm",
+        "FRIO": "❄️ Cold"
+      },
+      "SCORE_OPTIONS": {
+        "ALL": "All Scores",
+        "ALTO": "High (70-100)",
+        "MEDIO": "Medium (40-69)",
+        "BAIXO": "Low (0-39)"
+      }
+    },
+    "CARD": {
+      "SCORE": "Score",
+      "PHONE": "Phone",
+      "SERVICE": "Service Interest",
+      "PAIN_POINTS": "Pain Points",
+      "OBJECTIONS": "Objections",
+      "CLICK_TO_OPEN": "Click to open conversation"
+    },
+    "EXPORT": {
+      "BUTTON": "Export",
+      "SUCCESS": "Data exported successfully",
+      "ERROR": "Failed to export data",
+      "NO_DATA": "No data to export"
+    },
+    "API": {
+      "SUCCESS": {
+        "MOVE": "Lead moved successfully"
+      },
+      "ERROR": {
+        "FETCH": "Failed to load leads. Please try again.",
+        "MOVE": "Failed to move lead. Please try again."
+      }
+    }
+  }
+}
