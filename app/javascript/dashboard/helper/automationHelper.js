@@ -285,7 +285,7 @@ export const getInputType = (
     return getCustomAttributeInputType(customAttribute.attribute_display_type);
   }
   const type = getAutomationType(automationTypes, automation, key);
-  return type.inputType;
+  return type?.inputType;
 };
 
 /**
@@ -311,7 +311,7 @@ export const getOperators = (
     }
   }
   const type = getAutomationType(automationTypes, automation, key);
-  return type.filterOperators;
+  return type?.filterOperators;
 };
 
 /**
@@ -324,7 +324,7 @@ export const getOperators = (
 export const getCustomAttributeType = (automationTypes, automation, key) => {
   return automationTypes[automation.event_name].conditions.find(
     i => i.key === key
-  ).customAttributeType;
+  )?.customAttributeType;
 };
 
 /**
