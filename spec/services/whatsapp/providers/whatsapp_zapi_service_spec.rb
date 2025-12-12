@@ -212,6 +212,41 @@ describe Whatsapp::Providers::WhatsappZapiService do
     end
   end
 
+  describe '#send_read_message' do
+    let(:phone) { test_send_phone_number }
+    let(:message_source_id) { 'msg_123' }
+
+    context 'when response is successful' do
+      it 'sends a read message request to Z-API' do
+        stub_request(:post, "#{api_instance_path_with_token}/read-message")
+          .with(
+            headers: stub_headers,
+            body: { phone: phone, messageId: message_source_id }.to_json
+          )
+          .to_return(status: 200)
+
+        result = service.send_read_message(phone, message_source_id)
+
+        expect(result).to be(true)
+      end
+    end
+
+    context 'when response is unsuccessful' do
+      it 'logs the error and returns false' do
+        stub_request(:post, "#{api_instance_path_with_token}/read-message")
+          .with(headers: stub_headers)
+          .to_return(status: 400, body: 'error message')
+
+        allow(Rails.logger).to receive(:error)
+
+        result = service.send_read_message(phone, message_source_id)
+
+        expect(result).to be(false)
+        expect(Rails.logger).to have_received(:error).with('error message')
+      end
+    end
+  end
+
   describe '#on_whatsapp' do
     let(:phone_number) { '+123456789' }
 

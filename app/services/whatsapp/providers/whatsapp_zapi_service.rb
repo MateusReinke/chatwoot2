@@ -84,10 +84,25 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
     phone = recipient_id.delete('+')
 
     messages.each do |message|
+      next if message.source_id.blank?
+
       Channels::Whatsapp::ZapiReadMessageJob.perform_later(whatsapp_channel, phone, message.source_id)
     end
 
     true
+  end
+
+  def send_read_message(phone, message_source_id)
+    response = HTTParty.post(
+      "#{api_instance_path_with_token}/read-message",
+      headers: api_headers,
+      body: {
+        phone: phone,
+        messageId: message_source_id
+      }.to_json
+    )
+
+    process_response(response)
   end
 
   def on_whatsapp(phone_number)
