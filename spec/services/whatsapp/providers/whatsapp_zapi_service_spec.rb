@@ -198,46 +198,17 @@ describe Whatsapp::Providers::WhatsappZapiService do
     let(:second_message) { create(:message, source_id: 'msg_second') }
     let(:messages) { [first_message, second_message] }
 
-    context 'when response is successful' do
-      it 'sends a read request for each message' do
-        stub_request(:post, "#{api_instance_path_with_token}/read-message")
-          .with(
-            headers: stub_headers,
-            body: {
-              phone: test_send_phone_number,
-              messageId: first_message.source_id
-            }.to_json
-          )
-          .to_return(status: 200)
+    it 'enqueues a job for each message' do
+      service.read_messages(messages, recipient_id: "+#{test_send_phone_number}")
 
-        stub_request(:post, "#{api_instance_path_with_token}/read-message")
-          .with(
-            headers: stub_headers,
-            body: {
-              phone: test_send_phone_number,
-              messageId: second_message.source_id
-            }.to_json
-          )
-          .to_return(status: 200)
-
-        result = service.read_messages(messages, recipient_id: "+#{test_send_phone_number}")
-
-        expect(result).to be(true)
-      end
+      expect(Channels::Whatsapp::ZapiReadMessageJob).to have_been_enqueued.with(whatsapp_channel, test_send_phone_number, first_message.source_id)
+      expect(Channels::Whatsapp::ZapiReadMessageJob).to have_been_enqueued.with(whatsapp_channel, test_send_phone_number, second_message.source_id)
     end
 
-    context 'when response is unsuccessful' do
-      it 'raises ProviderUnavailableError' do
-        stub_request(:post, "#{api_instance_path_with_token}/read-message")
-          .with(headers: stub_headers)
-          .to_return(status: 400, body: 'error message', headers: {})
+    it 'returns true' do
+      result = service.read_messages(messages, recipient_id: "+#{test_send_phone_number}")
 
-        allow(Rails.logger).to receive(:error)
-
-        expect do
-          service.read_messages(messages, recipient_id: "+#{test_send_phone_number}")
-        end.to raise_error(Whatsapp::Providers::WhatsappZapiService::ProviderUnavailableError)
-      end
+      expect(result).to be(true)
     end
   end
 
