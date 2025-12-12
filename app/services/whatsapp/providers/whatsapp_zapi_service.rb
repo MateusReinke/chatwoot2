@@ -81,18 +81,23 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
   end
 
   def read_messages(messages, recipient_id:, **)
-    messages.each do |message|
-      response = HTTParty.post(
-        "#{api_instance_path_with_token}/read-message",
-        headers: api_headers,
-        body: {
-          phone: recipient_id.delete('+'),
-          messageId: message.source_id
-        }.to_json
-      )
+    phone = recipient_id.delete('+')
 
-      raise ProviderUnavailableError unless process_response(response)
+    threads = messages.map do |message|
+      Thread.new do
+        HTTParty.post(
+          "#{api_instance_path_with_token}/read-message",
+          headers: api_headers,
+          body: {
+            phone: phone,
+            messageId: message.source_id
+          }.to_json
+        )
+      end
     end
+
+    responses = threads.map(&:value)
+    responses.each { |response| raise ProviderUnavailableError unless process_response(response) }
 
     true
   end
