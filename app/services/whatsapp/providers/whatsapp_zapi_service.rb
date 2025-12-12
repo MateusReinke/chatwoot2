@@ -81,19 +81,18 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
   end
 
   def read_messages(messages, recipient_id:, **)
-    # NOTE: Z-API will handle marking previous messages as read.
-    last_message = messages.last
+    messages.each do |message|
+      response = HTTParty.post(
+        "#{api_instance_path_with_token}/read-message",
+        headers: api_headers,
+        body: {
+          phone: recipient_id.delete('+'),
+          messageId: message.source_id
+        }.to_json
+      )
 
-    response = HTTParty.post(
-      "#{api_instance_path_with_token}/read-message",
-      headers: api_headers,
-      body: {
-        phone: recipient_id.delete('+'),
-        messageId: last_message.source_id
-      }.to_json
-    )
-
-    raise ProviderUnavailableError unless process_response(response)
+      raise ProviderUnavailableError unless process_response(response)
+    end
 
     true
   end

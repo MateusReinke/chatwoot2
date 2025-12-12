@@ -194,16 +194,28 @@ describe Whatsapp::Providers::WhatsappZapiService do
   end
 
   describe '#read_messages' do
-    let(:messages) { [create(:message), message] }
+    let(:first_message) { create(:message, source_id: 'msg_first') }
+    let(:second_message) { create(:message, source_id: 'msg_second') }
+    let(:messages) { [first_message, second_message] }
 
     context 'when response is successful' do
-      it 'marks messages as read by referencing last message id' do
+      it 'sends a read request for each message' do
         stub_request(:post, "#{api_instance_path_with_token}/read-message")
           .with(
             headers: stub_headers,
             body: {
               phone: test_send_phone_number,
-              messageId: message.source_id
+              messageId: first_message.source_id
+            }.to_json
+          )
+          .to_return(status: 200)
+
+        stub_request(:post, "#{api_instance_path_with_token}/read-message")
+          .with(
+            headers: stub_headers,
+            body: {
+              phone: test_send_phone_number,
+              messageId: second_message.source_id
             }.to_json
           )
           .to_return(status: 200)
