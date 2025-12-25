@@ -85,6 +85,38 @@ RSpec.describe 'Conversation Message Attachments API', type: :request do
         )
       end
 
+      it 'handles request without meta parameter' do
+        patch api_v1_account_conversation_message_attachment_url(
+          account_id: account.id,
+          conversation_id: conversation.display_id,
+          message_id: message.id,
+          id: attachment.id
+        ),
+              params: {},
+              headers: agent.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(attachment.reload.meta).to eq({})
+      end
+
+      it 'handles empty meta parameter' do
+        attachment.update!(meta: { existing: 'data' })
+
+        patch api_v1_account_conversation_message_attachment_url(
+          account_id: account.id,
+          conversation_id: conversation.display_id,
+          message_id: message.id,
+          id: attachment.id
+        ),
+              params: { meta: {} },
+              headers: agent.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(attachment.reload.meta).to eq({})
+      end
+
       it 'rejects metadata that exceeds size limit' do
         large_value = 'x' * 17_000
         params = { meta: { large_field: large_value } }
