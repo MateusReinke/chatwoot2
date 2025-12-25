@@ -99,7 +99,7 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
     filename = attachment.respond_to?(:original_filename) ? attachment.original_filename : nil
     return unless filename
 
-    metadata = @attachments_metadata[filename] || @attachments_metadata[filename.to_sym]
+    metadata = @attachments_metadata[filename]
     metadata.to_h if metadata.present?
   end
 

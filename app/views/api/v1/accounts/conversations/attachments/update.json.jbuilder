@@ -1,1 +1,1 @@
-json.merge! @attachment.push_event_data
+json.merge! @attachment.push_event_data || {}

@@ -5,7 +5,7 @@ RSpec.describe 'Conversation Message Attachments API', type: :request do
   let!(:inbox) { create(:inbox, account: account) }
   let!(:conversation) { create(:conversation, inbox: inbox, account: account) }
   let!(:message) { create(:message, conversation: conversation, account: account) }
-  let!(:attachment) { create(:attachment, message: message, account: account, file_type: :audio) }
+  let!(:attachment) { message.attachments.create!(account: account, file_type: :fallback, fallback_title: 'Test attachment') }
 
   describe 'PATCH /api/v1/accounts/{account.id}/conversations/{conversation_id}/messages/{message_id}/attachments/{id}' do
     context 'when it is an unauthenticated user' do
@@ -67,9 +67,7 @@ RSpec.describe 'Conversation Message Attachments API', type: :request do
       it 'triggers message update event' do
         params = { meta: { description: 'Updated description' } }
 
-        allow(message).to receive(:send_update_event)
-        allow(Message).to receive(:find).and_return(message)
-        allow_any_instance_of(Message).to receive(:send_update_event) # rubocop:disable RSpec/AnyInstance
+        allow(Rails.configuration.dispatcher).to receive(:dispatch)
 
         patch api_v1_account_conversation_message_attachment_url(
           account_id: account.id,
@@ -82,6 +80,27 @@ RSpec.describe 'Conversation Message Attachments API', type: :request do
               as: :json
 
         expect(response).to have_http_status(:success)
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          'message.updated', anything, hash_including(message: an_instance_of(Message))
+        )
+      end
+
+      it 'rejects metadata that exceeds size limit' do
+        large_value = 'x' * 17_000
+        params = { meta: { large_field: large_value } }
+
+        patch api_v1_account_conversation_message_attachment_url(
+          account_id: account.id,
+          conversation_id: conversation.display_id,
+          message_id: message.id,
+          id: attachment.id
+        ),
+              params: params,
+              headers: agent.create_new_auth_token,
+              as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to include('Metadata size exceeds maximum')
       end
 
       it 'returns not found for non-existent attachment' do
@@ -117,7 +136,7 @@ RSpec.describe 'Conversation Message Attachments API', type: :request do
       let(:agent) { create(:user, account: account, role: :agent) }
 
       it 'returns unauthorized' do
-        params = { meta: { transcribed_text: 'Test' } }
+        params = { meta: { description: 'Test' } }
 
         patch api_v1_account_conversation_message_attachment_url(
           account_id: account.id,
