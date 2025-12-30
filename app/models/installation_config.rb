@@ -19,7 +19,7 @@ class InstallationConfig < ApplicationRecord
   # We need a custom coder that handles both YAML strings and native JSON objects.
   class SerializedValueCoder # rubocop:disable Style/OneClassPerFile
     def self.dump(value)
-      return value if value.is_a?(Hash)
+      return value.with_indifferent_access if value.is_a?(Hash)
 
       { value: value }.with_indifferent_access
     end
