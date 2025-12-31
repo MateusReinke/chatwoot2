@@ -21,7 +21,7 @@ class WidgetsController < ActionController::Base
       'DIRECT_UPLOADS_ENABLED',
       'MAXIMUM_FILE_UPLOAD_SIZE',
       'INSTALLATION_NAME'
-    )
+    ).merge(eagletalks_brand_overrides)
   end
 
   def set_web_widget
