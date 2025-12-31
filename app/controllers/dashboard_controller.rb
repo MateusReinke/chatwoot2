@@ -49,6 +49,36 @@ class DashboardController < ActionController::Base
                                  .merge(eagletalks_brand_overrides)
   end
 
+  # Centraliza overrides do EagleTalks sem depender de DB/InstallationConfig.
+  # Mantém o controller resiliente: se nada estiver definido, não quebra o load.
+  #
+  # Você pode setar no Coolify (env vars), por exemplo:
+  # - EAGLETALKS_INSTALLATION_NAME
+  # - EAGLETALKS_BRAND_NAME
+  # - EAGLETALKS_BRAND_URL
+  # - EAGLETALKS_WIDGET_BRAND_URL
+  # - EAGLETALKS_TERMS_URL
+  # - EAGLETALKS_PRIVACY_URL
+  # - EAGLETALKS_LOGO_THUMBNAIL
+  # - EAGLETALKS_LOGO
+  # - EAGLETALKS_LOGO_DARK
+  def eagletalks_brand_overrides
+    overrides = {
+      'INSTALLATION_NAME' => ENV['EAGLETALKS_INSTALLATION_NAME'],
+      'BRAND_NAME'        => ENV['EAGLETALKS_BRAND_NAME'],
+      'BRAND_URL'         => ENV['EAGLETALKS_BRAND_URL'],
+      'WIDGET_BRAND_URL'  => ENV['EAGLETALKS_WIDGET_BRAND_URL'],
+      'TERMS_URL'         => ENV['EAGLETALKS_TERMS_URL'],
+      'PRIVACY_URL'       => ENV['EAGLETALKS_PRIVACY_URL'],
+      'LOGO_THUMBNAIL'    => ENV['EAGLETALKS_LOGO_THUMBNAIL'],
+      'LOGO'              => ENV['EAGLETALKS_LOGO'],
+      'LOGO_DARK'         => ENV['EAGLETALKS_LOGO_DARK']
+    }
+
+    # remove nil/blank para não sobrescrever valores existentes com vazio
+    overrides.reject { |_k, v| v.blank? }
+  end
+
   def set_dashboard_scripts
     @dashboard_scripts = sensitive_path? ? nil : GlobalConfig.get_value('DASHBOARD_SCRIPTS')
   end
@@ -102,12 +132,8 @@ class DashboardController < ActionController::Base
   end
 
   def sensitive_path?
-    # dont load dashboard scripts on sensitive paths like password reset
     sensitive_paths = [edit_user_password_path].freeze
-
-    # remove app prefix
     current_path = request.path.gsub(%r{^/app}, '')
-
     sensitive_paths.include?(current_path)
   end
 end
