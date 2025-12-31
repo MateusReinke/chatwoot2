@@ -15,7 +15,7 @@ class Api::V1::Widget::ConfigsController < Api::V1::Widget::BaseController
       'WIDGET_BRAND_URL',
       'MAXIMUM_FILE_UPLOAD_SIZE',
       'INSTALLATION_NAME'
-    )
+    ).merge(eagletalks_brand_overrides)
   end
 
   def set_contact
