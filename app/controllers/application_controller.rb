@@ -24,5 +24,28 @@ class ApplicationController < ActionController::Base
       account_user: Current.account_user
     }
   end
+
+  # EagleTalks - Brand overrides injected into global config
+  # Values come from config/initializers/eagletalks_brand.rb
+  def eagletalks_brand_overrides
+    brand = Rails.application.config.x.brand
+
+    {
+      'BRAND_NAME' => brand.name,
+      'BRAND_URL' => brand.url,
+      'WIDGET_BRAND_URL' => brand.support_url,
+      'INSTALLATION_NAME' => brand.name,
+
+      # Extra URLs and flags for whitelabel (used by frontend patches)
+      'SUPPORT_URL' => brand.support_url,
+      'DOCS_URL' => brand.docs_url,
+      'TERMS_URL' => brand.terms_url,
+      'PRIVACY_URL' => brand.privacy_url,
+      'HIDE_POWERED_BY' => brand.hide_powered_by,
+      'HIDE_DOCS_LINKS' => brand.hide_docs_links,
+      'EMAIL_FOOTER_TEXT' => brand.email_footer_text
+    }.compact
+  end
 end
+
 ApplicationController.include_mod_with('Concerns::ApplicationControllerConcern')
