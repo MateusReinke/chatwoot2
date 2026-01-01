@@ -35,6 +35,7 @@ RSpec.describe WebhookJob do
     let!(:conversation) { create(:conversation, inbox: inbox) }
     let!(:message) { create(:message, account: account, inbox: inbox, conversation: conversation) }
     let(:payload) { { event: 'message_created', id: message.id } }
+    let(:webhook_type) { :api_inbox_webhook }
 
     it 'is configured to retry on CustomExceptions::Webhook::RetriableError' do
       retry_handler = described_class.rescue_handlers.find do |handler|
@@ -44,14 +45,80 @@ RSpec.describe WebhookJob do
       expect(retry_handler).to be_present
     end
 
-    it 'marks message as failed after retries are exhausted' do
-      allow(Webhooks::Trigger).to receive(:execute).and_raise(
-        CustomExceptions::Webhook::RetriableError.new('Webhook endpoint not found')
-      )
+    context 'when webhook type is api_inbox_webhook' do
+      let(:webhook_type) { :api_inbox_webhook }
 
-      perform_enqueued_jobs { job }
+      it 'marks message as failed after retries are exhausted' do
+        allow(Webhooks::Trigger).to receive(:execute).and_raise(
+          CustomExceptions::Webhook::RetriableError.new('Webhook endpoint not found')
+        )
 
-      expect(message.reload.status).to eq('failed')
+        perform_enqueued_jobs { job }
+
+        expect(message.reload.status).to eq('failed')
+      end
+    end
+
+    context 'when webhook type is agent_bot_webhook' do
+      let(:webhook_type) { :agent_bot_webhook }
+
+      before { conversation.update!(status: :pending) }
+
+      it 'opens conversation and creates activity message after retries are exhausted' do
+        allow(Webhooks::Trigger).to receive(:execute).and_raise(
+          CustomExceptions::Webhook::RetriableError.new('Webhook endpoint not found')
+        )
+
+        perform_enqueued_jobs { job }
+
+        expect(conversation.reload.status).to eq('open')
+        activity_message = conversation.messages.where(message_type: :activity).last
+        expect(activity_message.content).to eq(I18n.t('conversations.activity.agent_bot.error_moved_to_open'))
+      end
+
+      it 'does not change message status' do
+        allow(Webhooks::Trigger).to receive(:execute).and_raise(
+          CustomExceptions::Webhook::RetriableError.new('Webhook endpoint not found')
+        )
+
+        expect { perform_enqueued_jobs { job } }.not_to(change { message.reload.status })
+      end
+
+      context 'when conversation is not pending' do
+        before { conversation.update!(status: :open) }
+
+        it 'does not create activity message' do
+          allow(Webhooks::Trigger).to receive(:execute).and_raise(
+            CustomExceptions::Webhook::RetriableError.new('Webhook endpoint not found')
+          )
+
+          expect(Conversations::ActivityMessageJob).not_to receive(:perform_later)
+
+          perform_enqueued_jobs { job }
+        end
+      end
+    end
+
+    context 'when webhook type is account_webhook' do
+      let(:webhook_type) { :account_webhook }
+
+      it 'does not update message status' do
+        allow(Webhooks::Trigger).to receive(:execute).and_raise(
+          CustomExceptions::Webhook::RetriableError.new('Webhook endpoint not found')
+        )
+
+        expect { perform_enqueued_jobs { job } }.not_to(change { message.reload.status })
+      end
+
+      it 'does not create activity message' do
+        allow(Webhooks::Trigger).to receive(:execute).and_raise(
+          CustomExceptions::Webhook::RetriableError.new('Webhook endpoint not found')
+        )
+
+        expect(Conversations::ActivityMessageJob).not_to receive(:perform_later)
+
+        perform_enqueued_jobs { job }
+      end
     end
 
     context 'when event is not message_created or message_updated' do
