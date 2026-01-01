@@ -1,7 +1,7 @@
 class WebhookJob < ApplicationJob
   queue_as :medium
 
-  SUPPORTED_MESSAGE_EVENTS = %w[message_created message_updated].freeze
+  SUPPORTED_MESSAGE_EVENTS = Webhooks::Trigger::SUPPORTED_ERROR_HANDLE_EVENTS
 
   retry_on CustomExceptions::Webhook::RetriableError, wait: :polynomially_longer, attempts: 5
   discard_on CustomExceptions::Webhook::RetriableError do |job, error|
