@@ -203,6 +203,7 @@ describe Webhooks::Trigger do
           timeout: webhook_timeout
         ).and_raise(RestClient::NotFound.new)
 
+      expect(Messages::StatusUpdateService).not_to receive(:new)
       expect { trigger.execute(url, payload, webhook_type) }.to raise_error(CustomExceptions::Webhook::RetriableError)
       expect(message.reload.status).to eq('sent')
     end
