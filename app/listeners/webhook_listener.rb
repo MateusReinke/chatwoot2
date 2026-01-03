@@ -31,7 +31,6 @@ class WebhookListener < BaseListener
     payload = message.webhook_data.merge(event: __method__.to_s)
     deliver_webhook_payloads(payload, inbox)
 
-    # Cascade to type-specific handlers for filtered subscriptions (account webhooks only)
     message_incoming(event)
     message_outgoing(event)
   end
