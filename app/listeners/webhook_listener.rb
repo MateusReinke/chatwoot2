@@ -32,11 +32,11 @@ class WebhookListener < BaseListener
     deliver_webhook_payloads(payload, inbox)
 
     # Cascade to type-specific handlers for filtered subscriptions (account webhooks only)
-    message_created_incoming(event)
-    message_created_outgoing(event)
+    message_incoming(event)
+    message_outgoing(event)
   end
 
-  def message_created_incoming(event)
+  def message_incoming(event)
     message = extract_message_and_account(event)[0]
 
     return unless message.webhook_sendable?
@@ -46,7 +46,7 @@ class WebhookListener < BaseListener
     deliver_account_webhooks(payload, message.account)
   end
 
-  def message_created_outgoing(event)
+  def message_outgoing(event)
     message = extract_message_and_account(event)[0]
 
     return unless message.webhook_sendable?
