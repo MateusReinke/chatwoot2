@@ -14,6 +14,8 @@ const SUPPORTED_WEBHOOK_EVENTS = [
   'conversation_status_changed',
   'conversation_updated',
   'message_created',
+  'message_created_incoming',
+  'message_created_outgoing',
   'message_updated',
   'webwidget_triggered',
   'contact_created',
