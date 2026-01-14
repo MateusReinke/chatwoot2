@@ -284,7 +284,7 @@ const sendWithSignature = computed(() => {
 });
 
 const signaturePosition = computed(() => {
-  return currentUser.value?.ui_settings?.signature_position || 'bottom';
+  return currentUser.value?.ui_settings?.signature_position || 'top';
 });
 
 const signatureSeparator = computed(() => {

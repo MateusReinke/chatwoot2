@@ -427,7 +427,7 @@ export default {
       );
     },
     signaturePosition() {
-      return this.currentUser?.ui_settings?.signature_position || 'bottom';
+      return this.currentUser?.ui_settings?.signature_position || 'top';
     },
     signatureSeparator() {
       return this.currentUser?.ui_settings?.signature_separator || 'blank';
