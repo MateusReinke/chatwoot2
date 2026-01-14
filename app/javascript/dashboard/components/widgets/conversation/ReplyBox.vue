@@ -673,6 +673,18 @@ export default {
         this.isEditorHotKeyEnabled(selectedKey)
       );
     },
+    applySignatureToMessage(message) {
+      if (!this.sendWithSignature || !this.messageSignature) {
+        return message;
+      }
+      const { signature_position, signature_separator } =
+        this.currentUser?.ui_settings || {};
+      const signatureSettings = {
+        position: signature_position || 'top',
+        separator: signature_separator || 'blank',
+      };
+      return appendSignature(message, this.messageSignature, signatureSettings);
+    },
     onPaste(e) {
       // Don't handle paste if compose new conversation modal is open
       if (this.newConversationModalActive) {
@@ -986,20 +998,7 @@ export default {
     getMultipleMessagesPayload(message) {
       const multipleMessagePayload = [];
 
-      let messageWithSignature = message;
-      if (this.sendWithSignature && this.messageSignature) {
-        const { signature_position, signature_separator } =
-          this.currentUser?.ui_settings || {};
-        const signatureSettings = {
-          position: signature_position || 'top',
-          separator: signature_separator || 'blank',
-        };
-        messageWithSignature = appendSignature(
-          message,
-          this.messageSignature,
-          signatureSettings
-        );
-      }
+      const messageWithSignature = this.applySignatureToMessage(message);
 
       if (this.attachedFiles?.length) {
         let caption = this.isAnInstagramChannel ? '' : messageWithSignature;
@@ -1045,18 +1044,8 @@ export default {
     },
     getMessagePayload(message) {
       let finalMessage = this.getMessageWithQuotedEmailText(message);
-      if (this.sendWithSignature && !this.isPrivate && this.messageSignature) {
-        const { signature_position, signature_separator } =
-          this.currentUser?.ui_settings || {};
-        const signatureSettings = {
-          position: signature_position || 'top',
-          separator: signature_separator || 'blank',
-        };
-        finalMessage = appendSignature(
-          message,
-          this.messageSignature,
-          signatureSettings
-        );
+      if (!this.isPrivate) {
+        finalMessage = this.applySignatureToMessage(finalMessage);
       }
 
       let messagePayload = {
