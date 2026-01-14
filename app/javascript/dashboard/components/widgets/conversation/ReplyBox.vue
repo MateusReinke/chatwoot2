@@ -999,8 +999,24 @@ export default {
     getMultipleMessagesPayload(message) {
       const multipleMessagePayload = [];
 
+      // Apply signature to message for WhatsApp/Instagram channels
+      let messageWithSignature = message;
+      if (this.sendWithSignature && this.messageSignature) {
+        const { signature_position, signature_separator } =
+          this.currentUser?.ui_settings || {};
+        const signatureSettings = {
+          position: signature_position || 'top',
+          separator: signature_separator || 'blank',
+        };
+        messageWithSignature = appendSignature(
+          message,
+          this.messageSignature,
+          signatureSettings
+        );
+      }
+
       if (this.attachedFiles && this.attachedFiles.length) {
-        let caption = this.isAnInstagramChannel ? '' : message;
+        let caption = this.isAnInstagramChannel ? '' : messageWithSignature;
         this.attachedFiles.forEach(attachment => {
           const attachedFile = this.globalConfig.directUploadsEnabled
             ? attachment.blobSignedId
@@ -1030,7 +1046,7 @@ export default {
       ) {
         let messagePayload = {
           conversationId: this.currentChat.id,
-          message,
+          message: messageWithSignature,
           private: false,
           sender: this.sender,
         };
