@@ -999,7 +999,6 @@ export default {
     getMultipleMessagesPayload(message) {
       const multipleMessagePayload = [];
 
-      // Apply signature to message for WhatsApp/Instagram channels
       let messageWithSignature = message;
       if (this.sendWithSignature && this.messageSignature) {
         const { signature_position, signature_separator } =
@@ -1015,7 +1014,7 @@ export default {
         );
       }
 
-      if (this.attachedFiles && this.attachedFiles.length) {
+      if (this.attachedFiles?.length) {
         let caption = this.isAnInstagramChannel ? '' : messageWithSignature;
         this.attachedFiles.forEach(attachment => {
           const attachedFile = this.globalConfig.directUploadsEnabled
@@ -1036,8 +1035,7 @@ export default {
         });
       }
 
-      const hasNoAttachments =
-        !this.attachedFiles || !this.attachedFiles.length;
+      const hasNoAttachments = !this.attachedFiles?.length;
       // For Instagram, we need a separate text message
       // For WhatsApp, we only need a text message if there are no attachments
       if (
@@ -1082,7 +1080,7 @@ export default {
       };
       messagePayload = this.setReplyToInPayload(messagePayload);
 
-      if (this.attachedFiles && this.attachedFiles.length) {
+      if (this.attachedFiles?.length) {
         messagePayload.files = [];
         messagePayload.isRecordedAudio = [];
         this.attachedFiles.forEach(attachment => {
