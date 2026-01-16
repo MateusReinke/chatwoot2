@@ -33,12 +33,17 @@ class Whatsapp::IncomingMessageBaseService
     @lock_acquired = acquire_message_processing_lock
     return unless @lock_acquired
 
-    set_contact
-    return unless @contact
+    # Lock by contact phone to prevent race conditions when multiple messages
+    # from the same contact arrive simultaneously (e.g., WhatsApp albums).
+    contact_phone = @processed_params[:messages].first[:from]
+    with_contact_lock(contact_phone) do
+      set_contact
+      return unless @contact
 
-    ActiveRecord::Base.transaction do
-      set_conversation
-      create_messages
+      ActiveRecord::Base.transaction do
+        set_conversation
+        create_messages
+      end
     end
   ensure
     # Clear lock AFTER transaction commits to prevent race conditions where another request

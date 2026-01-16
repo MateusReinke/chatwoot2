@@ -149,12 +149,16 @@ describe Whatsapp::IncomingMessageService do
         message_source_key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "#{whatsapp_channel.inbox.id}_#{params[:messages].first[:id]}")
         lock_acquired = false
 
+        # Allow all Redis::Alfred calls (contact lock uses different keys)
+        allow(Redis::Alfred).to receive(:set).and_call_original
+        allow(Redis::Alfred).to receive(:delete).and_call_original
+
+        # Stub message lock specifically
         allow(Redis::Alfred).to receive(:set).with(message_source_key, true, nx: true, ex: 1.day) do
           result = !lock_acquired
           lock_acquired = true
           result
         end
-        allow(Redis::Alfred).to receive(:delete).with(message_source_key)
 
         service1 = described_class.new(inbox: whatsapp_channel.inbox, params: params)
         service2 = described_class.new(inbox: whatsapp_channel.inbox, params: params)
@@ -180,6 +184,11 @@ describe Whatsapp::IncomingMessageService do
         message_source_key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "#{whatsapp_channel.inbox.id}_#{params[:messages].first[:id]}")
         lock_cleared_at_depth = nil
 
+        # Allow all Redis::Alfred calls (contact lock uses different keys)
+        allow(Redis::Alfred).to receive(:set).and_call_original
+        allow(Redis::Alfred).to receive(:delete).and_call_original
+
+        # Stub message lock specifically
         allow(Redis::Alfred).to receive(:set).with(message_source_key, true, nx: true, ex: 1.day).and_return(true)
         allow(Redis::Alfred).to receive(:delete).with(message_source_key) do
           lock_cleared_at_depth = ActiveRecord::Base.connection.open_transactions
@@ -206,6 +215,21 @@ describe Whatsapp::IncomingMessageService do
         described_class.new(inbox: whatsapp_channel.inbox, params: params).perform
         expect(whatsapp_channel.inbox.conversations.count).to eq(1)
         expect(whatsapp_channel.inbox.messages.count).to eq(1)
+      end
+
+      it 'acquires contact-level lock to prevent album race conditions' do
+        # When multiple messages from same contact arrive simultaneously (e.g., album),
+        # the contact lock prevents race conditions in conversation creation.
+        # This test verifies the lock is actually being acquired.
+        phone_number = '2423423243'
+        contact_lock_key = "WHATSAPP::CONTACT_LOCK::#{whatsapp_channel.inbox.id}_#{phone_number}"
+
+        allow(Redis::Alfred).to receive(:set).and_call_original
+        allow(Redis::Alfred).to receive(:delete).and_call_original
+
+        described_class.new(inbox: whatsapp_channel.inbox, params: params).perform
+
+        expect(Redis::Alfred).to have_received(:set).with(contact_lock_key, 1, nx: true, ex: 5.seconds)
       end
     end
 
