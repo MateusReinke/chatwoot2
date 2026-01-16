@@ -28,7 +28,6 @@ class Whatsapp::IncomingMessageBaseService
     # there are no duplicate messages created.
     return if find_message_by_source_id(@processed_params[:messages].first[:id])
 
-    # Atomically acquire lock to prevent race conditions with concurrent webhook deliveries
     return unless acquire_message_processing_lock
 
     set_contact

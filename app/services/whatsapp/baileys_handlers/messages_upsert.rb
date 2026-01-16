@@ -26,7 +26,6 @@ module Whatsapp::BaileysHandlers::MessagesUpsert # rubocop:disable Metrics/Modul
     return if ignore_message?
     return if find_message_by_source_id(raw_message_id)
 
-    # Atomically acquire lock to prevent race conditions with concurrent webhook deliveries
     return unless acquire_message_processing_lock
 
     set_contact

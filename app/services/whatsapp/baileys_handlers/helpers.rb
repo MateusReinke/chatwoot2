@@ -197,11 +197,8 @@ module Whatsapp::BaileysHandlers::Helpers # rubocop:disable Metrics/ModuleLength
     Redis::Alfred.get(key)
   end
 
-  # Atomically checks and sets the message processing lock.
-  # Returns true if lock was acquired, false if message is already being processed.
   def acquire_message_processing_lock
     key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "#{inbox.id}_#{raw_message_id}")
-    # Use SETNX (set if not exists) with expiry to atomically acquire lock
     Redis::Alfred.set(key, true, nx: true, ex: 1.day)
   end
 

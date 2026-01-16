@@ -74,14 +74,10 @@ module Whatsapp::IncomingMessageServiceHelpers
     Redis::Alfred.get(key)
   end
 
-  # Atomically checks and sets the message processing lock.
-  # Returns true if lock was acquired, false if message is already being processed.
   def acquire_message_processing_lock
     return false if @processed_params.try(:[], :messages).blank?
 
     key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: @processed_params[:messages].first[:id])
-    # Use SETNX (set if not exists) with expiry to atomically acquire lock
-    # Returns true if key was set, false if it already existed
     Redis::Alfred.set(key, true, nx: true, ex: 1.day)
   end
 
