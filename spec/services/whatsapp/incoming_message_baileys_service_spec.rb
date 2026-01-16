@@ -473,6 +473,31 @@ describe Whatsapp::IncomingMessageBaileysService do
             expect(Redis::Alfred).to have_received(:set)
             expect(Redis::Alfred).to have_received(:delete)
           end
+
+          it 'clears lock even when an exception occurs after acquiring it' do
+            # Bug: no ensure block meant exceptions left lock stuck forever
+            # Fix: use ensure block to always clear lock when acquired
+            allow(Redis::Alfred).to receive(:set)
+              .with(format_message_source_key('msg_123'), true, nx: true, ex: 1.day)
+              .and_return(true)
+            allow(Redis::Alfred).to receive(:delete).with(format_message_source_key('msg_123'))
+
+            service = described_class.new(inbox: inbox, params: params)
+            # Force an exception during message creation
+            allow(service).to receive(:perform).and_wrap_original do |original_method|
+              # Stub handle_message to raise after lock is acquired
+              allow(service).to receive(:handle_create_message).and_raise(StandardError, 'simulated error')
+              begin
+                original_method.call
+              rescue StandardError
+                # Expected
+              end
+            end
+
+            service.perform
+
+            expect(Redis::Alfred).to have_received(:delete).with(format_message_source_key('msg_123'))
+          end
         end
 
         context 'when is a extendedTextMessage that has key text' do # rubocop:disable RSpec/NestedGroups
