@@ -846,6 +846,18 @@ describe Whatsapp::ZapiHandlers::ReceivedCallback do
         expect(Redis::Alfred).to have_received(:delete)
           .with(format_message_source_key('duplicate_123'))
       end
+
+      it 'does not clear lock when acquisition fails' do
+        allow(Redis::Alfred).to receive(:set)
+          .with(format_message_source_key('duplicate_123'), true, nx: true, ex: 1.day)
+          .and_return(false)
+        allow(Redis::Alfred).to receive(:delete)
+
+        service.perform
+
+        expect(Redis::Alfred).not_to have_received(:delete)
+          .with(format_message_source_key('duplicate_123'))
+      end
     end
 
     context 'when attachment download fails' do
