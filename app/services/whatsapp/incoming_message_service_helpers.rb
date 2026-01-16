@@ -66,7 +66,7 @@ module Whatsapp::IncomingMessageServiceHelpers
   def find_message_by_source_id(source_id)
     return unless source_id
 
-    @message = Message.find_by(source_id: source_id)
+    @message = inbox.messages.find_by(source_id: source_id)
   end
 
   def message_under_process?
@@ -74,11 +74,15 @@ module Whatsapp::IncomingMessageServiceHelpers
     Redis::Alfred.get(key)
   end
 
-  def cache_message_source_id_in_redis
-    return if @processed_params.try(:[], :messages).blank?
+  # Atomically checks and sets the message processing lock.
+  # Returns true if lock was acquired, false if message is already being processed.
+  def acquire_message_processing_lock
+    return false if @processed_params.try(:[], :messages).blank?
 
     key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: @processed_params[:messages].first[:id])
-    ::Redis::Alfred.setex(key, true)
+    # Use SETNX (set if not exists) with expiry to atomically acquire lock
+    # Returns true if key was set, false if it already existed
+    Redis::Alfred.set(key, true, nx: true, ex: 1.day)
   end
 
   def clear_message_source_id_from_redis

@@ -10,9 +10,10 @@ module Whatsapp::ZapiHandlers::ReceivedCallback # rubocop:disable Metrics/Module
     @contact = nil
 
     return unless should_process_message?
-    return if find_message_by_source_id(raw_message_id) || message_under_process?
+    return if find_message_by_source_id(raw_message_id)
 
-    cache_message_source_id_in_redis
+    # Atomically acquire lock to prevent race conditions with concurrent webhook deliveries
+    return unless acquire_message_processing_lock
 
     return handle_edited_message if @raw_message[:isEdit]
 
