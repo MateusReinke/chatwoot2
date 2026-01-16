@@ -121,14 +121,12 @@ describe Whatsapp::IncomingMessageService do
         # This test simulates the exact race condition that was causing duplicate conversations
         # Two concurrent webhook deliveries for the same message should result in only one being processed
         threads_started = Concurrent::CountDownLatch.new(2)
-        results = Concurrent::Array.new
 
         thread1 = Thread.new do
           threads_started.count_down
           threads_started.wait # Wait for both threads to be ready
           service = described_class.new(inbox: whatsapp_channel.inbox, params: params)
           service.perform
-          results << { conversations: whatsapp_channel.inbox.conversations.count, messages: whatsapp_channel.inbox.messages.count }
         end
 
         thread2 = Thread.new do
@@ -136,7 +134,6 @@ describe Whatsapp::IncomingMessageService do
           threads_started.wait # Wait for both threads to be ready
           service = described_class.new(inbox: whatsapp_channel.inbox, params: params)
           service.perform
-          results << { conversations: whatsapp_channel.inbox.conversations.count, messages: whatsapp_channel.inbox.messages.count }
         end
 
         thread1.join
@@ -158,7 +155,8 @@ describe Whatsapp::IncomingMessageService do
         #
         # With atomic lock (SETNX), only one can succeed.
 
-        message_source_key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: params[:messages].first[:id])
+        # Key is scoped by inbox.id to prevent cross-inbox lock collisions
+        message_source_key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "#{whatsapp_channel.inbox.id}_#{params[:messages].first[:id]}")
         lock_acquired = false
 
         # Simulate atomic SETNX: only the first call returns true
@@ -557,7 +555,8 @@ describe Whatsapp::IncomingMessageService do
                                     ] }] }.with_indifferent_access
 
         expect(Message.find_by(source_id: 'wamid.SDFADSf23sfasdafasdfa')).not_to be_present
-        key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: 'wamid.SDFADSf23sfasdafasdfa')
+        # Key is scoped by inbox.id to prevent cross-inbox lock collisions
+        key = format(Redis::RedisKeys::MESSAGE_SOURCE_KEY, id: "#{whatsapp_channel.inbox.id}_wamid.SDFADSf23sfasdafasdfa")
 
         Redis::Alfred.setex(key, true)
         expect(Redis::Alfred.get(key)).to be_truthy
