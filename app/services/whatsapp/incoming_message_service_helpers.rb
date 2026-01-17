@@ -95,15 +95,21 @@ module Whatsapp::IncomingMessageServiceHelpers
 
     key = "WHATSAPP::CONTACT_LOCK::#{inbox.id}_#{phone}"
     start_time = Time.now.to_i
+    lock_acquired = false
 
     while (Time.now.to_i - start_time) < timeout
-      break if Redis::Alfred.set(key, 1, nx: true, ex: timeout)
+      if Redis::Alfred.set(key, 1, nx: true, ex: timeout)
+        lock_acquired = true
+        break
+      end
 
       sleep(0.1)
     end
 
+    raise Timeout::Error, "Timeout acquiring contact lock for #{phone}" unless lock_acquired
+
     yield
   ensure
-    Redis::Alfred.delete(key) if key
+    Redis::Alfred.delete(key) if lock_acquired
   end
 end

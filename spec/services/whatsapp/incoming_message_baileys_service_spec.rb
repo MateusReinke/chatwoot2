@@ -493,18 +493,9 @@ describe Whatsapp::IncomingMessageBaileysService do
             allow(Redis::Alfred).to receive(:delete).with(format_message_source_key('msg_123'))
 
             service = described_class.new(inbox: inbox, params: params)
-            # Force an exception during message creation
-            allow(service).to receive(:perform).and_wrap_original do |original_method|
-              # Stub handle_message to raise after lock is acquired
-              allow(service).to receive(:handle_create_message).and_raise(StandardError, 'simulated error')
-              begin
-                original_method.call
-              rescue StandardError
-                # Expected
-              end
-            end
+            allow(service).to receive(:handle_create_message).and_raise(StandardError, 'simulated error')
 
-            service.perform
+            expect { service.perform }.to raise_error(StandardError, 'simulated error')
 
             expect(Redis::Alfred).to have_received(:delete).with(format_message_source_key('msg_123'))
           end
