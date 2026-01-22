@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_14_201315) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_22_175206) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -581,7 +581,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_201315) do
     t.datetime "message_templates_last_updated", precision: nil
     t.jsonb "provider_connection", default: {}
     t.index ["phone_number"], name: "index_channel_whatsapp_on_phone_number", unique: true
-    t.index ["provider_connection"], name: "index_channel_whatsapp_provider_connection", where: "((provider)::text = ANY ((ARRAY['baileys'::character varying, 'zapi'::character varying])::text[]))", using: :gin
+    t.index ["provider_connection"], name: "index_channel_whatsapp_provider_connection", where: "((provider)::text = ANY (ARRAY[('baileys'::character varying)::text, ('zapi'::character varying)::text]))", using: :gin
   end
 
   create_table "companies", force: :cascade do |t|
@@ -1126,6 +1126,30 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_201315) do
     t.index ["user_id"], name: "index_reporting_events_on_user_id"
   end
 
+  create_table "scheduled_messages", force: :cascade do |t|
+    t.text "content"
+    t.jsonb "template_params", default: {}, null: false
+    t.datetime "scheduled_at"
+    t.integer "status", default: 0, null: false
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "inbox_id", null: false
+    t.bigint "author_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "author_type", null: false
+    t.index ["account_id", "status"], name: "index_scheduled_messages_on_account_id_and_status"
+    t.index ["account_id"], name: "index_scheduled_messages_on_account_id"
+    t.index ["author_id", "status"], name: "index_scheduled_messages_on_author_id_and_status"
+    t.index ["author_id"], name: "index_scheduled_messages_on_author_id"
+    t.index ["conversation_id", "scheduled_at"], name: "index_scheduled_messages_on_conversation_id_and_scheduled_at"
+    t.index ["conversation_id", "status"], name: "index_scheduled_messages_on_conversation_id_and_status"
+    t.index ["conversation_id"], name: "index_scheduled_messages_on_conversation_id"
+    t.index ["inbox_id", "status"], name: "index_scheduled_messages_on_inbox_id_and_status"
+    t.index ["inbox_id"], name: "index_scheduled_messages_on_inbox_id"
+    t.index ["status", "scheduled_at"], name: "index_scheduled_messages_on_status_and_scheduled_at"
+  end
+
   create_table "sla_events", force: :cascade do |t|
     t.bigint "applied_sla_id", null: false
     t.bigint "conversation_id", null: false
@@ -1274,6 +1298,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_201315) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "scheduled_messages", "accounts"
+  add_foreign_key "scheduled_messages", "conversations"
+  add_foreign_key "scheduled_messages", "inboxes"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).
