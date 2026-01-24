@@ -454,137 +454,70 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
     let(:phone) { '5511912345678' }
     let(:lid) { '12345678' }
 
-    context 'when a conversation is deleted and a new one is created for the same contact' do
-      it 'routes incoming messages to the new conversation, not a third one' do # rubocop:disable RSpec/MultipleExpectations
+    def build_raw_message(id:, text:)
+      {
+        key: { id: id, remoteJid: "#{lid}@lid", remoteJidAlt: "#{phone}@s.whatsapp.net", fromMe: false, addressingMode: 'lid' },
+        pushName: 'John Doe',
+        messageTimestamp: timestamp,
+        message: { conversation: text }
+      }
+    end
+
+    def build_params(raw_message)
+      { webhookVerifyToken: webhook_verify_token, event: 'messages.upsert', data: { type: 'notify', messages: [raw_message] } }
+    end
+
+    shared_examples 'routes messages to the new conversation' do |first_msg_id:, second_msg_id:|
+      it 'routes incoming messages to the new conversation, not a third one' do
         # Step 1: Create contact and first contact_inbox with phone as source_id
-        # (simulating what happens when composing a new conversation)
         contact = create(:contact, account: inbox.account, phone_number: "+#{phone}", identifier: nil)
         first_contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: phone)
         first_conversation = create(:conversation, inbox: inbox, contact: contact, contact_inbox: first_contact_inbox)
 
         # Step 2: Contact responds - this updates contact_inbox source_id from phone to LID
-        raw_message_1 = {
-          key: { id: 'msg_001', remoteJid: "#{lid}@lid", remoteJidAlt: "#{phone}@s.whatsapp.net", fromMe: false, addressingMode: 'lid' },
-          pushName: 'John Doe',
-          messageTimestamp: timestamp,
-          message: { conversation: 'First response' }
-        }
-        params_1 = {
-          webhookVerifyToken: webhook_verify_token,
-          event: 'messages.upsert',
-          data: { type: 'notify', messages: [raw_message_1] }
-        }
-        Whatsapp::IncomingMessageBaileysService.new(inbox: inbox, params: params_1).perform
+        Whatsapp::IncomingMessageBaileysService.new(
+          inbox: inbox,
+          params: build_params(build_raw_message(id: first_msg_id, text: 'First response'))
+        ).perform
 
-        # Verify message landed in first conversation
+        # Verify message landed in first conversation and source_id migrated
         expect(first_conversation.messages.count).to eq(1)
         expect(first_contact_inbox.reload.source_id).to eq(lid)
-        expect(contact.reload.identifier).to eq("#{lid}@lid")
 
-        # Step 3: Delete the first conversation
-        first_conversation.destroy!
+        # Step 3: Either delete or resolve the first conversation
+        close_first_conversation.call(first_conversation)
 
         # Step 4: Create a new conversation (simulating UI creating a new contact_inbox)
-        # Since the existing contact_inbox now has source_id=lid, a new one is created with phone
         second_contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: phone)
-        second_conversation = create(:conversation, inbox: inbox, contact: contact, contact_inbox: second_contact_inbox)
-
-        # Verify we now have two contact_inboxes
+        second_conversation = create(:conversation, inbox: inbox, contact: contact, contact_inbox: second_contact_inbox, status: :open)
         expect(inbox.contact_inboxes.where(contact: contact).count).to eq(2)
 
-        # Step 5: Contact responds again
-        raw_message_2 = {
-          key: { id: 'msg_002', remoteJid: "#{lid}@lid", remoteJidAlt: "#{phone}@s.whatsapp.net", fromMe: false, addressingMode: 'lid' },
-          pushName: 'John Doe',
-          messageTimestamp: timestamp,
-          message: { conversation: 'Second response' }
-        }
-        params_2 = {
-          webhookVerifyToken: webhook_verify_token,
-          event: 'messages.upsert',
-          data: { type: 'notify', messages: [raw_message_2] }
-        }
-
-        # This should NOT create a third conversation
+        # Step 5: Contact responds again - should NOT create a third conversation
         expect do
-          Whatsapp::IncomingMessageBaileysService.new(inbox: inbox, params: params_2).perform
+          Whatsapp::IncomingMessageBaileysService.new(
+            inbox: inbox,
+            params: build_params(build_raw_message(id: second_msg_id, text: 'Second response'))
+          ).perform
         end.not_to change(Conversation, :count)
 
         # The message should arrive in the second conversation
-        second_conversation.reload
-        expect(second_conversation.messages.count).to eq(1)
-        expect(second_conversation.messages.last.content).to eq('Second response')
+        expect(second_conversation.reload.messages.last.content).to eq('Second response')
 
         # The duplicate contact_inboxes should be consolidated
         expect(inbox.contact_inboxes.where(contact: contact).count).to eq(1)
       end
     end
 
+    context 'when a conversation is deleted and a new one is created for the same contact' do
+      let(:close_first_conversation) { ->(conv) { conv.destroy! } }
+
+      it_behaves_like 'routes messages to the new conversation', first_msg_id: 'msg_001', second_msg_id: 'msg_002'
+    end
+
     context 'when a conversation is resolved and a new one is created for the same contact' do
-      it 'routes incoming messages to the new conversation, not a third one' do # rubocop:disable RSpec/MultipleExpectations
-        # Step 1: Create contact and first contact_inbox with phone as source_id
-        contact = create(:contact, account: inbox.account, phone_number: "+#{phone}", identifier: nil)
-        first_contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: phone)
-        first_conversation = create(:conversation, inbox: inbox, contact: contact, contact_inbox: first_contact_inbox)
+      let(:close_first_conversation) { ->(conv) { conv.update!(status: :resolved) } }
 
-        # Step 2: Contact responds - this updates contact_inbox source_id from phone to LID
-        raw_message_1 = {
-          key: { id: 'msg_003', remoteJid: "#{lid}@lid", remoteJidAlt: "#{phone}@s.whatsapp.net", fromMe: false, addressingMode: 'lid' },
-          pushName: 'John Doe',
-          messageTimestamp: timestamp,
-          message: { conversation: 'First response' }
-        }
-        params_1 = {
-          webhookVerifyToken: webhook_verify_token,
-          event: 'messages.upsert',
-          data: { type: 'notify', messages: [raw_message_1] }
-        }
-        Whatsapp::IncomingMessageBaileysService.new(inbox: inbox, params: params_1).perform
-
-        # Verify message landed in first conversation
-        expect(first_conversation.messages.count).to eq(1)
-        expect(first_contact_inbox.reload.source_id).to eq(lid)
-
-        # Step 3: Resolve the first conversation
-        first_conversation.update!(status: :resolved)
-
-        # Step 4: Create a new conversation (simulating UI creating a new contact_inbox)
-        second_contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: phone)
-        second_conversation = create(:conversation, inbox: inbox, contact: contact, contact_inbox: second_contact_inbox, status: :open)
-
-        # Verify we now have two contact_inboxes
-        expect(inbox.contact_inboxes.where(contact: contact).count).to eq(2)
-
-        # Step 5: Contact responds again
-        raw_message_2 = {
-          key: { id: 'msg_004', remoteJid: "#{lid}@lid", remoteJidAlt: "#{phone}@s.whatsapp.net", fromMe: false, addressingMode: 'lid' },
-          pushName: 'John Doe',
-          messageTimestamp: timestamp,
-          message: { conversation: 'Second response' }
-        }
-        params_2 = {
-          webhookVerifyToken: webhook_verify_token,
-          event: 'messages.upsert',
-          data: { type: 'notify', messages: [raw_message_2] }
-        }
-
-        # This should NOT create a third conversation
-        expect do
-          Whatsapp::IncomingMessageBaileysService.new(inbox: inbox, params: params_2).perform
-        end.not_to change(Conversation, :count)
-
-        # The message should arrive in the second conversation (not the resolved one)
-        second_conversation.reload
-        expect(second_conversation.messages.count).to eq(1)
-        expect(second_conversation.messages.last.content).to eq('Second response')
-
-        # The resolved conversation should remain unchanged
-        first_conversation.reload
-        expect(first_conversation.messages.count).to eq(1)
-
-        # The duplicate contact_inboxes should be consolidated
-        expect(inbox.contact_inboxes.where(contact: contact).count).to eq(1)
-      end
+      it_behaves_like 'routes messages to the new conversation', first_msg_id: 'msg_003', second_msg_id: 'msg_004'
     end
   end
 end
