@@ -153,6 +153,18 @@ describe Whatsapp::ContactInboxConsolidationService do
           expect(old_contact_inbox.reload.source_id).to eq('999999999')
         end
       end
+
+      context 'when another contact already has the same identifier' do
+        let!(:conflicting_contact) { create(:contact, account: inbox.account, identifier: identifier) } # rubocop:disable RSpec/LetSetup
+
+        it 'does not update to avoid identifier conflict' do
+          service = described_class.new(inbox: inbox, phone: phone, lid: lid, identifier: identifier)
+          service.perform
+
+          expect(old_contact_inbox.reload.source_id).to eq('999999999')
+          expect(contact.reload.identifier).not_to eq(identifier)
+        end
+      end
     end
   end
 end

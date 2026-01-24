@@ -75,8 +75,9 @@ class Whatsapp::ContactInboxConsolidationService
 
     existing_contact_inbox = existing_contact.contact_inboxes.find_by(inbox_id: @inbox.id)
     return unless existing_contact_inbox
-    # Don't update if we'd create a duplicate
+    # Don't update if we'd create a duplicate contact_inbox or identifier conflict
     return if find_lid_contact_inbox
+    return if identifier_conflict?(existing_contact)
 
     ActiveRecord::Base.transaction do
       existing_contact.update!(identifier: @identifier)
