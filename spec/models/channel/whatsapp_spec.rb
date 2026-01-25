@@ -405,7 +405,7 @@ RSpec.describe Channel::Whatsapp do
 
       channel.delete_message(message, conversation: conversation)
 
-      expect(provider_double).to have_received(:delete_message).with(contact.identifier, message)
+      expect(provider_double).to have_received(:delete_message).with(contact.phone_number, message)
     end
 
     it 'does not call method if provider service does not implement it' do
