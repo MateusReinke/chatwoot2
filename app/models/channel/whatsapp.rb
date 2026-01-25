@@ -139,6 +139,13 @@ class Channel::Whatsapp < ApplicationRecord
     provider_service.on_whatsapp(phone_number)
   end
 
+  def delete_message(message, conversation:)
+    return unless provider_service.respond_to?(:delete_message)
+
+    recipient_id = conversation.contact.identifier || conversation.contact.phone_number
+    provider_service.delete_message(recipient_id, message)
+  end
+
   delegate :setup_channel_provider, to: :provider_service
   delegate :send_message, to: :provider_service
   delegate :send_template, to: :provider_service

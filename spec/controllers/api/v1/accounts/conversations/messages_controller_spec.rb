@@ -275,6 +275,76 @@ RSpec.describe 'Conversation Messages API', type: :request do
         expect(response).to have_http_status(:not_found)
       end
     end
+
+    context 'when channel supports delete_message' do
+      let(:whatsapp_channel) { create(:channel_whatsapp, provider: 'baileys', account: account, validate_provider_config: false) }
+      let(:whatsapp_inbox) { create(:inbox, channel: whatsapp_channel, account: account) }
+      let(:contact) { create(:contact, account: account, identifier: '+551187654321') }
+      let(:contact_inbox) { create(:contact_inbox, inbox: whatsapp_inbox, contact: contact) }
+      let(:whatsapp_conversation) { create(:conversation, inbox: whatsapp_inbox, account: account, contact: contact, contact_inbox: contact_inbox) }
+      let(:message_with_source) do
+        create(:message, account: account, conversation: whatsapp_conversation, inbox: whatsapp_inbox, source_id: 'msg_123')
+      end
+      let(:agent) { create(:user, account: account, role: :agent) }
+
+      before do
+        create(:inbox_member, inbox: whatsapp_inbox, user: agent)
+      end
+
+      it 'calls delete_message on the channel' do
+        allow_any_instance_of(Channel::Whatsapp).to receive(:delete_message) # rubocop:disable RSpec/AnyInstance
+
+        delete "/api/v1/accounts/#{account.id}/conversations/#{whatsapp_conversation.display_id}/messages/#{message_with_source.id}",
+               headers: agent.create_new_auth_token,
+               as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(message_with_source.reload.deleted).to be true
+      end
+
+      it 'does not fail when channel delete_message raises an error' do
+        allow_any_instance_of(Channel::Whatsapp).to receive(:delete_message).and_raise(StandardError.new('Provider error')) # rubocop:disable RSpec/AnyInstance
+        allow(Rails.logger).to receive(:error)
+
+        delete "/api/v1/accounts/#{account.id}/conversations/#{whatsapp_conversation.display_id}/messages/#{message_with_source.id}",
+               headers: agent.create_new_auth_token,
+               as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(message_with_source.reload.deleted).to be true
+        expect(Rails.logger).to have_received(:error).with('Failed to delete message on channel: Provider error')
+      end
+
+      it 'skips channel deletion when message has no source_id' do
+        message_without_source = create(:message, account: account, conversation: whatsapp_conversation, inbox: whatsapp_inbox, source_id: nil)
+        allow_any_instance_of(Channel::Whatsapp).to receive(:delete_message) # rubocop:disable RSpec/AnyInstance
+
+        delete "/api/v1/accounts/#{account.id}/conversations/#{whatsapp_conversation.display_id}/messages/#{message_without_source.id}",
+               headers: agent.create_new_auth_token,
+               as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(message_without_source.reload.deleted).to be true
+      end
+    end
+
+    context 'when channel does not support delete_message' do
+      let(:message_with_source) { create(:message, account: account, conversation: conversation, source_id: 'msg_123') }
+      let(:agent) { create(:user, account: account, role: :agent) }
+
+      before do
+        create(:inbox_member, inbox: conversation.inbox, user: agent)
+      end
+
+      it 'skips channel deletion' do
+        delete "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/messages/#{message_with_source.id}",
+               headers: agent.create_new_auth_token,
+               as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(message_with_source.reload.deleted).to be true
+      end
+    end
   end
 
   describe 'POST /api/v1/accounts/{account.id}/conversations/:conversation_id/messages/:id/retry' do
