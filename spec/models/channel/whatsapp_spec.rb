@@ -385,9 +385,21 @@ RSpec.describe Channel::Whatsapp do
     let(:conversation) { create(:conversation, inbox: channel.inbox, contact: contact, contact_inbox: contact_inbox) }
     let(:message) { create(:message, conversation: conversation, inbox: channel.inbox, source_id: 'msg_123', message_type: :outgoing) }
 
-    it 'calls provider service delete_message method' do
+    it 'calls provider service delete_message method for baileys' do
       provider_double = instance_double(Whatsapp::Providers::WhatsappBaileysService, delete_message: true)
       allow(Whatsapp::Providers::WhatsappBaileysService).to receive(:new)
+        .with(whatsapp_channel: channel)
+        .and_return(provider_double)
+
+      channel.delete_message(message, conversation: conversation)
+
+      expect(provider_double).to have_received(:delete_message).with(contact.identifier, message)
+    end
+
+    it 'calls provider service delete_message method for zapi' do
+      channel.update!(provider: 'zapi')
+      provider_double = instance_double(Whatsapp::Providers::WhatsappZapiService, delete_message: true)
+      allow(Whatsapp::Providers::WhatsappZapiService).to receive(:new)
         .with(whatsapp_channel: channel)
         .and_return(provider_double)
 
