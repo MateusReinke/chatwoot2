@@ -117,6 +117,8 @@ class Whatsapp::Providers::WhatsappZapiService < Whatsapp::Providers::BaseServic
   end
 
   def delete_message(recipient_id, message)
+    return false if recipient_id.blank?
+
     phone = recipient_id.delete('+')
 
     response = HTTParty.delete(

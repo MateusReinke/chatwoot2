@@ -143,10 +143,12 @@ class Channel::Whatsapp < ApplicationRecord
     return unless provider_service.respond_to?(:delete_message)
 
     recipient_id = if provider == 'zapi'
-                     conversation.contact.phone_number
+                     conversation.contact.phone_number.presence || conversation.contact.identifier
                    else
                      conversation.contact.identifier || conversation.contact.phone_number
                    end
+    return if recipient_id.blank?
+
     provider_service.delete_message(recipient_id, message)
   end
 
