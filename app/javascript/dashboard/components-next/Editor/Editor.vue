@@ -28,7 +28,7 @@ const props = defineProps({
   medium: { type: String, default: '' },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'sendData']);
 
 const slots = useSlots();
 
@@ -113,6 +113,7 @@ watch(
         @input="handleInput"
         @focus="handleFocus"
         @blur="handleBlur"
+        @send-data="emit('sendData')"
       />
       <div
         v-if="showCharacterCount || slots.actions"
