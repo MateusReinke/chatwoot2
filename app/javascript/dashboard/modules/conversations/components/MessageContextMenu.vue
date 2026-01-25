@@ -186,7 +186,7 @@ export default {
         useAlert(this.$t('CONVERSATION.CONTEXT_MENU.EDIT.EMPTY_CONTENT'));
         return;
       }
-      if (trimmedContent === this.plainTextContent) {
+      if (trimmedContent === (this.messageContent || '').trim()) {
         this.closeEditModal();
         return;
       }
@@ -236,7 +236,7 @@ export default {
     />
     <!-- Edit Message Modal -->
     <woot-modal
-      v-if="showEditModal && enabledOptions['edit']"
+      v-if="showEditModal"
       v-model:show="showEditModal"
       :on-close="closeEditModal"
     >

@@ -62,6 +62,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   def edit_content
     new_content = params[:content]
     return render json: { error: 'Content is required' }, status: :unprocessable_entity if new_content.blank?
+    return render json: { error: 'Content exceeds maximum length' }, status: :unprocessable_entity if new_content.length > 150_000
     return render json: { error: 'Only outgoing messages can be edited' }, status: :forbidden unless message.outgoing?
 
     original_content = message.content

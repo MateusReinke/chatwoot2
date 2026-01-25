@@ -273,7 +273,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
         key: {
           id: message.source_id,
           remoteJid: remote_jid,
-          fromMe: true
+          fromMe: message.message_type == 'outgoing'
         },
         messageContent: { text: new_content }
       }.to_json
