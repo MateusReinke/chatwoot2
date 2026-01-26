@@ -24,6 +24,7 @@ module ScheduledMessageHandler
     return if scheduled_message.status == new_status.to_s
 
     scheduled_message.update!(status: new_status)
+    dispatch_scheduled_message_update(scheduled_message)
   end
 
   def determine_scheduled_message_status
@@ -33,5 +34,13 @@ module ScheduledMessageHandler
     when 'failed'
       :failed
     end
+  end
+
+  def dispatch_scheduled_message_update(scheduled_message)
+    Rails.configuration.dispatcher.dispatch(
+      Events::Types::SCHEDULED_MESSAGE_UPDATED,
+      Time.zone.now,
+      scheduled_message: scheduled_message
+    )
   end
 end

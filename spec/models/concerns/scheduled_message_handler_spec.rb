@@ -59,4 +59,22 @@ RSpec.describe ScheduledMessageHandler do
       expect { message_without_scheduled.update!(status: :delivered) }.not_to raise_error
     end
   end
+
+  describe '#dispatch_scheduled_message_update' do
+    it 'dispatches SCHEDULED_MESSAGE_UPDATED event when scheduled message status is updated' do
+      allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+
+      expect(Rails.configuration.dispatcher).to receive(:dispatch)
+        .with(Events::Types::SCHEDULED_MESSAGE_UPDATED, anything, scheduled_message: scheduled_message)
+
+      message.update!(status: :delivered)
+    end
+
+    it 'does not dispatch SCHEDULED_MESSAGE_UPDATED event when scheduled message status is not updated' do
+      expect(Rails.configuration.dispatcher).not_to receive(:dispatch)
+        .with(Events::Types::SCHEDULED_MESSAGE_UPDATED, anything, anything)
+
+      message.update!(content: 'Updated content')
+    end
+  end
 end
