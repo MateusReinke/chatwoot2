@@ -44,12 +44,18 @@ class ScheduledMessage < ApplicationRecord
 
   enum status: { draft: 0, pending: 1, sent: 2, failed: 3 }
 
+  before_save :normalize_scheduled_at
+
   validates :scheduled_at, presence: true, unless: -> { status == 'draft' }
   validates :content, presence: true, unless: :content_optional?
 
-  scope :due_for_sending, -> { pending.where('scheduled_at <= ?', Time.current) }
+  scope :due_for_sending, -> { pending.where('scheduled_at <= ?', Time.current.end_of_minute) }
 
   private
+
+  def normalize_scheduled_at
+    self.scheduled_at = scheduled_at.beginning_of_minute if scheduled_at.present?
+  end
 
   def content_optional?
     template_params.present? || attachment.attached?

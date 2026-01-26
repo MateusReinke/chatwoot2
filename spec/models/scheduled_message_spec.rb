@@ -16,6 +16,7 @@ RSpec.describe ScheduledMessage, type: :model do
       conversation: conversation,
       author: author,
       content: 'Hello',
+      status: :pending,
       scheduled_at: 1.hour.from_now
     }.merge(attrs))
   end
@@ -58,12 +59,33 @@ RSpec.describe ScheduledMessage, type: :model do
   end
 
   describe '.due_for_sending' do
-    it 'returns only pending messages scheduled in the past' do
-      due_message = create_scheduled_message(scheduled_at: 5.minutes.ago, status: :pending)
-      create_scheduled_message(content: 'Later', scheduled_at: 5.minutes.from_now, status: :pending)
-      create_scheduled_message(content: 'Draft', scheduled_at: nil, status: :draft)
+    it 'returns only pending messages scheduled up to the current minute' do
+      freeze_time
 
-      expect(described_class.due_for_sending).to eq([due_message])
+      due_same_minute = create_scheduled_message(
+        scheduled_at: Time.current.beginning_of_minute + 50.seconds
+      )
+      overdue = create_scheduled_message(
+        scheduled_at: Time.current.beginning_of_minute - 2.minutes
+      )
+      create_scheduled_message(
+        content: 'Next minute',
+        scheduled_at: Time.current.beginning_of_minute + 1.minute
+      )
+      create_scheduled_message(
+        scheduled_at: Time.current.beginning_of_minute - 10.minutes,
+        status: :draft
+      )
+      create_scheduled_message(
+        scheduled_at: Time.current.beginning_of_minute - 10.minutes,
+        status: :sent
+      )
+      create_scheduled_message(
+        scheduled_at: Time.current.beginning_of_minute - 10.minutes,
+        status: :failed
+      )
+
+      expect(described_class.due_for_sending).to contain_exactly(due_same_minute, overdue)
     end
   end
 end
