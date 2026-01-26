@@ -237,7 +237,8 @@
         "REMOVE_PREVIEW": "Remove quoted email thread",
         "COLLAPSE": "Collapse preview",
         "EXPAND": "Expand preview"
-      }
+      },
+      "SCHEDULE_SEND": "Schedule send"
     },
     "VISIBLE_TO_AGENTS": "Private Note: Only visible to you and your team",
     "CHANGE_STATUS": "Conversation status changed",
@@ -353,6 +354,7 @@
     },
     "ACCORDION": {
       "CONTACT_DETAILS": "Contact Details",
+      "SCHEDULED_MESSAGES": "Scheduled Messages",
       "CONVERSATION_ACTIONS": "Conversation Actions",
       "CONVERSATION_LABELS": "Conversation Labels",
       "CONVERSATION_INFO": "Conversation Information",
@@ -381,6 +383,64 @@
         "PARTIALLY_FULFILLED": "Partially Fulfilled",
         "UNFULFILLED": "Unfulfilled"
       }
+    }
+  },
+  "SCHEDULED_MESSAGES": {
+    "NEW_BUTTON": "Schedule message",
+    "SHOW_HISTORY": "Detailed view",
+    "HIDE_HISTORY": "Compact view",
+    "SHOW_MORE": "Show more",
+    "EMPTY_STATE": "There are no scheduled messages yet.",
+    "STATUS": {
+      "DRAFT": "Draft",
+      "PENDING": "Pending",
+      "SENT": "Sent",
+      "FAILED": "Failed"
+    },
+    "ITEM": {
+      "SCHEDULED_FOR": "Scheduled for {time}",
+      "NO_SCHEDULE": "No schedule",
+      "TEMPLATE_PREVIEW": "Template: {name}",
+      "ATTACHMENT_PREVIEW": "Attachment: {filename}",
+      "ATTACHMENT_LABEL": "Attachment: {filename}",
+      "EMPTY_PREVIEW": "No content",
+      "EXPAND": "Expand",
+      "COLLAPSE": "Collapse"
+    },
+    "MODAL": {
+      "TITLE_NEW": "Schedule a message",
+      "TITLE_EDIT": "Edit scheduled message",
+      "MESSAGE_LABEL": "Message",
+      "MESSAGE_PLACEHOLDER": "Write your message...",
+      "DATE_LABEL": "Date to send",
+      "TIME_LABEL": "Time to send",
+      "DATE_PLACEHOLDER": "Date",
+      "TIME_PLACEHOLDER": "Time",
+      "TIME_CONFIRM": "OK",
+      "ATTACHMENT_LABEL": "Attachment",
+      "ATTACHMENT_ADD": "Attach file",
+      "ATTACHMENT_CURRENT": "Current attachment: {filename}",
+      "CANCEL": "Cancel",
+      "SAVE_DRAFT": "Save as draft",
+      "SCHEDULE": "Schedule",
+      "UPDATE": "Update schedule"
+    },
+    "CONFIRM_CLOSE": {
+      "TITLE": "Unsaved changes",
+      "MESSAGE": "You have unsaved content. Would you like to save?",
+      "SAVE_DRAFT": "Save as draft",
+      "DISCARD": "Discard",
+      "CANCEL": "Cancel"
+    },
+    "META": {
+      "TOOLTIP": "Scheduled at {time} by {author}",
+      "YOU": "You",
+      "AUTOMATION": "Automation",
+      "UNKNOWN_AUTHOR": "Unknown"
+    },
+    "ERRORS": {
+      "CONTENT_REQUIRED": "Add a message, template, or attachment before saving.",
+      "SCHEDULE_IN_PAST": "Scheduled time must be in the future."
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {

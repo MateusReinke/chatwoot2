@@ -237,7 +237,8 @@
         "REMOVE_PREVIEW": "Remover o encadeamento de e-mails citado",
         "COLLAPSE": "Recolher a prévia",
         "EXPAND": "Expandir a prévia"
-      }
+      },
+      "SCHEDULE_SEND": "Agendar envio"
     },
     "VISIBLE_TO_AGENTS": "Mensagem Privada: Apenas visível para você e seu time",
     "CHANGE_STATUS": "Estado da conversa mudou",
@@ -352,6 +353,7 @@
     },
     "ACCORDION": {
       "CONTACT_DETAILS": "Detalhes do contato",
+      "SCHEDULED_MESSAGES": "Mensagens agendadas",
       "CONVERSATION_ACTIONS": "Ações da conversa",
       "CONVERSATION_LABELS": "Etiquetas da conversa",
       "CONVERSATION_INFO": "Informação da conversa",
@@ -380,6 +382,58 @@
         "PARTIALLY_FULFILLED": "Partially Fulfilled",
         "UNFULFILLED": "Unfulfilled"
       }
+    }
+  },
+  "SCHEDULED_MESSAGES": {
+    "NEW_BUTTON": "Agendar mensagem",
+    "SHOW_HISTORY": "Visão Detalhada",
+    "HIDE_HISTORY": "Visão Compactada",
+    "SHOW_MORE": "Mostrar mais",
+    "EMPTY_STATE": "Ainda não há mensagens agendadas.",
+    "STATUS": {
+      "DRAFT": "Rascunho",
+      "PENDING": "Pendente",
+      "SENT": "Enviada",
+      "FAILED": "Falhou"
+    },
+    "ITEM": {
+      "SCHEDULED_FOR": "Agendada para {time}",
+      "NO_SCHEDULE": "Sem agendamento",
+      "TEMPLATE_PREVIEW": "Template: {name}",
+      "ATTACHMENT_PREVIEW": "Anexo: {filename}",
+      "ATTACHMENT_LABEL": "Anexo: {filename}",
+      "EMPTY_PREVIEW": "Sem conteúdo",
+      "EXPAND": "Expandir",
+      "COLLAPSE": "Recolher"
+    },
+    "MODAL": {
+      "TITLE_NEW": "Agendar mensagem",
+      "TITLE_EDIT": "Editar mensagem agendada",
+      "MESSAGE_LABEL": "Mensagem",
+      "MESSAGE_PLACEHOLDER": "Escreva sua mensagem...",
+      "DATE_LABEL": "Data de envio",
+      "TIME_LABEL": "Hora de envio",
+      "DATE_PLACEHOLDER": "Data",
+      "TIME_PLACEHOLDER": "Hora",
+      "TIME_CONFIRM": "OK",
+      "ATTACHMENT_LABEL": "Anexo",
+      "ATTACHMENT_ADD": "Anexar arquivo",
+      "ATTACHMENT_CURRENT": "Anexo atual: {filename}",
+      "CANCEL": "Cancelar",
+      "SAVE_DRAFT": "Salvar como rascunho",
+      "SCHEDULE": "Agendar",
+      "UPDATE": "Atualizar agendamento"
+    },
+    "CONFIRM_CLOSE": {
+      "TITLE": "Alterações não salvas",
+      "MESSAGE": "Você tem conteúdo não salvo. Deseja salvar?",
+      "SAVE_DRAFT": "Salvar como rascunho",
+      "DISCARD": "Descartar",
+      "CANCEL": "Cancelar"
+    },
+    "ERRORS": {
+      "CONTENT_REQUIRED": "Adicione uma mensagem, template ou anexo antes de salvar.",
+      "SCHEDULE_IN_PAST": "O horário agendado deve ser no futuro."
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {
