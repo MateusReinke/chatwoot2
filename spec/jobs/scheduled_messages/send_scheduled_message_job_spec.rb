@@ -33,7 +33,17 @@ RSpec.describe ScheduledMessages::SendScheduledMessageJob, type: :job do
         expect(message.additional_attributes['scheduled_by']).to eq(
           { 'id' => scheduled_message.author_id, 'type' => scheduled_message.author_type }
         )
-        expect(message.additional_attributes['scheduled_at']).to eq(scheduled_message.scheduled_at.as_json)
+        expect(message.additional_attributes['scheduled_at']).to eq(scheduled_message.updated_at.to_i)
+      end
+    end
+
+    it 'marks scheduled message as sent after message creation' do
+      freeze_time do
+        scheduled_message = create_scheduled_message
+
+        described_class.new.perform(scheduled_message.id)
+
+        expect(scheduled_message.reload.status).to eq('sent')
       end
     end
 

@@ -11,6 +11,7 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
 
       message = build_message(scheduled_message)
       attach_scheduled_metadata(message, scheduled_message)
+      update_scheduled_message_status(scheduled_message, message)
     end
   rescue StandardError => e
     Rails.logger.error("Scheduled message #{scheduled_message_id} failed: #{e.class} #{e.message}")
@@ -47,8 +48,26 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
       'id' => scheduled_message.author_id,
       'type' => scheduled_message.author_type
     }
-    merged_attributes['scheduled_at'] = scheduled_message.scheduled_at
+    merged_attributes['scheduled_at'] = scheduled_message.updated_at.to_i
 
     message.update!(additional_attributes: merged_attributes) if merged_attributes != existing_attributes
+  end
+
+  def update_scheduled_message_status(scheduled_message, message)
+    return unless scheduled_message.pending?
+
+    new_status = message.failed? ? :failed : :sent
+    return if scheduled_message.status == new_status.to_s
+
+    scheduled_message.update!(status: new_status)
+    dispatch_scheduled_message_update(scheduled_message)
+  end
+
+  def dispatch_scheduled_message_update(scheduled_message)
+    Rails.configuration.dispatcher.dispatch(
+      Events::Types::SCHEDULED_MESSAGE_UPDATED,
+      Time.zone.now,
+      scheduled_message: scheduled_message
+    )
   end
 end
