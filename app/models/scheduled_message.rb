@@ -35,6 +35,8 @@
 #  fk_rails_...  (inbox_id => inboxes.id)
 #
 class ScheduledMessage < ApplicationRecord
+  include Rails.application.routes.url_helpers
+
   belongs_to :account
   belongs_to :inbox
   belongs_to :conversation
@@ -51,6 +53,41 @@ class ScheduledMessage < ApplicationRecord
 
   scope :due_for_sending, -> { pending.where('scheduled_at <= ?', Time.current.end_of_minute) }
 
+  def push_event_data
+    data = {
+      id: id,
+      content: content,
+      inbox_id: inbox_id,
+      conversation_id: conversation.display_id,
+      account_id: account_id,
+      status: status,
+      scheduled_at: scheduled_at&.to_i,
+      template_params: template_params,
+      author_id: author_id,
+      author_type: author_type,
+      created_at: created_at.to_i,
+      updated_at: updated_at.to_i
+    }
+
+    data[:author] = author_event_data if author.present?
+    data[:attachment] = attachment_data if attachment.attached?
+    data
+  end
+
+  def attachment_data
+    return unless attachment.attached?
+
+    {
+      id: attachment.id,
+      scheduled_message_id: id,
+      file_type: attachment.content_type,
+      account_id: account_id,
+      file_url: url_for(attachment),
+      blob_id: attachment.blob.signed_id,
+      filename: attachment.filename.to_s
+    }
+  end
+
   private
 
   def normalize_scheduled_at
@@ -59,5 +96,13 @@ class ScheduledMessage < ApplicationRecord
 
   def content_optional?
     template_params.present? || attachment.attached?
+  end
+
+  def author_event_data
+    return author.push_event_data if author.is_a?(User)
+
+    data = { id: author_id, type: author_type }
+    data[:name] = author.name if author.respond_to?(:name)
+    data
   end
 end
