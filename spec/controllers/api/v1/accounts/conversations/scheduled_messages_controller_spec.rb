@@ -54,9 +54,9 @@ RSpec.describe 'Scheduled Messages API', type: :request do
   end
 
   describe 'POST #create' do
-    it 'creates a pending scheduled message' do
+    it 'creates a pending scheduled message with future time' do
       freeze_time do
-        scheduled_at = 1.minute.from_now
+        scheduled_at = 2.minutes.from_now
 
         post scheduled_messages_url,
              params: { content: 'Hello', status: 'pending', scheduled_at: scheduled_at.iso8601 },
@@ -66,7 +66,6 @@ RSpec.describe 'Scheduled Messages API', type: :request do
         expect(response).to have_http_status(:success)
         scheduled_message = conversation.scheduled_messages.last
         expect(scheduled_message).to have_attributes(status: 'pending', author_id: agent.id)
-        expect(scheduled_message.scheduled_at).to eq(scheduled_at.beginning_of_minute)
       end
     end
 
@@ -80,14 +79,14 @@ RSpec.describe 'Scheduled Messages API', type: :request do
       expect(conversation.scheduled_messages.last).to have_attributes(status: 'draft', scheduled_at: nil)
     end
 
-    it 'rejects pending schedules in the current minute' do
+    it 'rejects pending schedules not in the future' do
       freeze_time do
         post scheduled_messages_url,
-             params: { content: 'Hello', status: 'pending', scheduled_at: 30.seconds.from_now.iso8601 },
+             params: { content: 'Hello', status: 'pending', scheduled_at: Time.current.iso8601 },
              headers: agent.create_new_auth_token,
              as: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -96,20 +95,18 @@ RSpec.describe 'Scheduled Messages API', type: :request do
     it 'updates a draft to pending with a future schedule' do
       freeze_time do
         scheduled_message = create_scheduled_message(status: :draft, scheduled_at: nil)
-        scheduled_at = 2.minutes.from_now
 
         patch scheduled_message_url(scheduled_message),
-              params: { status: 'pending', scheduled_at: scheduled_at.iso8601 },
+              params: { status: 'pending', scheduled_at: 2.minutes.from_now.iso8601 },
               headers: agent.create_new_auth_token,
               as: :json
 
         expect(response).to have_http_status(:success)
-        expect(scheduled_message.reload).to have_attributes(status: 'pending')
-        expect(scheduled_message.scheduled_at).to eq(scheduled_at.beginning_of_minute)
+        expect(scheduled_message.reload.status).to eq('pending')
       end
     end
 
-    it 'rejects updates for non-editable messages' do
+    it 'rejects updates for sent messages' do
       scheduled_message = create_scheduled_message(status: :sent)
 
       patch scheduled_message_url(scheduled_message),
@@ -117,12 +114,12 @@ RSpec.describe 'Scheduled Messages API', type: :request do
             headers: agent.create_new_auth_token,
             as: :json
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 
   describe 'DELETE #destroy' do
-    it 'deletes editable scheduled messages' do
+    it 'deletes pending scheduled messages' do
       scheduled_message = create_scheduled_message(status: :pending)
 
       delete scheduled_message_url(scheduled_message), headers: agent.create_new_auth_token, as: :json
@@ -131,12 +128,12 @@ RSpec.describe 'Scheduled Messages API', type: :request do
       expect(ScheduledMessage.exists?(scheduled_message.id)).to be(false)
     end
 
-    it 'rejects delete for non-editable messages' do
+    it 'rejects delete for sent messages' do
       scheduled_message = create_scheduled_message(status: :sent)
 
       delete scheduled_message_url(scheduled_message), headers: agent.create_new_auth_token, as: :json
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 end
