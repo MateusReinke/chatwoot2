@@ -103,6 +103,11 @@ export default {
     },
     hasUnsavedChanges() {
       if (!this.initialData) return false;
+      const socialProfilesChanged = this.socialProfileKeys.some(
+        ({ key }) =>
+          (this.socialProfileUserNames[key] || '') !==
+          (this.initialData.socialProfileUserNames[key] || '')
+      );
       return (
         this.name !== this.initialData.name ||
         this.email !== this.initialData.email ||
@@ -110,14 +115,13 @@ export default {
         this.companyName !== this.initialData.companyName ||
         this.description !== this.initialData.description ||
         this.city !== this.initialData.city ||
-        this.country.id !== this.initialData.countryId ||
+        (this.country?.id || '') !== (this.initialData.countryId || '') ||
         this.avatarFile !== null ||
-        JSON.stringify(this.socialProfileUserNames) !==
-          JSON.stringify(this.initialData.socialProfileUserNames)
+        socialProfilesChanged
       );
     },
     setPhoneNumber() {
-      if (this.parsePhoneNumber && this.parsePhoneNumber.countryCallingCode) {
+      if (this.parsePhoneNumber?.countryCallingCode) {
         return this.phoneNumber;
       }
       if (this.phoneNumber === '' && this.activeDialCode !== '') {
@@ -279,7 +283,7 @@ export default {
     },
     async handleAvatarDelete() {
       try {
-        if (this.contact && this.contact.id) {
+        if (this.contact?.id) {
           await this.$store.dispatch('contacts/deleteAvatar', this.contact.id);
           useAlert(this.$t('CONTACT_FORM.DELETE_AVATAR.API.SUCCESS_MESSAGE'));
         }

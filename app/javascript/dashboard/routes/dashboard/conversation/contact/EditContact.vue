@@ -35,9 +35,9 @@ export default {
     async onClose() {
       const hasChanges = this.$refs.contactForm?.hasUnsavedChanges;
       if (hasChanges) {
-        const shouldKeepEditing =
+        const shouldDiscard =
           await this.$refs.confirmDiscardDialog.showConfirmation();
-        if (shouldKeepEditing) {
+        if (!shouldDiscard) {
           return;
         }
       }
@@ -84,7 +84,7 @@ export default {
     ref="confirmDiscardDialog"
     :title="$t('EDIT_CONTACT.CONFIRM_DISCARD.TITLE')"
     :description="$t('EDIT_CONTACT.CONFIRM_DISCARD.MESSAGE')"
-    :confirm-label="$t('EDIT_CONTACT.CONFIRM_DISCARD.NO')"
-    :cancel-label="$t('EDIT_CONTACT.CONFIRM_DISCARD.YES')"
+    :confirm-label="$t('EDIT_CONTACT.CONFIRM_DISCARD.YES')"
+    :cancel-label="$t('EDIT_CONTACT.CONFIRM_DISCARD.NO')"
   />
 </template>
