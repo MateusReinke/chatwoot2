@@ -40,14 +40,16 @@ RSpec.describe 'Scheduled Messages API', type: :request do
   end
 
   describe 'GET #index' do
-    it 'returns scheduled messages ordered by scheduled_at' do
+    it 'returns paginated scheduled messages ordered by scheduled_at' do
       later = create_scheduled_message(scheduled_at: 5.minutes.from_now)
       earlier = create_scheduled_message(scheduled_at: 2.minutes.from_now)
 
       get scheduled_messages_url, headers: agent.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:success)
-      expect(response.parsed_body.pluck('id')).to eq([earlier.id, later.id])
+      body = response.parsed_body
+      expect(body['payload'].pluck('id')).to eq([earlier.id, later.id])
+      expect(body['meta']).to include('current_page', 'total_pages', 'total_count')
     end
   end
 

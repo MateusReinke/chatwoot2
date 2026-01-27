@@ -4,9 +4,14 @@ class Api::V1::Accounts::Conversations::ScheduledMessagesController < Api::V1::A
   before_action :scheduled_message, only: [:update, :destroy]
   before_action :ensure_editable, only: [:update, :destroy]
 
+  PER_PAGE = 5
+
   def index
     authorize build_scheduled_message
-    @scheduled_messages = @conversation.scheduled_messages.order(scheduled_at: :asc)
+    @scheduled_messages = @conversation.scheduled_messages
+                                       .order(scheduled_at: :asc)
+                                       .page(params[:page])
+                                       .per(params[:per_page] || PER_PAGE)
   end
 
   def create
