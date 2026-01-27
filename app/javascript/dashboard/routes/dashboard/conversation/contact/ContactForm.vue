@@ -64,6 +64,7 @@ export default {
         { key: 'github', prefixURL: 'https://github.com/' },
         { key: 'tiktok', prefixURL: 'https://tiktok.com/@' },
       ],
+      initialData: null,
     };
   },
   validations: {
@@ -99,6 +100,21 @@ export default {
         return this.$t('CONTACT_FORM.FORM.PHONE_NUMBER.ERROR');
       }
       return '';
+    },
+    hasUnsavedChanges() {
+      if (!this.initialData) return false;
+      return (
+        this.name !== this.initialData.name ||
+        this.email !== this.initialData.email ||
+        this.phoneNumber !== this.initialData.phoneNumber ||
+        this.companyName !== this.initialData.companyName ||
+        this.description !== this.initialData.description ||
+        this.city !== this.initialData.city ||
+        this.country.id !== this.initialData.countryId ||
+        this.avatarFile !== null ||
+        JSON.stringify(this.socialProfileUserNames) !==
+          JSON.stringify(this.initialData.socialProfileUserNames)
+      );
     },
     setPhoneNumber() {
       if (this.parsePhoneNumber && this.parsePhoneNumber.countryCallingCode) {
@@ -174,6 +190,16 @@ export default {
         linkedin: socialProfiles.linkedin || '',
         github: socialProfiles.github || '',
         instagram: socialProfiles.instagram || '',
+      };
+      this.initialData = {
+        name: this.name,
+        email: this.email,
+        phoneNumber: this.phoneNumber,
+        companyName: this.companyName,
+        description: this.description,
+        city: this.city,
+        countryId: this.country.id,
+        socialProfileUserNames: { ...this.socialProfileUserNames },
       };
     },
     getContactObject() {
