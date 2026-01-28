@@ -5,20 +5,25 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     scheduled_message = ScheduledMessage.find_by(id: scheduled_message_id)
     return unless scheduled_message
 
-    scheduled_message.with_lock do
-      next unless scheduled_message.pending?
-      next unless due_for_sending?(scheduled_message)
-
-      message = build_message(scheduled_message)
-      attach_scheduled_metadata(message, scheduled_message)
-      update_scheduled_message_status(scheduled_message, message)
-    end
+    Current.executed_by = scheduled_message.author if scheduled_message.author.is_a?(AutomationRule)
+    scheduled_message.with_lock { send_if_ready(scheduled_message) }
   rescue StandardError => e
     Rails.logger.error("Scheduled message #{scheduled_message_id} failed: #{e.class} #{e.message}")
     scheduled_message.update!(status: :failed) if scheduled_message&.pending?
+  ensure
+    Current.reset
   end
 
   private
+
+  def send_if_ready(scheduled_message)
+    return unless scheduled_message.pending?
+    return unless due_for_sending?(scheduled_message)
+
+    message = build_message(scheduled_message)
+    attach_scheduled_metadata(message, scheduled_message)
+    update_scheduled_message_status(scheduled_message, message)
+  end
 
   def due_for_sending?(scheduled_message)
     scheduled_message.scheduled_at.present? && scheduled_message.scheduled_at <= Time.current.end_of_minute
@@ -32,6 +37,7 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     }
     params[:template_params] = scheduled_message.template_params if scheduled_message.template_params.present?
     params[:attachments] = [scheduled_message.attachment.blob.signed_id] if scheduled_message.attachment.attached?
+    params.merge!(scheduled_message_content_attributes(scheduled_message))
 
     Messages::MessageBuilder.new(message_author(scheduled_message), scheduled_message.conversation, params).perform
   end
@@ -40,14 +46,22 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     scheduled_message.author.is_a?(User) ? scheduled_message.author : nil
   end
 
+  def scheduled_message_content_attributes(scheduled_message)
+    return {} unless scheduled_message.author.is_a?(AutomationRule)
+
+    { content_attributes: { automation_rule_id: scheduled_message.author_id } }
+  end
+
   def attach_scheduled_metadata(message, scheduled_message)
     existing_attributes = message.additional_attributes || {}
     merged_attributes = existing_attributes.dup
     merged_attributes['scheduled_message_id'] = scheduled_message.id
-    merged_attributes['scheduled_by'] = {
+    scheduled_by = {
       'id' => scheduled_message.author_id,
       'type' => scheduled_message.author_type
     }
+    scheduled_by['name'] = scheduled_message.author.name if scheduled_message.author.respond_to?(:name)
+    merged_attributes['scheduled_by'] = scheduled_by
     merged_attributes['scheduled_at'] = scheduled_message.updated_at.to_i
 
     message.update!(additional_attributes: merged_attributes) if merged_attributes != existing_attributes
