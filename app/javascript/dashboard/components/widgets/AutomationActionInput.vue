@@ -1,6 +1,7 @@
 <script>
 import AutomationActionTeamMessageInput from './AutomationActionTeamMessageInput.vue';
 import AutomationActionFileInput from './AutomationFileInput.vue';
+import AutomationActionScheduledMessageInput from './AutomationActionScheduledMessageInput.vue';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 
@@ -8,6 +9,7 @@ export default {
   components: {
     AutomationActionTeamMessageInput,
     AutomationActionFileInput,
+    AutomationActionScheduledMessageInput,
     WootMessageEditor,
     NextButton,
   },
@@ -204,6 +206,11 @@ export default {
       enable-variables
       :placeholder="$t('AUTOMATION.ACTION.TEAM_MESSAGE_INPUT_PLACEHOLDER')"
       class="action-message"
+    />
+    <AutomationActionScheduledMessageInput
+      v-if="inputType === 'scheduled_message'"
+      v-model="action_params"
+      :initial-file-name="initialFileName"
     />
     <p v-if="errorMessage" class="filter-error">
       {{ errorMessage }}

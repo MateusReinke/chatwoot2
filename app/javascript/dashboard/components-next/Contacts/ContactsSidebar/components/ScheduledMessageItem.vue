@@ -58,12 +58,23 @@ const statusConfig = {
   },
 };
 
-const author = computed(() => props.scheduledMessage?.author || {});
-const avatarSrc = computed(() =>
-  author.value?.thumbnail
-    ? author.value.thumbnail
-    : '/assets/images/chatwoot_bot.png'
+const author = computed(() => props.scheduledMessage?.author || null);
+const authorType = computed(() => props.scheduledMessage?.author_type);
+const isUserAuthor = computed(
+  () => authorType.value === 'User' && Boolean(author.value?.id)
 );
+const avatarSrc = computed(() => {
+  if (isUserAuthor.value) {
+    return author.value?.thumbnail || '';
+  }
+  return '/assets/images/chatwoot_bot.png';
+});
+const avatarName = computed(() => {
+  if (isUserAuthor.value) {
+    return author.value?.name || t('CONVERSATION.BOT');
+  }
+  return t('CONVERSATION.BOT');
+});
 const status = computed(() => props.scheduledMessage?.status || 'draft');
 const statusBadge = computed(
   () => statusConfig[status.value] || statusConfig.draft
@@ -77,14 +88,6 @@ const formattedScheduledTime = computed(() => {
     return format(unixTime, 'MMM d, HH:mm');
   }
   return format(unixTime, 'MMM d, yyyy, HH:mm');
-});
-const scheduledAtLabel = computed(() => {
-  if (!scheduledAt.value) {
-    return t('SCHEDULED_MESSAGES.ITEM.NO_SCHEDULE');
-  }
-  return t('SCHEDULED_MESSAGES.ITEM.SCHEDULED_FOR', {
-    time: formattedScheduledTime.value,
-  });
 });
 
 const templateName = computed(() => {
@@ -146,53 +149,68 @@ watch(previewContent, () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 border-b border-n-strong group/scheduled">
-    <div class="flex items-start justify-between gap-2">
-      <div class="flex items-center gap-1.5 min-w-0">
-        <Avatar
-          :name="author?.name || t('CONVERSATION.BOT')"
-          :src="avatarSrc"
-          :size="16"
-          rounded-full
-        />
-        <div class="min-w-0 flex-1">
-          <span
-            class="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-sm text-n-slate-11"
-          >
-            <span class="font-medium text-n-slate-12 shrink-0">
-              {{ writtenBy }}
-            </span>
-            <span class="break-words">{{ scheduledAtLabel }}</span>
-          </span>
-        </div>
+  <div
+    class="flex flex-col gap-3 border-b border-n-strong py-3 group/scheduled"
+  >
+    <div class="flex items-center gap-3">
+      <Avatar
+        :name="avatarName"
+        :src="avatarSrc"
+        :size="30"
+        rounded-full
+        class="shrink-0"
+      />
+
+      <div class="flex-1 min-w-0">
+        <p
+          class="text-sm font-medium text-n-slate-12 mb-0.5 line-clamp-1"
+          :title="writtenBy"
+        >
+          {{ writtenBy }}
+        </p>
+        <p v-if="formattedScheduledTime" class="text-xs text-n-slate-11 mb-0">
+          {{
+            t('SCHEDULED_MESSAGES.ITEM.SCHEDULED_FOR', {
+              time: formattedScheduledTime,
+            })
+          }}
+        </p>
+        <p v-else class="text-xs text-n-slate-11 mb-0">
+          {{ t('SCHEDULED_MESSAGES.ITEM.NO_SCHEDULE') }}
+        </p>
       </div>
-      <div class="flex items-center gap-2">
+
+      <div class="flex flex-col items-center gap-2 shrink-0">
         <span
           class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
           :class="statusBadge.class"
         >
           {{ statusBadge.label }}
         </span>
-        <Button
-          v-if="allowEdit"
-          variant="faded"
-          color="slate"
-          size="xs"
-          icon="i-lucide-pencil"
-          class="opacity-0 group-hover/scheduled:opacity-100"
-          @click="onEdit"
-        />
-        <Button
-          v-if="allowDelete"
-          variant="faded"
-          color="ruby"
-          size="xs"
-          icon="i-lucide-trash"
-          class="opacity-0 group-hover/scheduled:opacity-100"
-          @click="onDelete"
-        />
+        <div
+          v-if="allowEdit || allowDelete"
+          class="flex items-center gap-1 opacity-0 group-hover/scheduled:opacity-100"
+        >
+          <Button
+            v-if="allowEdit"
+            variant="faded"
+            color="slate"
+            size="xs"
+            icon="i-lucide-pencil"
+            @click="onEdit"
+          />
+          <Button
+            v-if="allowDelete"
+            variant="faded"
+            color="ruby"
+            size="xs"
+            icon="i-lucide-trash"
+            @click="onDelete"
+          />
+        </div>
       </div>
     </div>
+
     <p
       ref="noteContentRef"
       v-dompurify-html="formattedContent"
@@ -201,17 +219,35 @@ watch(previewContent, () => {
         'line-clamp-4': collapsible && !isExpanded && needsCollapse,
       }"
     />
+
+    <div v-if="collapsible && needsCollapse">
+      <Button
+        variant="faded"
+        color="blue"
+        size="xs"
+        :icon="isExpanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+        @click="() => toggleExpanded()"
+      >
+        <template v-if="isExpanded">
+          {{ t('SCHEDULED_MESSAGES.ITEM.COLLAPSE') }}
+        </template>
+        <template v-else>
+          {{ t('SCHEDULED_MESSAGES.ITEM.EXPAND') }}
+        </template>
+      </Button>
+    </div>
+
     <div
       v-if="shouldShowAttachmentLine"
       class="flex items-center gap-1.5 text-xs text-n-slate-11"
     >
-      <Icon icon="i-lucide-paperclip" class="size-3" />
+      <Icon icon="i-lucide-paperclip" class="size-3 shrink-0" />
       <a
         v-if="attachmentUrl"
         :href="attachmentUrl"
         target="_blank"
         rel="noopener noreferrer"
-        class="truncate"
+        class="truncate hover:underline"
       >
         {{
           t('SCHEDULED_MESSAGES.ITEM.ATTACHMENT_LABEL', {
@@ -227,21 +263,5 @@ watch(previewContent, () => {
         }}
       </span>
     </div>
-    <p v-if="collapsible && needsCollapse">
-      <Button
-        variant="faded"
-        color="blue"
-        size="xs"
-        :icon="isExpanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-        @click="() => toggleExpanded()"
-      >
-        <template v-if="isExpanded">
-          {{ t('SCHEDULED_MESSAGES.ITEM.COLLAPSE') }}
-        </template>
-        <template v-else>
-          {{ t('SCHEDULED_MESSAGES.ITEM.EXPAND') }}
-        </template>
-      </Button>
-    </p>
   </div>
 </template>

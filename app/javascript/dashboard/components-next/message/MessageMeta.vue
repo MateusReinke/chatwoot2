@@ -93,7 +93,11 @@ const scheduledByLabel = computed(() => {
     return t('SCHEDULED_MESSAGES.META.YOU');
   }
   if (scheduledByTypeNormalized.value.includes('automation')) {
-    return t('SCHEDULED_MESSAGES.META.AUTOMATION');
+    const automationLabel = t('SCHEDULED_MESSAGES.META.AUTOMATION');
+    if (scheduledBy.value?.name) {
+      return `${automationLabel}: ${scheduledBy.value.name}`;
+    }
+    return automationLabel;
   }
   if (scheduledByAgent.value?.name) {
     return scheduledByAgent.value.name;
