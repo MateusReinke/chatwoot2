@@ -93,3 +93,7 @@ class Api::V1::Accounts::Conversations::ScheduledMessagesController < Api::V1::A
     Rails.configuration.dispatcher.dispatch(event_name, Time.zone.now, data)
   end
 end
+
+Api::V1::Accounts::Conversations::ScheduledMessagesController.prepend_mod_with(
+  'Api::V1::Accounts::Conversations::ScheduledMessagesController'
+)
