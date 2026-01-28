@@ -1282,6 +1282,7 @@ export default {
       :conversation-id="conversationId"
       :inbox-id="inbox.id"
       :initial-content="message"
+      :initial-attachment="attachedFiles[0] || null"
       @close="onScheduledMessageCreated"
     />
 

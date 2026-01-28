@@ -38,6 +38,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  initialAttachment: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['update:show', 'close']);
@@ -334,6 +338,15 @@ watch(
         resetForm();
         if (props.initialContent) {
           messageContent.value = props.initialContent;
+        }
+        if (props.initialAttachment) {
+          attachments.value = [
+            {
+              resource: props.initialAttachment.resource,
+              thumb: props.initialAttachment.thumb,
+              blobSignedId: props.initialAttachment.blobSignedId,
+            },
+          ];
         }
       }
     } else {
