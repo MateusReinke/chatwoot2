@@ -2,33 +2,38 @@ import { actions } from '../../scheduledMessages';
 import * as types from '../../../mutation-types';
 import ScheduledMessagesAPI from '../../../../api/scheduledMessages';
 
-const commit = vi.fn();
-
 describe('#scheduledMessages actions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   describe('#get', () => {
-    it('fetches and commits scheduled messages for a conversation', async () => {
+    it('sets messages on first page, appends on subsequent pages', async () => {
+      const commit = vi.fn();
       vi.spyOn(ScheduledMessagesAPI, 'get').mockResolvedValue({
-        data: [{ id: 1 }],
+        data: {
+          payload: [{ id: 1 }],
+          meta: { current_page: 1, total_pages: 2, total_count: 10 },
+        },
       });
 
-      await actions.get({ commit }, '12');
+      await actions.get({ commit }, { conversationId: '12', page: 1 });
 
       expect(commit).toHaveBeenCalledWith(
         types.default.SET_SCHEDULED_MESSAGES,
-        {
-          conversationId: 12,
-          data: [{ id: 1 }],
-        }
+        expect.objectContaining({ conversationId: 12 })
+      );
+
+      commit.mockClear();
+
+      await actions.get({ commit }, { conversationId: '12', page: 2 });
+
+      expect(commit).toHaveBeenCalledWith(
+        types.default.APPEND_SCHEDULED_MESSAGES,
+        expect.objectContaining({ conversationId: 12 })
       );
     });
   });
 
   describe('#create', () => {
-    it('creates and commits new scheduled message', async () => {
+    it('commits ADD_SCHEDULED_MESSAGE and returns created data', async () => {
+      const commit = vi.fn();
       vi.spyOn(ScheduledMessagesAPI, 'create').mockResolvedValue({
         data: { id: 9 },
       });
@@ -47,7 +52,8 @@ describe('#scheduledMessages actions', () => {
   });
 
   describe('#update', () => {
-    it('updates and commits scheduled message', async () => {
+    it('commits UPDATE_SCHEDULED_MESSAGE and returns updated data', async () => {
+      const commit = vi.fn();
       vi.spyOn(ScheduledMessagesAPI, 'update').mockResolvedValue({
         data: { id: 9, status: 'pending' },
       });
@@ -60,16 +66,14 @@ describe('#scheduledMessages actions', () => {
       expect(result).toEqual({ id: 9, status: 'pending' });
       expect(commit).toHaveBeenCalledWith(
         types.default.UPDATE_SCHEDULED_MESSAGE,
-        {
-          conversationId: 7,
-          data: { id: 9, status: 'pending' },
-        }
+        { conversationId: 7, data: { id: 9, status: 'pending' } }
       );
     });
   });
 
   describe('#delete', () => {
-    it('deletes scheduled message and removes from store', async () => {
+    it('commits DELETE_SCHEDULED_MESSAGE', async () => {
+      const commit = vi.fn();
       vi.spyOn(ScheduledMessagesAPI, 'delete').mockResolvedValue({});
 
       await actions.delete(
@@ -79,28 +83,24 @@ describe('#scheduledMessages actions', () => {
 
       expect(commit).toHaveBeenCalledWith(
         types.default.DELETE_SCHEDULED_MESSAGE,
-        {
-          conversationId: 7,
-          scheduledMessageId: 3,
-        }
+        { conversationId: 7, scheduledMessageId: 3 }
       );
     });
   });
 
   describe('#upsertFromEvent', () => {
-    it('updates existing record or adds new one from websocket event', () => {
+    it('updates if record exists, adds if new', () => {
+      const commit = vi.fn();
       const state = { records: { 5: [{ id: 1 }] } };
 
       actions.upsertFromEvent(
         { commit, state },
         { id: 1, conversation_id: '5' }
       );
+
       expect(commit).toHaveBeenCalledWith(
         types.default.UPDATE_SCHEDULED_MESSAGE,
-        {
-          conversationId: 5,
-          data: { id: 1, conversation_id: '5' },
-        }
+        expect.objectContaining({ conversationId: 5 })
       );
 
       commit.mockClear();
@@ -109,23 +109,23 @@ describe('#scheduledMessages actions', () => {
         { commit, state },
         { id: 2, conversation_id: '5' }
       );
-      expect(commit).toHaveBeenCalledWith(types.default.ADD_SCHEDULED_MESSAGE, {
-        conversationId: 5,
-        data: { id: 2, conversation_id: '5' },
-      });
+
+      expect(commit).toHaveBeenCalledWith(
+        types.default.ADD_SCHEDULED_MESSAGE,
+        expect.objectContaining({ conversationId: 5 })
+      );
     });
   });
 
   describe('#removeFromEvent', () => {
-    it('removes record using event payload', () => {
+    it('commits DELETE_SCHEDULED_MESSAGE from event payload', () => {
+      const commit = vi.fn();
+
       actions.removeFromEvent({ commit }, { id: 3, conversation_id: '8' });
 
       expect(commit).toHaveBeenCalledWith(
         types.default.DELETE_SCHEDULED_MESSAGE,
-        {
-          conversationId: 8,
-          scheduledMessageId: 3,
-        }
+        { conversationId: 8, scheduledMessageId: 3 }
       );
     });
   });

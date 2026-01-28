@@ -55,9 +55,11 @@ class ScheduledMessagesAPI extends ApiClient {
     return `${this.baseUrl()}/conversations/${this.conversationId}/scheduled_messages`;
   }
 
-  get(conversationId) {
+  get(conversationId, { page = 1, perPage = 5 } = {}) {
     this.conversationId = conversationId;
-    return super.get();
+    return axios.get(this.url, {
+      params: { page, per_page: perPage },
+    });
   }
 
   create(conversationId, payload) {

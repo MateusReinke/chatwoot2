@@ -1,11 +1,12 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useScroll } from '@vueuse/core';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 
 import ScheduledMessageItem from 'next/Contacts/ContactsSidebar/components/ScheduledMessageItem.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
-import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import ScheduledMessageSkeletonLoader from './ScheduledMessageSkeletonLoader.vue';
 import ScheduledMessageModal from './ScheduledMessageModal.vue';
 
 const props = defineProps({
@@ -26,20 +27,32 @@ const currentUser = useMapGetter('getCurrentUser');
 const scheduledMessagesGetter = useMapGetter(
   'scheduledMessages/getAllByConversation'
 );
+const metaGetter = useMapGetter('scheduledMessages/getMetaByConversation');
 const uiFlags = useMapGetter('scheduledMessages/getUIFlags');
 
 const isFetching = computed(() => uiFlags.value.isFetching);
+const isFetchingMore = computed(() => uiFlags.value.isFetchingMore);
 const isDeleting = computed(() => uiFlags.value.isDeleting);
 
 const shouldShowModal = ref(false);
 const editingMessage = ref(null);
 const showHistory = ref(false);
-const visibleCount = ref(10);
-const pageSize = 10;
+const scrollContainerRef = useTemplateRef('scrollContainerRef');
+
+const { arrivedState } = useScroll(scrollContainerRef, {
+  offset: { bottom: 20 },
+});
 
 const scheduledMessages = computed(() => {
   if (!props.conversationId) return [];
   return scheduledMessagesGetter.value(props.conversationId) || [];
+});
+
+const meta = computed(() => metaGetter.value(props.conversationId) || {});
+
+const hasMore = computed(() => {
+  const { current_page: currentPage, total_pages: totalPages } = meta.value;
+  return currentPage && totalPages && currentPage < totalPages;
 });
 
 const hasHistory = computed(() =>
@@ -57,21 +70,15 @@ const filteredMessages = computed(() => {
   );
 });
 
-const visibleMessages = computed(() =>
-  filteredMessages.value.slice(0, visibleCount.value)
-);
-
-const hasMore = computed(
-  () => filteredMessages.value.length > visibleCount.value
-);
-
-const resetPagination = () => {
-  visibleCount.value = pageSize;
+const fetchScheduledMessages = (conversationId, page = 1) => {
+  if (!conversationId) return;
+  store.dispatch('scheduledMessages/get', { conversationId, page });
 };
 
-const fetchScheduledMessages = conversationId => {
-  if (!conversationId) return;
-  store.dispatch('scheduledMessages/get', conversationId);
+const loadMore = () => {
+  if (!hasMore.value || isFetchingMore.value) return;
+  const nextPage = (meta.value.current_page || 1) + 1;
+  fetchScheduledMessages(props.conversationId, nextPage);
 };
 
 const getWrittenBy = scheduledMessage => {
@@ -104,11 +111,6 @@ const closeModal = () => {
 
 const toggleHistory = () => {
   showHistory.value = !showHistory.value;
-  resetPagination();
-};
-
-const loadMore = () => {
-  visibleCount.value += pageSize;
 };
 
 const onDelete = async message => {
@@ -122,11 +124,19 @@ const onDelete = async message => {
 watch(
   () => props.conversationId,
   newConversationId => {
-    resetPagination();
     showHistory.value = false;
     fetchScheduledMessages(newConversationId);
   },
   { immediate: true }
+);
+
+watch(
+  () => arrivedState.bottom,
+  isAtBottom => {
+    if (isAtBottom && hasMore.value && !isFetchingMore.value) {
+      loadMore();
+    }
+  }
 );
 </script>
 
@@ -154,18 +164,14 @@ watch(
       />
     </div>
 
+    <ScheduledMessageSkeletonLoader v-if="isFetching" :rows="3" />
     <div
-      v-if="isFetching"
-      class="flex items-center justify-center py-8 text-n-slate-11"
-    >
-      <Spinner />
-    </div>
-    <div
-      v-else-if="visibleMessages.length"
+      v-else-if="filteredMessages.length"
+      ref="scrollContainerRef"
       class="flex flex-col max-h-[300px] overflow-y-auto"
     >
       <ScheduledMessageItem
-        v-for="message in visibleMessages"
+        v-for="message in filteredMessages"
         :key="message.id"
         class="px-4 py-4 last-of-type:border-b-0"
         :scheduled-message="message"
@@ -176,19 +182,11 @@ watch(
         @edit="openEditModal"
         @delete="onDelete"
       />
+      <ScheduledMessageSkeletonLoader v-if="isFetchingMore" :rows="1" />
     </div>
     <p v-else class="px-6 py-6 text-sm leading-6 text-center text-n-slate-11">
       {{ t('SCHEDULED_MESSAGES.EMPTY_STATE') }}
     </p>
-
-    <div v-if="hasMore" class="px-4 pb-4">
-      <NextButton
-        ghost
-        xs
-        :label="t('SCHEDULED_MESSAGES.SHOW_MORE')"
-        @click="loadMore"
-      />
-    </div>
 
     <ScheduledMessageModal
       v-model:show="shouldShowModal"
