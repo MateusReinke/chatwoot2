@@ -98,12 +98,7 @@ const templateName = computed(() => {
 const attachment = computed(() => props.scheduledMessage?.attachment);
 const attachmentName = computed(() => attachment.value?.filename);
 const attachmentUrl = computed(() => attachment.value?.file_url);
-const shouldShowAttachmentLine = computed(() => {
-  return (
-    attachmentName.value &&
-    (props.scheduledMessage?.content || templateName.value)
-  );
-});
+const shouldShowAttachmentLine = computed(() => Boolean(attachmentName.value));
 
 const previewContent = computed(() => {
   if (props.scheduledMessage?.content) {
@@ -115,12 +110,12 @@ const previewContent = computed(() => {
     });
   }
   if (attachmentName.value) {
-    return t('SCHEDULED_MESSAGES.ITEM.ATTACHMENT_PREVIEW', {
-      filename: attachmentName.value,
-    });
+    return '';
   }
   return t('SCHEDULED_MESSAGES.ITEM.EMPTY_PREVIEW');
 });
+
+const hasPreviewContent = computed(() => Boolean(previewContent.value));
 
 const formattedContent = computed(() => formatMessage(previewContent.value));
 
@@ -212,6 +207,7 @@ watch(previewContent, () => {
     </div>
 
     <p
+      v-if="hasPreviewContent"
       ref="noteContentRef"
       v-dompurify-html="formattedContent"
       class="mb-0 prose-sm prose-p:text-sm prose-p:leading-relaxed prose-p:mb-1 prose-p:mt-0 prose-ul:mb-1 prose-ul:mt-0 text-n-slate-12"
@@ -220,7 +216,7 @@ watch(previewContent, () => {
       }"
     />
 
-    <div v-if="collapsible && needsCollapse">
+    <div v-if="hasPreviewContent && collapsible && needsCollapse">
       <Button
         variant="faded"
         color="blue"
