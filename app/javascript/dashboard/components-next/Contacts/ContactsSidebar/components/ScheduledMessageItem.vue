@@ -41,19 +41,19 @@ const { formatMessage } = useMessageFormatter();
 
 const statusConfig = {
   draft: {
-    label: t('SCHEDULED_MESSAGES.STATUS.DRAFT'),
+    labelKey: 'SCHEDULED_MESSAGES.STATUS.DRAFT',
     class: 'bg-n-slate-9/10 text-n-slate-12',
   },
   pending: {
-    label: t('SCHEDULED_MESSAGES.STATUS.PENDING'),
+    labelKey: 'SCHEDULED_MESSAGES.STATUS.PENDING',
     class: 'bg-n-slate-9/10 text-n-slate-12',
   },
   sent: {
-    label: t('SCHEDULED_MESSAGES.STATUS.SENT'),
+    labelKey: 'SCHEDULED_MESSAGES.STATUS.SENT',
     class: 'bg-n-teal-9/10 text-n-teal-11',
   },
   failed: {
-    label: t('SCHEDULED_MESSAGES.STATUS.FAILED'),
+    labelKey: 'SCHEDULED_MESSAGES.STATUS.FAILED',
     class: 'bg-n-ruby-9/10 text-n-ruby-11',
   },
 };
@@ -76,9 +76,14 @@ const avatarName = computed(() => {
   return t('CONVERSATION.BOT');
 });
 const status = computed(() => props.scheduledMessage?.status || 'draft');
-const statusBadge = computed(
-  () => statusConfig[status.value] || statusConfig.draft
-);
+const statusBadge = computed(() => {
+  const config = statusConfig[status.value] || statusConfig.draft;
+  return {
+    class: config.class,
+    // eslint-disable-next-line @intlify/vue-i18n/no-dynamic-keys
+    label: t(config.labelKey),
+  };
+});
 const scheduledAt = computed(() => props.scheduledMessage?.scheduled_at);
 const formattedScheduledTime = computed(() => {
   if (!scheduledAt.value) return '';
