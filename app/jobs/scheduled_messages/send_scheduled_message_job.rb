@@ -23,12 +23,12 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     return unless scheduled_message.pending?
     return unless scheduled_message.due_for_sending?
 
-    message = build_message(scheduled_message)
+    message = send_message(scheduled_message)
     attach_scheduled_metadata(message, scheduled_message)
     update_scheduled_message_status(scheduled_message, message)
   end
 
-  def build_message(scheduled_message)
+  def send_message(scheduled_message)
     params = {
       content: scheduled_message.content,
       private: false,
