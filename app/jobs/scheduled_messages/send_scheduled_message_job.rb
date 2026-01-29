@@ -24,7 +24,6 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     return unless scheduled_message.due_for_sending?
 
     message = send_message(scheduled_message)
-    attach_scheduled_metadata(message, scheduled_message)
     update_scheduled_message_status(scheduled_message, message)
   end
 
@@ -32,7 +31,8 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     params = {
       content: scheduled_message.content,
       private: false,
-      message_type: 'outgoing'
+      message_type: 'outgoing',
+      scheduled_message: scheduled_message
     }
     params[:template_params] = scheduled_message.template_params if scheduled_message.template_params.present?
     params[:attachments] = [scheduled_message.attachment.blob.signed_id] if scheduled_message.attachment.attached?
@@ -49,21 +49,6 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     return {} unless scheduled_message.author.is_a?(AutomationRule)
 
     { content_attributes: { automation_rule_id: scheduled_message.author_id } }
-  end
-
-  def attach_scheduled_metadata(message, scheduled_message)
-    existing_attributes = message.additional_attributes || {}
-    merged_attributes = existing_attributes.dup
-    merged_attributes['scheduled_message_id'] = scheduled_message.id
-    scheduled_by = {
-      'id' => scheduled_message.author_id,
-      'type' => scheduled_message.author_type
-    }
-    scheduled_by['name'] = scheduled_message.author.name if scheduled_message.author.respond_to?(:name)
-    merged_attributes['scheduled_by'] = scheduled_by
-    merged_attributes['scheduled_at'] = scheduled_message.updated_at.to_i
-
-    message.update!(additional_attributes: merged_attributes)
   end
 
   def update_scheduled_message_status(scheduled_message, message)
