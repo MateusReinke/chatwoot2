@@ -44,7 +44,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:show', 'close']);
+const emit = defineEmits(['update:show', 'close', 'scheduledMessageCreated']);
 
 const { t } = useI18n();
 const store = useStore();
@@ -307,6 +307,9 @@ const submit = async status => {
     });
   }
 
+  if (status === 'pending') {
+    emit('scheduledMessageCreated');
+  }
   closeModal();
 };
 

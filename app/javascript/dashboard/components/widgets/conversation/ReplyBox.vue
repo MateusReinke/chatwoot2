@@ -1283,7 +1283,7 @@ export default {
       :inbox-id="inbox.id"
       :initial-content="message"
       :initial-attachment="attachedFiles[0] || null"
-      @close="onScheduledMessageCreated"
+      @scheduled-message-created="onScheduledMessageCreated"
     />
 
     <woot-confirm-modal
