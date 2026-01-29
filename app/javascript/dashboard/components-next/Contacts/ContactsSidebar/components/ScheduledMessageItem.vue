@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToggle } from '@vueuse/core';
-import { fromUnixTime, format, isSameYear } from 'date-fns';
+import { fromUnixTime } from 'date-fns';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
@@ -36,7 +36,7 @@ const emit = defineEmits(['edit', 'delete']);
 const noteContentRef = useTemplateRef('noteContentRef');
 const needsCollapse = ref(false);
 const [isExpanded, toggleExpanded] = useToggle();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { formatMessage } = useMessageFormatter();
 
 const statusConfig = {
@@ -87,12 +87,22 @@ const statusBadge = computed(() => {
 const scheduledAt = computed(() => props.scheduledMessage?.scheduled_at);
 const formattedScheduledTime = computed(() => {
   if (!scheduledAt.value) return '';
-  const unixTime = fromUnixTime(scheduledAt.value);
+  const date = fromUnixTime(scheduledAt.value);
   const now = new Date();
-  if (isSameYear(unixTime, now)) {
-    return format(unixTime, 'MMM d, HH:mm');
+  const dateLocale = locale.value === 'pt_BR' ? 'pt-BR' : 'en-US';
+
+  const options = {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+
+  if (date.getFullYear() !== now.getFullYear()) {
+    options.year = 'numeric';
   }
-  return format(unixTime, 'MMM d, yyyy, HH:mm');
+
+  return date.toLocaleString(dateLocale, options);
 });
 
 const templateName = computed(() => {
@@ -169,11 +179,7 @@ watch(previewContent, () => {
           {{ writtenBy }}
         </p>
         <p v-if="formattedScheduledTime" class="text-xs text-n-slate-11 mb-0">
-          {{
-            t('SCHEDULED_MESSAGES.ITEM.SCHEDULED_FOR', {
-              time: formattedScheduledTime,
-            })
-          }}
+          {{ formattedScheduledTime }}
         </p>
         <p v-else class="text-xs text-n-slate-11 mb-0">
           {{ t('SCHEDULED_MESSAGES.ITEM.NO_SCHEDULE') }}
