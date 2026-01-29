@@ -214,15 +214,7 @@ describe ActionCableListener do
 
   shared_examples 'scheduled message event broadcast' do |method_name, event_name|
     it 'broadcasts to account admins and inbox members' do
-      scheduled_message = ScheduledMessage.create!(
-        account: account,
-        inbox: inbox,
-        conversation: conversation,
-        author: agent,
-        content: 'Hello',
-        status: :pending,
-        scheduled_at: 2.minutes.from_now
-      )
+      scheduled_message = create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: agent)
       event = Events::Base.new(event_name, Time.zone.now, scheduled_message: scheduled_message)
 
       expect(ActionCableBroadcastJob).to receive(:perform_later).with(

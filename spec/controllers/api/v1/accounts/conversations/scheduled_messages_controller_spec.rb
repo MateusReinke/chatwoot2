@@ -5,6 +5,7 @@ RSpec.describe 'Scheduled Messages API', type: :request do
   let(:inbox) { create(:inbox, account: account) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox) }
   let(:agent) { create(:user, account: account, role: :agent) }
+  let(:scheduled_message) { create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: agent) }
 
   before do
     create(:inbox_member, inbox: inbox, user: agent)
@@ -22,18 +23,6 @@ RSpec.describe 'Scheduled Messages API', type: :request do
     )
   end
 
-  def create_scheduled_message(attrs = {})
-    ScheduledMessage.create!({
-      account: account,
-      inbox: inbox,
-      conversation: conversation,
-      author: agent,
-      content: 'Hello',
-      status: :pending,
-      scheduled_at: 2.minutes.from_now
-    }.merge(attrs))
-  end
-
   it 'returns unauthorized for unauthenticated users' do
     get scheduled_messages_url
     expect(response).to have_http_status(:unauthorized)
@@ -41,14 +30,14 @@ RSpec.describe 'Scheduled Messages API', type: :request do
 
   describe 'GET #index' do
     it 'returns all scheduled messages ordered by scheduled_at' do
-      later = create_scheduled_message(scheduled_at: 5.minutes.from_now)
-      earlier = create_scheduled_message(scheduled_at: 2.minutes.from_now)
+      later = create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: agent, scheduled_at: 5.minutes.from_now)
+      earlier = create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: agent,
+                                           scheduled_at: 2.minutes.from_now)
 
       get scheduled_messages_url, headers: agent.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:success)
-      body = response.parsed_body
-      expect(body['payload'].pluck('id')).to eq([earlier.id, later.id])
+      expect(response.parsed_body['payload'].pluck('id')).to eq([earlier.id, later.id])
     end
   end
 
@@ -63,8 +52,7 @@ RSpec.describe 'Scheduled Messages API', type: :request do
              as: :json
 
         expect(response).to have_http_status(:success)
-        scheduled_message = conversation.scheduled_messages.last
-        expect(scheduled_message).to have_attributes(status: 'pending', author_id: agent.id)
+        expect(conversation.scheduled_messages.last).to have_attributes(status: 'pending', author_id: agent.id)
       end
     end
 
@@ -93,20 +81,20 @@ RSpec.describe 'Scheduled Messages API', type: :request do
   describe 'PATCH #update' do
     it 'updates a draft to pending with a future schedule' do
       freeze_time do
-        scheduled_message = create_scheduled_message(status: :draft, scheduled_at: nil)
+        draft = create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: agent, status: :draft,
+                                           scheduled_at: nil)
 
-        patch scheduled_message_url(scheduled_message),
+        patch scheduled_message_url(draft),
               params: { status: 'pending', scheduled_at: 2.minutes.from_now.iso8601 },
               headers: agent.create_new_auth_token,
               as: :json
 
         expect(response).to have_http_status(:success)
-        expect(scheduled_message.reload.status).to eq('pending')
+        expect(draft.reload.status).to eq('pending')
       end
     end
 
     it 'rejects updates for sent messages' do
-      scheduled_message = create_scheduled_message
       scheduled_message.update!(status: :sent)
 
       patch scheduled_message_url(scheduled_message),
@@ -120,8 +108,6 @@ RSpec.describe 'Scheduled Messages API', type: :request do
 
   describe 'DELETE #destroy' do
     it 'deletes pending scheduled messages' do
-      scheduled_message = create_scheduled_message(status: :pending)
-
       delete scheduled_message_url(scheduled_message), headers: agent.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:success)
@@ -129,7 +115,6 @@ RSpec.describe 'Scheduled Messages API', type: :request do
     end
 
     it 'rejects delete for sent messages' do
-      scheduled_message = create_scheduled_message
       scheduled_message.update!(status: :sent)
 
       delete scheduled_message_url(scheduled_message), headers: agent.create_new_auth_token, as: :json

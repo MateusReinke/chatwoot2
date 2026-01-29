@@ -9,15 +9,7 @@ RSpec.describe ScheduledMessageHandler do
   let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact, contact_inbox: contact_inbox) }
 
   let(:scheduled_message) do
-    ScheduledMessage.create!(
-      account: account,
-      inbox: inbox,
-      conversation: conversation,
-      author: author,
-      content: 'Test message',
-      scheduled_at: 1.minute.ago,
-      status: :pending
-    )
+    create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: author)
   end
 
   let(:message) do

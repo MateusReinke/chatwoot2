@@ -8,36 +8,18 @@ RSpec.describe ScheduledMessages::TriggerScheduledMessagesJob, type: :job do
   let(:contact_inbox) { create(:contact_inbox, contact: contact, inbox: inbox) }
   let(:conversation) { create(:conversation, account: account, inbox: inbox, contact: contact, contact_inbox: contact_inbox) }
 
-  def create_scheduled_message(attrs = {})
-    ScheduledMessage.create!({
-      account: account,
-      inbox: inbox,
-      conversation: conversation,
-      author: author,
-      content: 'Hello',
-      scheduled_at: 1.minute.ago,
-      status: :pending,
-      template_params: {}
-    }.merge(attrs))
-  end
-
   describe '#perform' do
     it 'enqueues jobs for due scheduled messages only' do
-      freeze_time do
-        due_same_minute = create_scheduled_message(
-          scheduled_at: Time.current.beginning_of_minute + 50.seconds
-        )
-        overdue = create_scheduled_message(
-          scheduled_at: Time.current.beginning_of_minute - 2.minutes
-        )
-        future = create_scheduled_message(
-          scheduled_at: Time.current.beginning_of_minute + 1.minute
-        )
-        draft = create_scheduled_message(
-          scheduled_at: Time.current.beginning_of_minute - 10.minutes,
-          status: :draft
-        )
+      due_same_minute = create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: author,
+                                                   scheduled_at: 1.minute.from_now)
+      overdue = create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: author,
+                                           scheduled_at: 2.minutes.from_now)
+      future = create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: author,
+                                          scheduled_at: 5.minutes.from_now)
+      draft = create(:scheduled_message, account: account, inbox: inbox, conversation: conversation, author: author,
+                                         scheduled_at: 3.minutes.from_now, status: :draft)
 
+      travel_to(3.minutes.from_now) do
         clear_enqueued_jobs
         described_class.new.perform
 
