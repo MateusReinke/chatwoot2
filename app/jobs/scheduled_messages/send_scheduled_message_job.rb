@@ -63,7 +63,7 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     merged_attributes['scheduled_by'] = scheduled_by
     merged_attributes['scheduled_at'] = scheduled_message.updated_at.to_i
 
-    message.update!(additional_attributes: merged_attributes) if merged_attributes != existing_attributes
+    message.update!(additional_attributes: merged_attributes)
   end
 
   def update_scheduled_message_status(scheduled_message, message)
