@@ -110,7 +110,7 @@ const setFormFromMessage = scheduledMessage => {
 
   if (scheduledMessage.scheduled_at) {
     const dateValue = new Date(scheduledMessage.scheduled_at * 1000);
-    dateValue.setSeconds(0, 0);
+    dateValue.setSeconds(59, 0);
     scheduledDateTime.value = dateValue;
   } else {
     scheduledDateTime.value = null;
@@ -139,7 +139,7 @@ const scheduledAt = computed(() => {
   if (!scheduledDateTime.value) return null;
 
   const date = new Date(scheduledDateTime.value);
-  date.setSeconds(0, 0);
+  date.setSeconds(59, 0);
 
   return date;
 });
@@ -219,8 +219,6 @@ const isFutureSchedule = date => {
   if (!date) return false;
   const scheduled = new Date(date);
   const now = new Date();
-  scheduled.setSeconds(0, 0);
-  now.setSeconds(0, 0);
   return scheduled > now;
 };
 

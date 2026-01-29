@@ -21,15 +21,11 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
 
   def send_if_ready(scheduled_message)
     return unless scheduled_message.pending?
-    return unless due_for_sending?(scheduled_message)
+    return unless scheduled_message.due_for_sending?
 
     message = build_message(scheduled_message)
     attach_scheduled_metadata(message, scheduled_message)
     update_scheduled_message_status(scheduled_message, message)
-  end
-
-  def due_for_sending?(scheduled_message)
-    scheduled_message.scheduled_at.present? && scheduled_message.scheduled_at <= Time.current.end_of_minute
   end
 
   def build_message(scheduled_message)

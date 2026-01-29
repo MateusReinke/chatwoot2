@@ -46,7 +46,6 @@ class ScheduledMessage < ApplicationRecord
 
   enum status: { draft: 0, pending: 1, sent: 2, failed: 3 }
 
-  before_save :normalize_scheduled_at
   before_destroy :prevent_destroy_if_processed
 
   validates :scheduled_at, presence: true, unless: -> { status == 'draft' }
@@ -55,7 +54,11 @@ class ScheduledMessage < ApplicationRecord
   validate :must_be_editable, on: :update
   validate :scheduled_at_must_be_in_future, if: :should_validate_future_schedule?
 
-  scope :due_for_sending, -> { pending.where('scheduled_at <= ?', Time.current.end_of_minute) }
+  scope :due_for_sending, -> { pending.where('scheduled_at <= ?', Time.current) }
+
+  def due_for_sending?
+    scheduled_at.present? && scheduled_at <= Time.current
+  end
 
   def push_event_data
     data = {
@@ -94,10 +97,6 @@ class ScheduledMessage < ApplicationRecord
 
   private
 
-  def normalize_scheduled_at
-    self.scheduled_at = scheduled_at.beginning_of_minute if scheduled_at.present?
-  end
-
   def status_must_be_draft_or_pending
     return if draft? || pending?
 
@@ -125,7 +124,7 @@ class ScheduledMessage < ApplicationRecord
 
   def scheduled_at_must_be_in_future
     return if scheduled_at.blank?
-    return if scheduled_at.beginning_of_minute > Time.current.beginning_of_minute
+    return if scheduled_at > Time.current
 
     errors.add(:scheduled_at, 'must be in the future')
   end
