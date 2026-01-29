@@ -3,14 +3,13 @@ class Api::V1::Accounts::Conversations::ScheduledMessagesController < Api::V1::A
 
   before_action :scheduled_message, only: [:update, :destroy]
 
-  PER_PAGE = 5
+  MAX_LIMIT = 100
 
   def index
     authorize build_scheduled_message
     @scheduled_messages = @conversation.scheduled_messages
                                        .order(scheduled_at: :asc)
-                                       .page(params[:page])
-                                       .per(params[:per_page] || PER_PAGE)
+                                       .limit(MAX_LIMIT)
   end
 
   def create
@@ -31,6 +30,8 @@ class Api::V1::Accounts::Conversations::ScheduledMessagesController < Api::V1::A
     scheduled_message = @scheduled_message
     scheduled_message.destroy!
     dispatch_event(SCHEDULED_MESSAGE_DELETED, scheduled_message: scheduled_message)
+  rescue ActiveRecord::RecordNotDestroyed => e
+    render json: { errors: e.record.errors.full_messages }, status: :unprocessable_entity
   end
 
   private

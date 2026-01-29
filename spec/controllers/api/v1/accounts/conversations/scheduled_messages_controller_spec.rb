@@ -40,7 +40,7 @@ RSpec.describe 'Scheduled Messages API', type: :request do
   end
 
   describe 'GET #index' do
-    it 'returns paginated scheduled messages ordered by scheduled_at' do
+    it 'returns all scheduled messages ordered by scheduled_at' do
       later = create_scheduled_message(scheduled_at: 5.minutes.from_now)
       earlier = create_scheduled_message(scheduled_at: 2.minutes.from_now)
 
@@ -49,7 +49,6 @@ RSpec.describe 'Scheduled Messages API', type: :request do
       expect(response).to have_http_status(:success)
       body = response.parsed_body
       expect(body['payload'].pluck('id')).to eq([earlier.id, later.id])
-      expect(body['meta']).to include('current_page', 'total_pages', 'total_count')
     end
   end
 
@@ -107,7 +106,8 @@ RSpec.describe 'Scheduled Messages API', type: :request do
     end
 
     it 'rejects updates for sent messages' do
-      scheduled_message = create_scheduled_message(status: :sent)
+      scheduled_message = create_scheduled_message
+      scheduled_message.update!(status: :sent)
 
       patch scheduled_message_url(scheduled_message),
             params: { content: 'Updated' },
@@ -129,11 +129,13 @@ RSpec.describe 'Scheduled Messages API', type: :request do
     end
 
     it 'rejects delete for sent messages' do
-      scheduled_message = create_scheduled_message(status: :sent)
+      scheduled_message = create_scheduled_message
+      scheduled_message.update!(status: :sent)
 
       delete scheduled_message_url(scheduled_message), headers: agent.create_new_auth_token, as: :json
 
       expect(response).to have_http_status(:unprocessable_content)
+      expect(ScheduledMessage.exists?(scheduled_message.id)).to be(true)
     end
   end
 end

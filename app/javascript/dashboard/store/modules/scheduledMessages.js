@@ -3,10 +3,8 @@ import ScheduledMessagesAPI from '../../api/scheduledMessages';
 
 export const state = {
   records: {},
-  meta: {},
   uiFlags: {
     isFetching: false,
-    isFetchingMore: false,
     isCreating: false,
     isUpdating: false,
     isDeleting: false,
@@ -17,42 +15,25 @@ export const getters = {
   getAllByConversation: _state => conversationId => {
     return _state.records[Number(conversationId)] || [];
   },
-  getMetaByConversation: _state => conversationId => {
-    return _state.meta[Number(conversationId)] || {};
-  },
   getUIFlags(_state) {
     return _state.uiFlags;
   },
 };
 
 export const actions = {
-  async get({ commit }, { conversationId, page = 1 }) {
-    const isFirstPage = page === 1;
-    commit(types.SET_SCHEDULED_MESSAGES_UI_FLAG, {
-      isFetching: isFirstPage,
-      isFetchingMore: !isFirstPage,
-    });
+  async get({ commit }, { conversationId }) {
+    commit(types.SET_SCHEDULED_MESSAGES_UI_FLAG, { isFetching: true });
     try {
       const normalizedConversationId = Number(conversationId);
-      const { data } = await ScheduledMessagesAPI.get(
-        normalizedConversationId,
-        { page }
-      );
-      const mutation = isFirstPage
-        ? types.SET_SCHEDULED_MESSAGES
-        : types.APPEND_SCHEDULED_MESSAGES;
-      commit(mutation, {
+      const { data } = await ScheduledMessagesAPI.get(normalizedConversationId);
+      commit(types.SET_SCHEDULED_MESSAGES, {
         conversationId: normalizedConversationId,
         data: data.payload,
-        meta: data.meta,
       });
     } catch (error) {
       throw new Error(error);
     } finally {
-      commit(types.SET_SCHEDULED_MESSAGES_UI_FLAG, {
-        isFetching: false,
-        isFetchingMore: false,
-      });
+      commit(types.SET_SCHEDULED_MESSAGES_UI_FLAG, { isFetching: false });
     }
   },
 
@@ -143,30 +124,10 @@ export const mutations = {
     };
   },
 
-  [types.SET_SCHEDULED_MESSAGES]($state, { conversationId, data, meta }) {
+  [types.SET_SCHEDULED_MESSAGES]($state, { conversationId, data }) {
     $state.records = {
       ...$state.records,
       [Number(conversationId)]: data,
-    };
-    $state.meta = {
-      ...$state.meta,
-      [Number(conversationId)]: meta,
-    };
-  },
-
-  [types.APPEND_SCHEDULED_MESSAGES]($state, { conversationId, data, meta }) {
-    const normalizedConversationId = Number(conversationId);
-    const existingRecords = $state.records[normalizedConversationId] || [];
-    const existingIds = new Set(existingRecords.map(r => r.id));
-    const newRecords = data.filter(r => !existingIds.has(r.id));
-
-    $state.records = {
-      ...$state.records,
-      [normalizedConversationId]: [...existingRecords, ...newRecords],
-    };
-    $state.meta = {
-      ...$state.meta,
-      [normalizedConversationId]: meta,
     };
   },
 

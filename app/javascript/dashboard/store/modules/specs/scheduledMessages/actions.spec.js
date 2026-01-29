@@ -4,29 +4,27 @@ import ScheduledMessagesAPI from '../../../../api/scheduledMessages';
 
 describe('#scheduledMessages actions', () => {
   describe('#get', () => {
-    it('sets messages on first page, appends on subsequent pages', async () => {
+    it('fetches and sets all scheduled messages for a conversation', async () => {
       const commit = vi.fn();
       vi.spyOn(ScheduledMessagesAPI, 'get').mockResolvedValue({
         data: {
-          payload: [{ id: 1 }],
-          meta: { current_page: 1, total_pages: 2, total_count: 10 },
+          payload: [{ id: 1 }, { id: 2 }],
         },
       });
 
-      await actions.get({ commit }, { conversationId: '12', page: 1 });
+      await actions.get({ commit }, { conversationId: '12' });
 
+      expect(commit).toHaveBeenCalledWith(
+        types.default.SET_SCHEDULED_MESSAGES_UI_FLAG,
+        { isFetching: true }
+      );
       expect(commit).toHaveBeenCalledWith(
         types.default.SET_SCHEDULED_MESSAGES,
-        expect.objectContaining({ conversationId: 12 })
+        { conversationId: 12, data: [{ id: 1 }, { id: 2 }] }
       );
-
-      commit.mockClear();
-
-      await actions.get({ commit }, { conversationId: '12', page: 2 });
-
       expect(commit).toHaveBeenCalledWith(
-        types.default.APPEND_SCHEDULED_MESSAGES,
-        expect.objectContaining({ conversationId: 12 })
+        types.default.SET_SCHEDULED_MESSAGES_UI_FLAG,
+        { isFetching: false }
       );
     });
   });
