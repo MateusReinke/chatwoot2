@@ -48,41 +48,35 @@ export const buildScheduledMessagePayload = ({
 class ScheduledMessagesAPI extends ApiClient {
   constructor() {
     super('conversations', { accountScoped: true });
-    this.conversationId = null;
-  }
-
-  get url() {
-    return `${this.baseUrl()}/conversations/${this.conversationId}/scheduled_messages`;
   }
 
   get(conversationId, { page = 1, perPage = 5 } = {}) {
-    this.conversationId = conversationId;
-    return axios.get(this.url, {
-      params: { page, per_page: perPage },
-    });
+    return axios.get(
+      `${this.baseUrl()}/conversations/${conversationId}/scheduled_messages`,
+      { params: { page, per_page: perPage } }
+    );
   }
 
   create(conversationId, payload) {
-    this.conversationId = conversationId;
     return axios({
       method: 'post',
-      url: this.url,
+      url: `${this.baseUrl()}/conversations/${conversationId}/scheduled_messages`,
       data: buildScheduledMessagePayload(payload),
     });
   }
 
   update(conversationId, scheduledMessageId, payload) {
-    this.conversationId = conversationId;
     return axios({
       method: 'patch',
-      url: `${this.url}/${scheduledMessageId}`,
+      url: `${this.baseUrl()}/conversations/${conversationId}/scheduled_messages/${scheduledMessageId}`,
       data: buildScheduledMessagePayload(payload),
     });
   }
 
   delete(conversationId, scheduledMessageId) {
-    this.conversationId = conversationId;
-    return super.delete(scheduledMessageId);
+    return axios.delete(
+      `${this.baseUrl()}/conversations/${conversationId}/scheduled_messages/${scheduledMessageId}`
+    );
   }
 }
 
