@@ -434,6 +434,13 @@
     "ERRORS": {
       "CONTENT_REQUIRED": "Adicione uma mensagem, template ou anexo antes de salvar.",
       "SCHEDULE_IN_PAST": "O horário agendado deve ser no futuro."
+    },
+    "META": {
+      "TOOLTIP": "Agendada em {time} por {author}",
+      "YOU": "Você",
+      "AUTHOR_YOU": "{name} (Você)",
+      "AUTOMATION": "Automação",
+      "UNKNOWN_AUTHOR": "Desconhecido"
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {

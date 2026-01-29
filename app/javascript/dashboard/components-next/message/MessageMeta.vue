@@ -25,7 +25,7 @@ const {
   isATiktokChannel,
 } = useInbox();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const {
   status,
@@ -76,26 +76,41 @@ const scheduledAtTimestamp = computed(() => {
       : Math.floor(scheduledAt.value);
   }
   const date = new Date(scheduledAt.value);
-  if (Number.isNaN(date.getTime())) return null;
-  return Math.floor(date.getTime() / 1000);
+  return date.getTime();
 });
 
 const scheduledAtLabel = computed(() => {
   if (!scheduledAtTimestamp.value) {
     return t('SCHEDULED_MESSAGES.ITEM.NO_SCHEDULE');
   }
-  return messageTimestamp(scheduledAtTimestamp.value, 'LLL d, h:mm a');
+  const date = new Date(scheduledAtTimestamp.value * 1000);
+  const now = new Date();
+  const dateLocale = locale.value === 'pt_BR' ? 'pt-BR' : 'en-US';
+
+  const options = {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+
+  if (date.getFullYear() !== now.getFullYear()) {
+    options.year = 'numeric';
+  }
+
+  return date.toLocaleString(dateLocale, options);
 });
 
 const scheduledByLabel = computed(() => {
   if (!isScheduledMessage.value) return '';
   if (isScheduledByCurrentUser.value) {
-    return t('SCHEDULED_MESSAGES.META.YOU');
+    const userName = scheduledByAgent.value?.name;
+    return t('SCHEDULED_MESSAGES.META.AUTHOR_YOU', { name: userName });
   }
   if (scheduledByTypeNormalized.value.includes('automation')) {
     const automationLabel = t('SCHEDULED_MESSAGES.META.AUTOMATION');
     if (scheduledBy.value?.name) {
-      return `${automationLabel}: ${scheduledBy.value.name}`;
+      return `${scheduledBy.value.name} (${automationLabel})`;
     }
     return automationLabel;
   }
