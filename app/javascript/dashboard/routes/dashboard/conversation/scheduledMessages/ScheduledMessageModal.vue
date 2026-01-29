@@ -59,12 +59,12 @@ const isSubmitting = computed(() => isCreating.value || isUpdating.value);
 const currentInbox = computed(() => inboxGetter.value(props.inboxId));
 
 const messageContent = ref('');
-const scheduledDate = ref(null);
-const scheduledTime = ref(null);
+const scheduledDateTime = ref(null);
 const attachments = ref([]);
 const existingAttachment = ref(null);
 const templateParams = ref(null);
 const showConfirmClose = ref(false);
+const datePickerOpen = ref(false);
 
 // NOTE: Local ref to control modal visibility, prevents auto-close when unsaved changes exist
 const localShowModal = ref(false);
@@ -91,8 +91,7 @@ const datePickerLang = {
 
 const resetForm = () => {
   messageContent.value = '';
-  scheduledDate.value = null;
-  scheduledTime.value = null;
+  scheduledDateTime.value = null;
   attachments.value = [];
   existingAttachment.value = null;
   templateParams.value = null;
@@ -112,11 +111,9 @@ const setFormFromMessage = scheduledMessage => {
   if (scheduledMessage.scheduled_at) {
     const dateValue = new Date(scheduledMessage.scheduled_at * 1000);
     dateValue.setSeconds(0, 0);
-    scheduledDate.value = dateValue;
-    scheduledTime.value = dateValue;
+    scheduledDateTime.value = dateValue;
   } else {
-    scheduledDate.value = null;
-    scheduledTime.value = null;
+    scheduledDateTime.value = null;
   }
 };
 
@@ -139,19 +136,10 @@ const { onFileUpload } = useFileUpload({
 });
 
 const scheduledAt = computed(() => {
-  if (!scheduledDate.value) return null;
+  if (!scheduledDateTime.value) return null;
 
-  const date = new Date(scheduledDate.value);
-  if (scheduledTime.value) {
-    date.setHours(
-      scheduledTime.value.getHours(),
-      scheduledTime.value.getMinutes(),
-      0,
-      0
-    );
-  } else {
-    date.setHours(0, 0, 0, 0);
-  }
+  const date = new Date(scheduledDateTime.value);
+  date.setSeconds(0, 0);
 
   return date;
 });
@@ -165,12 +153,7 @@ const hasExistingAttachment = computed(() => !!existingAttachment.value);
 const showAttachmentUpload = computed(() => !hasNewAttachment.value);
 
 const hasUnsavedChanges = computed(() => {
-  return (
-    hasContent.value ||
-    hasNewAttachment.value ||
-    scheduledDate.value ||
-    scheduledTime.value
-  );
+  return hasContent.value || hasNewAttachment.value || scheduledDateTime.value;
 });
 
 const showModal = computed({
@@ -209,12 +192,12 @@ const disablePastDates = date => {
   return date < today;
 };
 
-const onDateChange = value => {
-  scheduledDate.value = value;
+const onDateTimeChange = value => {
+  scheduledDateTime.value = value;
 };
 
-const onTimeChange = value => {
-  scheduledTime.value = value;
+const closeDatePicker = () => {
+  datePickerOpen.value = false;
 };
 
 const onAttachmentsChange = value => {
@@ -379,7 +362,7 @@ watch(
     :close-on-backdrop-click="false"
     size="medium"
   >
-    <div class="flex w-full flex-col gap-6 px-6 py-6">
+    <div class="flex w-full flex-col gap-6 px-6 py-6" @click="closeDatePicker">
       <h3 class="text-lg font-semibold text-n-slate-12">
         {{
           isEditing
@@ -402,53 +385,31 @@ watch(
         />
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="flex flex-col gap-2 min-w-0">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ t('SCHEDULED_MESSAGES.MODAL.DATE_LABEL') }}
-          </span>
-          <div
-            class="w-full min-w-0 [&_.mx-datepicker]:w-full [&_.mx-input-wrapper]:w-full [&_.mx-input]:w-full"
-          >
-            <DatePicker
-              :value="scheduledDate"
-              type="date"
-              :placeholder="t('SCHEDULED_MESSAGES.MODAL.DATE_PLACEHOLDER')"
-              :lang="datePickerLang"
-              format="MMM D, YYYY"
-              value-type="date"
-              :disabled-date="disablePastDates"
-              clearable
-              append-to-body
-              popup-class="z-[10000]"
-              @change="onDateChange"
-            />
-          </div>
-        </div>
-
-        <div v-if="scheduledDate" class="flex flex-col gap-2 min-w-0">
-          <span class="text-sm font-medium text-n-slate-12">
-            {{ t('SCHEDULED_MESSAGES.MODAL.TIME_LABEL') }}
-          </span>
-          <div
-            class="w-full min-w-0 [&_.mx-datepicker]:w-full [&_.mx-input-wrapper]:w-full [&_.mx-input]:w-full"
-          >
-            <DatePicker
-              :value="scheduledTime"
-              type="time"
-              :placeholder="t('SCHEDULED_MESSAGES.MODAL.TIME_PLACEHOLDER')"
-              :lang="datePickerLang"
-              format="h:mm A"
-              value-type="date"
-              :show-second="false"
-              clearable
-              confirm
-              :confirm-text="t('SCHEDULED_MESSAGES.MODAL.TIME_CONFIRM')"
-              append-to-body
-              popup-class="z-[10000]"
-              @change="onTimeChange"
-            />
-          </div>
+      <div class="flex flex-col gap-2 min-w-0">
+        <span class="text-sm font-medium text-n-slate-12">
+          {{ t('SCHEDULED_MESSAGES.MODAL.DATETIME_LABEL') }}
+        </span>
+        <div
+          class="w-full min-w-0 [&_.mx-datepicker]:w-full [&_.mx-input-wrapper]:w-full [&_.mx-input]:w-full"
+          @click.stop
+        >
+          <DatePicker
+            :value="scheduledDateTime"
+            :open="datePickerOpen"
+            type="datetime"
+            :placeholder="t('SCHEDULED_MESSAGES.MODAL.DATETIME_PLACEHOLDER')"
+            :lang="datePickerLang"
+            format="MMM D, YYYY h:mm A"
+            value-type="date"
+            :disabled-date="disablePastDates"
+            :show-second="false"
+            clearable
+            append-to-body
+            popup-class="z-[10000]"
+            @open="datePickerOpen = true"
+            @close="datePickerOpen = false"
+            @change="onDateTimeChange"
+          />
         </div>
       </div>
 
