@@ -9,10 +9,7 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     scheduled_message.with_lock { send_if_ready(scheduled_message) }
   rescue StandardError => e
     Rails.logger.error("Scheduled message #{scheduled_message_id} failed: #{e.class} #{e.message}")
-    if scheduled_message&.pending?
-      scheduled_message.update!(status: :failed)
-      dispatch_scheduled_message_update(scheduled_message)
-    end
+    scheduled_message&.update!(status: :failed) if scheduled_message&.pending?
   ensure
     Current.reset
   end
@@ -58,14 +55,5 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     return if scheduled_message.status == new_status.to_s
 
     scheduled_message.update!(status: new_status)
-    dispatch_scheduled_message_update(scheduled_message)
-  end
-
-  def dispatch_scheduled_message_update(scheduled_message)
-    Rails.configuration.dispatcher.dispatch(
-      Events::Types::SCHEDULED_MESSAGE_UPDATED,
-      Time.zone.now,
-      scheduled_message: scheduled_message
-    )
   end
 end
