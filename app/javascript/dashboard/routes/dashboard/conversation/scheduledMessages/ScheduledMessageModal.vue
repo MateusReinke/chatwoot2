@@ -394,6 +394,7 @@ watch(
           :placeholder="t('SCHEDULED_MESSAGES.MODAL.MESSAGE_PLACEHOLDER')"
           :channel-type="currentInbox?.channel_type"
           :medium="currentInbox?.medium"
+          override-line-breaks
         />
       </div>
 

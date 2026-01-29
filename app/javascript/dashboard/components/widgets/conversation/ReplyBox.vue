@@ -636,6 +636,7 @@ export default {
         !this.showMentions &&
         !this.showCannedMenu &&
         !this.showVariablesMenu &&
+        !this.showScheduledMessageModal &&
         this.isFocused &&
         this.isEditorHotKeyEnabled(selectedKey)
       );
