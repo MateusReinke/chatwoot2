@@ -34,8 +34,8 @@ const props = defineProps({
 
 const emit = defineEmits(['edit', 'delete']);
 const noteContentRef = useTemplateRef('noteContentRef');
-const needsCollapse = ref(false);
 const [isExpanded, toggleExpanded] = useToggle();
+const showToggle = ref(false);
 const { t, locale } = useI18n();
 const { formatMessage } = useMessageFormatter();
 
@@ -134,27 +134,27 @@ const hasPreviewContent = computed(() => Boolean(previewContent.value));
 
 const formattedContent = computed(() => formatMessage(previewContent.value));
 
-const calculateCollapse = () => {
+const checkOverflow = () => {
   if (!props.collapsible) {
-    needsCollapse.value = false;
+    showToggle.value = false;
     return;
   }
 
-  nextTick(() => {
-    const threshold = 14 * 1.625 * 4; // NOTE: ~84px
-    needsCollapse.value = noteContentRef.value?.clientHeight > threshold;
-  });
+  const el = noteContentRef.value;
+  if (el && !isExpanded.value) {
+    showToggle.value = el.scrollHeight > el.clientHeight;
+  }
 };
 
 const onEdit = () => emit('edit', props.scheduledMessage);
 const onDelete = () => emit('delete', props.scheduledMessage);
 
 onMounted(() => {
-  calculateCollapse();
+  checkOverflow();
 });
 
 watch(previewContent, () => {
-  calculateCollapse();
+  nextTick(checkOverflow);
 });
 </script>
 
@@ -223,11 +223,11 @@ watch(previewContent, () => {
       v-dompurify-html="formattedContent"
       class="mb-0 prose-sm prose-p:text-sm prose-p:leading-relaxed prose-p:mb-1 prose-p:mt-0 prose-ul:mb-1 prose-ul:mt-0 text-n-slate-12"
       :class="{
-        'line-clamp-4': collapsible && !isExpanded && needsCollapse,
+        'line-clamp-4': collapsible && !isExpanded && showToggle,
       }"
     />
 
-    <div v-if="hasPreviewContent && collapsible && needsCollapse">
+    <div v-if="hasPreviewContent && collapsible && showToggle">
       <Button
         variant="faded"
         color="blue"
