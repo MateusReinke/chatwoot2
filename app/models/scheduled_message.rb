@@ -47,9 +47,13 @@ class ScheduledMessage < ApplicationRecord
   enum status: { draft: 0, pending: 1, sent: 2, failed: 3 }
 
   before_save :normalize_scheduled_at
+  before_destroy :prevent_destroy_if_processed
 
   validates :scheduled_at, presence: true, unless: -> { status == 'draft' }
   validates :content, presence: true, unless: :content_optional?
+  validate :status_must_be_draft_or_pending, on: :create
+  validate :must_be_editable, on: :update
+  validate :scheduled_at_must_be_in_future, if: :should_validate_future_schedule?
 
   scope :due_for_sending, -> { pending.where('scheduled_at <= ?', Time.current.end_of_minute) }
 
@@ -92,6 +96,44 @@ class ScheduledMessage < ApplicationRecord
 
   def normalize_scheduled_at
     self.scheduled_at = scheduled_at.beginning_of_minute if scheduled_at.present?
+  end
+
+  def status_must_be_draft_or_pending
+    return if draft? || pending?
+
+    errors.add(:status, 'must be draft or pending when creating a scheduled message')
+  end
+
+  def must_be_editable
+    return if status_was.in?(%w[sent failed]) && only_status_changed? && status.in?(%w[sent failed])
+
+    return if status_was.in?(%w[draft pending])
+
+    errors.add(:base, 'Scheduled message can only be modified while draft or pending')
+  end
+
+  def only_status_changed?
+    changed_attributes.keys == ['status']
+  end
+
+  def prevent_destroy_if_processed
+    return unless sent? || failed?
+
+    errors.add(:base, 'Cannot delete a scheduled message that has already been sent or failed')
+    throw(:abort)
+  end
+
+  def scheduled_at_must_be_in_future
+    return if scheduled_at.blank?
+    return if scheduled_at.beginning_of_minute > Time.current.beginning_of_minute
+
+    errors.add(:scheduled_at, 'must be in the future')
+  end
+
+  def should_validate_future_schedule?
+    return false unless pending?
+
+    new_record? || scheduled_at_changed? || status_changed?
   end
 
   def content_optional?
