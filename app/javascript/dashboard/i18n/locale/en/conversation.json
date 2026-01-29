@@ -435,6 +435,7 @@
     "META": {
       "TOOLTIP": "Scheduled at {time} by {author}",
       "YOU": "You",
+      "AUTHOR_YOU": "{name} (You)",
       "AUTOMATION": "Automation",
       "UNKNOWN_AUTHOR": "Unknown"
     },

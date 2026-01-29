@@ -86,11 +86,13 @@ const getWrittenBy = scheduledMessage => {
   const author = scheduledMessage?.author;
 
   if (!author) return t('CONVERSATION.BOT');
+
+  const authorName = author.name || t('CONVERSATION.BOT');
   if (author.id === currentUserId && scheduledMessage.author_type === 'User') {
-    return t('CONTACTS_LAYOUT.SIDEBAR.NOTES.YOU');
+    return t('SCHEDULED_MESSAGES.META.AUTHOR_YOU', { name: authorName });
   }
 
-  return author.name || t('CONVERSATION.BOT');
+  return authorName;
 };
 
 const openCreateModal = () => {
