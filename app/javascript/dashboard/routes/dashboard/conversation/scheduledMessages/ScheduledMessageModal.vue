@@ -294,23 +294,27 @@ const closeModal = () => {
 const submit = async status => {
   if (!validatePayload(status)) return;
 
-  if (isEditing.value) {
-    await store.dispatch('scheduledMessages/update', {
-      conversationId: props.conversationId,
-      scheduledMessageId: props.scheduledMessage.id,
-      payload: buildPayload(status),
-    });
-  } else {
-    await store.dispatch('scheduledMessages/create', {
-      conversationId: props.conversationId,
-      payload: buildPayload(status),
-    });
-  }
+  try {
+    if (isEditing.value) {
+      await store.dispatch('scheduledMessages/update', {
+        conversationId: props.conversationId,
+        scheduledMessageId: props.scheduledMessage.id,
+        payload: buildPayload(status),
+      });
+    } else {
+      await store.dispatch('scheduledMessages/create', {
+        conversationId: props.conversationId,
+        payload: buildPayload(status),
+      });
+    }
 
-  if (status === 'pending') {
-    emit('scheduledMessageCreated');
+    if (status === 'pending') {
+      emit('scheduledMessageCreated');
+    }
+    closeModal();
+  } catch (error) {
+    useAlert(t('SCHEDULED_MESSAGES.ERRORS.SAVE_FAILED'));
   }
-  closeModal();
 };
 
 const handleClose = () => {

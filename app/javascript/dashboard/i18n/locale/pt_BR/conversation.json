@@ -433,7 +433,8 @@
     },
     "ERRORS": {
       "CONTENT_REQUIRED": "Adicione uma mensagem, template ou anexo antes de salvar.",
-      "SCHEDULE_IN_PAST": "O horário agendado deve ser no futuro."
+      "SCHEDULE_IN_PAST": "O horário agendado deve ser no futuro.",
+      "SAVE_FAILED": "Não foi possível salvar a mensagem agendada. Por favor, tente novamente."
     },
     "META": {
       "TOOLTIP": "Agendada em {time} por {author}",

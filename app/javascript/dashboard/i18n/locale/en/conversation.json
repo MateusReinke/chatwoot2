@@ -441,7 +441,8 @@
     },
     "ERRORS": {
       "CONTENT_REQUIRED": "Add a message, template, or attachment before saving.",
-      "SCHEDULE_IN_PAST": "Scheduled time must be in the future."
+      "SCHEDULE_IN_PAST": "Scheduled time must be in the future.",
+      "SAVE_FAILED": "Unable to save scheduled message. Please try again."
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {
