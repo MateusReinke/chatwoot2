@@ -13,16 +13,16 @@ RSpec.describe ScheduledMessages::SendScheduledMessageJob, type: :job do
       conversation: conversation,
       author: author,
       content: 'Hello',
-      scheduled_at: Time.current.beginning_of_minute + 30.seconds,
+      scheduled_at: 2.minutes.from_now,
       status: :pending
     }.merge(attrs))
   end
 
   describe '#perform' do
     it 'creates message with metadata and marks as sent' do
-      freeze_time do
-        scheduled_message = create_scheduled_message
+      scheduled_message = create_scheduled_message
 
+      travel_to(3.minutes.from_now) do
         described_class.new.perform(scheduled_message.id)
 
         message = conversation.messages.last
@@ -34,10 +34,10 @@ RSpec.describe ScheduledMessages::SendScheduledMessageJob, type: :job do
     end
 
     it 'sets automation_rule_id when author is AutomationRule' do
-      freeze_time do
-        automation_rule = create(:automation_rule, account: account)
-        scheduled_message = create_scheduled_message(author: automation_rule)
+      automation_rule = create(:automation_rule, account: account)
+      scheduled_message = create_scheduled_message(author: automation_rule)
 
+      travel_to(3.minutes.from_now) do
         described_class.new.perform(scheduled_message.id)
 
         message = conversation.messages.last
@@ -47,10 +47,10 @@ RSpec.describe ScheduledMessages::SendScheduledMessageJob, type: :job do
     end
 
     it 'includes template_params when present' do
-      freeze_time do
-        template_params = { 'name' => 'sample_template', 'language' => 'en' }
-        scheduled_message = create_scheduled_message(content: nil, template_params: template_params)
+      template_params = { 'name' => 'sample_template', 'language' => 'en' }
+      scheduled_message = create_scheduled_message(content: nil, template_params: template_params)
 
+      travel_to(3.minutes.from_now) do
         described_class.new.perform(scheduled_message.id)
 
         expect(conversation.messages.last.additional_attributes['template_params']).to eq(template_params)
@@ -58,10 +58,10 @@ RSpec.describe ScheduledMessages::SendScheduledMessageJob, type: :job do
     end
 
     it 'includes attachment when present' do
-      freeze_time do
-        file = Rack::Test::UploadedFile.new(Rails.root.join('spec/assets/avatar.png'), 'image/png')
-        scheduled_message = create_scheduled_message(content: nil, attachment: file)
+      file = Rack::Test::UploadedFile.new(Rails.root.join('spec/assets/avatar.png'), 'image/png')
+      scheduled_message = create_scheduled_message(content: nil, attachment: file)
 
+      travel_to(3.minutes.from_now) do
         described_class.new.perform(scheduled_message.id)
 
         expect(conversation.messages.last.attachments.count).to eq(1)
@@ -72,17 +72,27 @@ RSpec.describe ScheduledMessages::SendScheduledMessageJob, type: :job do
       scheduled_message = create_scheduled_message
       allow(Messages::MessageBuilder).to receive(:new).and_raise(StandardError, 'boom')
 
-      described_class.new.perform(scheduled_message.id)
+      travel_to(3.minutes.from_now) do
+        described_class.new.perform(scheduled_message.id)
 
-      expect(scheduled_message.reload.status).to eq('failed')
+        expect(scheduled_message.reload.status).to eq('failed')
+      end
     end
 
-    it 'skips when not pending or not due' do
-      draft_message = create_scheduled_message(status: :draft)
-      future_message = create_scheduled_message(scheduled_at: 2.minutes.from_now)
+    it 'skips when not pending' do
+      scheduled_message = create_scheduled_message(status: :draft, scheduled_at: nil)
 
-      expect { described_class.new.perform(draft_message.id) }.not_to(change { conversation.messages.count })
-      expect { described_class.new.perform(future_message.id) }.not_to(change { conversation.messages.count })
+      travel_to(3.minutes.from_now) do
+        expect { described_class.new.perform(scheduled_message.id) }.not_to(change { conversation.messages.count })
+      end
+    end
+
+    it 'skips when not due' do
+      scheduled_message = create_scheduled_message(scheduled_at: 10.minutes.from_now)
+
+      travel_to(3.minutes.from_now) do
+        expect { described_class.new.perform(scheduled_message.id) }.not_to(change { conversation.messages.count })
+      end
     end
   end
 end
