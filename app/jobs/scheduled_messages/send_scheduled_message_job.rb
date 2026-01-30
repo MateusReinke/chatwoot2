@@ -1,4 +1,6 @@
 class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
+  include Events::Types
+
   queue_as :medium
 
   def perform(scheduled_message_id)
@@ -9,7 +11,10 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     scheduled_message.with_lock { send_if_ready(scheduled_message) }
   rescue StandardError => e
     Rails.logger.error("Scheduled message #{scheduled_message_id} failed: #{e.class} #{e.message}")
-    scheduled_message&.update!(status: :failed) if scheduled_message&.pending?
+    if scheduled_message&.pending?
+      scheduled_message.update!(status: :failed)
+      dispatch_event(scheduled_message)
+    end
   ensure
     Current.reset
   end
@@ -55,5 +60,10 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     return if scheduled_message.status == new_status.to_s
 
     scheduled_message.update!(status: new_status)
+    dispatch_event(scheduled_message)
+  end
+
+  def dispatch_event(scheduled_message)
+    Rails.configuration.dispatcher.dispatch(SCHEDULED_MESSAGE_UPDATED, Time.zone.now, scheduled_message: scheduled_message)
   end
 end

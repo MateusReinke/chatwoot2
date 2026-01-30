@@ -396,7 +396,7 @@
   },
   "SCHEDULED_MESSAGES": {
     "NEW_BUTTON": "Agendar mensagem",
-    "PAST_MESSAGES_SECTION": "Enviadas e falhadas",
+    "PAST_MESSAGES_SECTION": "Enviadas",
     "EMPTY_STATE": "Ainda não há mensagens agendadas.",
     "STATUS": {
       "DRAFT": "Rascunho",

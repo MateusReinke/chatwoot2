@@ -50,6 +50,7 @@ class ScheduledMessage < ApplicationRecord
 
   validates :scheduled_at, presence: true, unless: -> { status == 'draft' }
   validates :content, presence: true, unless: :content_optional?
+  validates :content, length: { maximum: 150_000 }
   validate :status_must_be_draft_or_pending, on: :create
   validate :must_be_editable, on: :update
   validate :scheduled_at_must_be_in_future, if: :should_validate_future_schedule?

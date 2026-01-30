@@ -397,7 +397,7 @@
   },
   "SCHEDULED_MESSAGES": {
     "NEW_BUTTON": "Schedule message",
-    "PAST_MESSAGES_SECTION": "Sent & failed",
+    "PAST_MESSAGES_SECTION": "Sent",
     "EMPTY_STATE": "There are no scheduled messages yet.",
     "STATUS": {
       "DRAFT": "Draft",
