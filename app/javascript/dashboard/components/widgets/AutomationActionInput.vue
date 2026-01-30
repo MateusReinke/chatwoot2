@@ -80,9 +80,10 @@ export default {
     castMessageVmodel: {
       get() {
         if (Array.isArray(this.action_params)) {
-          return this.action_params[0];
+          const value = this.action_params[0];
+          return typeof value === 'string' ? value : '';
         }
-        return this.action_params;
+        return typeof this.action_params === 'string' ? this.action_params : '';
       },
       set(value) {
         this.action_params = value;

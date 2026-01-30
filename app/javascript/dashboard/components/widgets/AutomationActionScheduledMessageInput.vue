@@ -18,24 +18,33 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const normalizedParams = computed(() => {
-  if (Array.isArray(props.modelValue)) {
-    return props.modelValue[0] || {};
+  const value = props.modelValue;
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return typeof first === 'object' && first !== null ? first : {};
   }
-  return props.modelValue || {};
+  return typeof value === 'object' && value !== null ? value : {};
 });
 
 const updateParams = updates => {
-  emit('update:modelValue', { ...normalizedParams.value, ...updates });
+  const newParams = { ...normalizedParams.value, ...updates };
+  emit('update:modelValue', [newParams]);
 };
 
 const content = computed({
-  get: () => normalizedParams.value.content || '',
+  get: () => {
+    const value = normalizedParams.value.content;
+    return typeof value === 'string' ? value : '';
+  },
   set: value => updateParams({ content: value }),
 });
 
 const delayMinutes = computed({
   get: () => normalizedParams.value.delay_minutes ?? '',
-  set: value => updateParams({ delay_minutes: value }),
+  set: value => {
+    const numValue = Math.min(Math.max(0, Number(value) || 0), 999999);
+    updateParams({ delay_minutes: numValue });
+  },
 });
 
 const attachmentBlobIds = computed({
@@ -51,7 +60,7 @@ const attachmentBlobIds = computed({
 </script>
 
 <template>
-  <div class="mt-2 flex flex-col gap-2">
+  <div class="mt-2 flex flex-col gap-1">
     <div class="flex flex-col gap-1">
       <label class="text-xs text-n-slate-11">
         {{ $t('AUTOMATION.ACTION.SCHEDULED_MESSAGE_DELAY_LABEL') }}
@@ -60,7 +69,8 @@ const attachmentBlobIds = computed({
         v-model="delayMinutes"
         type="number"
         min="0"
-        class="answer--text-input"
+        max="999999"
+        class="answer--text-input !mb-0"
         :placeholder="
           $t('AUTOMATION.ACTION.SCHEDULED_MESSAGE_DELAY_PLACEHOLDER')
         "

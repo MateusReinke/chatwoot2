@@ -29,6 +29,7 @@ class AutomationRule < ApplicationRecord
   validate :json_actions_format
   validate :query_operator_presence
   validate :query_operator_value
+  validate :scheduled_message_params
   validates :account_id, presence: true
 
   after_update_commit :reauthorized!, if: -> { saved_change_to_conditions? }
@@ -103,6 +104,29 @@ class AutomationRule < ApplicationRecord
 
     operator = query_operator.upcase
     errors.add(:conditions, 'Query operator must be either "AND" or "OR"') unless %w[AND OR].include?(operator)
+  end
+
+  def scheduled_message_params
+    return if actions.blank?
+
+    actions.each do |action|
+      next unless action['action_name'] == 'create_scheduled_message'
+
+      validate_scheduled_message_action(action)
+    end
+  end
+
+  def validate_scheduled_message_action(action)
+    params = action['action_params']&.first || {}
+    delay_minutes = params['delay_minutes'].to_i
+
+    errors.add(:actions, I18n.t('errors.automation.scheduled_message.delay_out_of_range')) unless delay_minutes.between?(0, 999_999)
+
+    has_content = params['content'].present?
+    has_attachment = params['blob_id'].present?
+    return if has_content || has_attachment
+
+    errors.add(:actions, I18n.t('errors.automation.scheduled_message.content_or_attachment_required'))
   end
 end
 
