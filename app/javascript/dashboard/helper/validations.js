@@ -143,7 +143,11 @@ const validateSingleAction = action => {
     }
     const hasContent = params.content?.trim?.();
     const hasAttachment = params.blob_id;
+    const hasDelay = params.delay_minutes && params.delay_minutes >= 1;
     if (!hasContent && !hasAttachment) {
+      return ACTION_PARAMETERS_REQUIRED;
+    }
+    if (!hasDelay) {
       return ACTION_PARAMETERS_REQUIRED;
     }
   }

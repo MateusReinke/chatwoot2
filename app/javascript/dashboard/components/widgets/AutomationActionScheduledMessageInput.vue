@@ -42,7 +42,7 @@ const content = computed({
 const delayMinutes = computed({
   get: () => normalizedParams.value.delay_minutes ?? '',
   set: value => {
-    const numValue = Math.min(Math.max(0, Number(value) || 0), 999999);
+    const numValue = Math.min(Math.max(1, Number(value) || 1), 999999);
     updateParams({ delay_minutes: numValue });
   },
 });
@@ -68,7 +68,7 @@ const attachmentBlobIds = computed({
       <input
         v-model="delayMinutes"
         type="number"
-        min="0"
+        min="1"
         max="999999"
         class="answer--text-input !mb-0"
         :placeholder="
