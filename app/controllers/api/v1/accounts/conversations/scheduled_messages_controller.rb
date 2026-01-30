@@ -8,7 +8,7 @@ class Api::V1::Accounts::Conversations::ScheduledMessagesController < Api::V1::A
   def index
     authorize build_scheduled_message
     @scheduled_messages = @conversation.scheduled_messages
-                                       .order(scheduled_at: :asc)
+                                       .order(scheduled_at: :desc)
                                        .limit(MAX_LIMIT)
   end
 

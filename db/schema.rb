@@ -581,7 +581,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_22_175206) do
     t.datetime "message_templates_last_updated", precision: nil
     t.jsonb "provider_connection", default: {}
     t.index ["phone_number"], name: "index_channel_whatsapp_on_phone_number", unique: true
-    t.index ["provider_connection"], name: "index_channel_whatsapp_provider_connection", where: "((provider)::text = ANY (ARRAY[('baileys'::character varying)::text, ('zapi'::character varying)::text]))", using: :gin
+    t.index ["provider_connection"], name: "index_channel_whatsapp_provider_connection", where: "((provider)::text = ANY ((ARRAY['baileys'::character varying, 'zapi'::character varying])::text[]))", using: :gin
   end
 
   create_table "companies", force: :cascade do |t|
@@ -1128,25 +1128,27 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_22_175206) do
 
   create_table "scheduled_messages", force: :cascade do |t|
     t.text "content"
-    t.jsonb "template_params", default: {}, null: false
+    t.jsonb "template_params", default: {}
     t.datetime "scheduled_at"
     t.integer "status", default: 0, null: false
     t.bigint "account_id", null: false
     t.bigint "conversation_id", null: false
     t.bigint "inbox_id", null: false
+    t.string "author_type", null: false
     t.bigint "author_id", null: false
+    t.bigint "message_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "author_type", null: false
     t.index ["account_id", "status"], name: "index_scheduled_messages_on_account_id_and_status"
     t.index ["account_id"], name: "index_scheduled_messages_on_account_id"
-    t.index ["author_id", "status"], name: "index_scheduled_messages_on_author_id_and_status"
-    t.index ["author_id"], name: "index_scheduled_messages_on_author_id"
+    t.index ["author_type", "author_id", "status"], name: "idx_on_author_type_author_id_status_6997d67ef6"
+    t.index ["author_type", "author_id"], name: "index_scheduled_messages_on_author"
     t.index ["conversation_id", "scheduled_at"], name: "index_scheduled_messages_on_conversation_id_and_scheduled_at"
     t.index ["conversation_id", "status"], name: "index_scheduled_messages_on_conversation_id_and_status"
     t.index ["conversation_id"], name: "index_scheduled_messages_on_conversation_id"
     t.index ["inbox_id", "status"], name: "index_scheduled_messages_on_inbox_id_and_status"
     t.index ["inbox_id"], name: "index_scheduled_messages_on_inbox_id"
+    t.index ["message_id"], name: "index_scheduled_messages_on_message_id"
     t.index ["status", "scheduled_at"], name: "index_scheduled_messages_on_status_and_scheduled_at"
   end
 
@@ -1257,7 +1259,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_22_175206) do
     t.text "message_signature"
     t.string "otp_secret"
     t.integer "consumed_timestep"
-    t.boolean "otp_required_for_login", default: false
+    t.boolean "otp_required_for_login", default: false, null: false
     t.text "otp_backup_codes"
     t.index ["email"], name: "index_users_on_email"
     t.index ["otp_required_for_login"], name: "index_users_on_otp_required_for_login"
@@ -1297,10 +1299,30 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_22_175206) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "conversations", "kanban_tasks"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "kanban_account_user_preferences", "account_users"
+  add_foreign_key "kanban_audit_events", "accounts"
+  add_foreign_key "kanban_audit_events", "kanban_tasks", column: "task_id"
+  add_foreign_key "kanban_audit_events", "users", column: "performed_by_id"
+  add_foreign_key "kanban_board_agents", "kanban_boards", column: "board_id"
+  add_foreign_key "kanban_board_agents", "users", column: "agent_id"
+  add_foreign_key "kanban_board_inboxes", "inboxes"
+  add_foreign_key "kanban_board_inboxes", "kanban_boards", column: "board_id"
+  add_foreign_key "kanban_board_steps", "kanban_boards", column: "board_id"
+  add_foreign_key "kanban_boards", "accounts"
+  add_foreign_key "kanban_task_agents", "kanban_tasks", column: "task_id"
+  add_foreign_key "kanban_task_agents", "users", column: "agent_id"
+  add_foreign_key "kanban_task_contacts", "contacts"
+  add_foreign_key "kanban_task_contacts", "kanban_tasks", column: "task_id"
+  add_foreign_key "kanban_tasks", "accounts"
+  add_foreign_key "kanban_tasks", "kanban_board_steps", column: "board_step_id"
+  add_foreign_key "kanban_tasks", "kanban_boards", column: "board_id"
+  add_foreign_key "kanban_tasks", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "scheduled_messages", "accounts"
   add_foreign_key "scheduled_messages", "conversations"
   add_foreign_key "scheduled_messages", "inboxes"
+  add_foreign_key "scheduled_messages", "messages"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).

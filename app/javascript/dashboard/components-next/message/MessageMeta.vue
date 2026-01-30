@@ -70,13 +70,7 @@ const isScheduledByCurrentUser = computed(() => {
 const scheduledAt = computed(() => additionalAttributes.value?.scheduledAt);
 const scheduledAtTimestamp = computed(() => {
   if (!scheduledAt.value) return null;
-  if (typeof scheduledAt.value === 'number') {
-    return scheduledAt.value > 10 ** 12
-      ? Math.floor(scheduledAt.value / 1000)
-      : Math.floor(scheduledAt.value);
-  }
-  const date = new Date(scheduledAt.value);
-  return date.getTime();
+  return Math.floor(scheduledAt.value);
 });
 
 const scheduledAtLabel = computed(() => {

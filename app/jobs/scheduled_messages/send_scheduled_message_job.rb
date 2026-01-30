@@ -59,7 +59,7 @@ class ScheduledMessages::SendScheduledMessageJob < ApplicationJob
     new_status = message.failed? ? :failed : :sent
     return if scheduled_message.status == new_status.to_s
 
-    scheduled_message.update!(status: new_status)
+    scheduled_message.update!(status: new_status, message: message)
     dispatch_event(scheduled_message)
   end
 

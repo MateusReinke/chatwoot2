@@ -2,10 +2,7 @@ class CreateScheduledMessages < ActiveRecord::Migration[7.1]
   def change
     create_table :scheduled_messages do |t|
       t.text :content
-      t.jsonb :template_params, default: {}, null: false
-      t.jsonb :content_attributes, default: {}
-      t.jsonb :additional_attributes, default: {}
-      t.boolean :private, default: false, null: false
+      t.jsonb :template_params, default: {}
       t.datetime :scheduled_at
       t.integer :status, default: 0, null: false
 
@@ -14,6 +11,7 @@ class CreateScheduledMessages < ActiveRecord::Migration[7.1]
       t.references :inbox, null: false, foreign_key: true
 
       t.references :author, null: false, polymorphic: true
+      t.references :message, null: true, foreign_key: true
 
       t.timestamps
     end

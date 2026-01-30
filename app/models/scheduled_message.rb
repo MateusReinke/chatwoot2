@@ -7,25 +7,27 @@
 #  content         :text
 #  scheduled_at    :datetime
 #  status          :integer          default("draft"), not null
-#  template_params :jsonb            not null
+#  template_params :jsonb
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null
 #  account_id      :bigint           not null
 #  author_id       :bigint           not null
 #  conversation_id :bigint           not null
 #  inbox_id        :bigint           not null
+#  message_id      :bigint
 #
 # Indexes
 #
+#  idx_on_author_type_author_id_status_6997d67ef6                (author_type,author_id,status)
 #  index_scheduled_messages_on_account_id                        (account_id)
 #  index_scheduled_messages_on_account_id_and_status             (account_id,status)
-#  index_scheduled_messages_on_author_id                         (author_id)
-#  index_scheduled_messages_on_author_id_and_status              (author_id,status)
+#  index_scheduled_messages_on_author                            (author_type,author_id)
 #  index_scheduled_messages_on_conversation_id                   (conversation_id)
 #  index_scheduled_messages_on_conversation_id_and_scheduled_at  (conversation_id,scheduled_at)
 #  index_scheduled_messages_on_conversation_id_and_status        (conversation_id,status)
 #  index_scheduled_messages_on_inbox_id                          (inbox_id)
 #  index_scheduled_messages_on_inbox_id_and_status               (inbox_id,status)
+#  index_scheduled_messages_on_message_id                        (message_id)
 #  index_scheduled_messages_on_status_and_scheduled_at           (status,scheduled_at)
 #
 # Foreign Keys
@@ -33,6 +35,7 @@
 #  fk_rails_...  (account_id => accounts.id)
 #  fk_rails_...  (conversation_id => conversations.id)
 #  fk_rails_...  (inbox_id => inboxes.id)
+#  fk_rails_...  (message_id => messages.id)
 #
 class ScheduledMessage < ApplicationRecord
   include Rails.application.routes.url_helpers
@@ -41,6 +44,7 @@ class ScheduledMessage < ApplicationRecord
   belongs_to :inbox
   belongs_to :conversation
   belongs_to :author, polymorphic: true
+  belongs_to :message, optional: true
 
   has_one_attached :attachment
 
