@@ -13,9 +13,9 @@ trigger_scheduled_items_job:
   class: 'TriggerScheduledItemsJob'
   queue: scheduled_jobs
 
-# executed every minute..
+# executed every minute.
 trigger_scheduled_messages_job:
-  cron: '*/1 * * * *'
+  cron: '* * * * *'
   class: 'ScheduledMessages::TriggerScheduledMessagesJob'
   queue: scheduled_jobs
 
