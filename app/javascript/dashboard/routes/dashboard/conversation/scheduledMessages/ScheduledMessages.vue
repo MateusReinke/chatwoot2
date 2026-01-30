@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useAlert } from 'dashboard/composables';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 
 import ScheduledMessageItem from 'next/Contacts/ContactsSidebar/components/ScheduledMessageItem.vue';
@@ -111,11 +112,15 @@ const closeDeleteConfirm = () => {
 
 const confirmDelete = async () => {
   if (!messageToDelete.value?.id) return;
-  await store.dispatch('scheduledMessages/delete', {
-    conversationId: props.conversationId,
-    scheduledMessageId: messageToDelete.value.id,
-  });
-  closeDeleteConfirm();
+  try {
+    await store.dispatch('scheduledMessages/delete', {
+      conversationId: props.conversationId,
+      scheduledMessageId: messageToDelete.value.id,
+    });
+    closeDeleteConfirm();
+  } catch (error) {
+    useAlert(t('SCHEDULED_MESSAGES.ERRORS.DELETE_FAILED'));
+  }
 };
 
 watch(

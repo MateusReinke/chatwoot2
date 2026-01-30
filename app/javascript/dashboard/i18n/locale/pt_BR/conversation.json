@@ -446,7 +446,8 @@
       "CONTENT_TOO_LONG": "A mensagem é muito longa. Máximo de {maxLength} caracteres permitidos.",
       "DATETIME_REQUIRED": "Selecione uma data e hora para agendar a mensagem.",
       "SCHEDULE_IN_PAST": "O horário agendado deve ser no futuro.",
-      "SAVE_FAILED": "Não foi possível salvar a mensagem agendada. Por favor, tente novamente."
+      "SAVE_FAILED": "Não foi possível salvar a mensagem agendada. Por favor, tente novamente.",
+      "DELETE_FAILED": "Não foi possível excluir a mensagem agendada. Por favor, tente novamente."
     },
     "META": {
       "TOOLTIP": "Agendada em {time} por {author}",

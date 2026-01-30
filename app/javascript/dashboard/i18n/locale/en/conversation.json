@@ -454,7 +454,8 @@
       "CONTENT_TOO_LONG": "Message is too long. Maximum {maxLength} characters allowed.",
       "DATETIME_REQUIRED": "Select a date and time to schedule the message.",
       "SCHEDULE_IN_PAST": "Scheduled time must be in the future.",
-      "SAVE_FAILED": "Unable to save scheduled message. Please try again."
+      "SAVE_FAILED": "Unable to save scheduled message. Please try again.",
+      "DELETE_FAILED": "Unable to delete scheduled message. Please try again."
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {
