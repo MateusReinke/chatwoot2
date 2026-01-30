@@ -33,27 +33,35 @@ const isDeleting = computed(() => uiFlags.value.isDeleting);
 
 const shouldShowModal = ref(false);
 const editingMessage = ref(null);
-const showHistory = ref(false);
+const showDeleteConfirm = ref(false);
+const messageToDelete = ref(null);
 
 const scheduledMessages = computed(() => {
   if (!props.conversationId) return [];
   return scheduledMessagesGetter.value(props.conversationId) || [];
 });
 
-const hasHistory = computed(() =>
-  scheduledMessages.value.some(message =>
-    ['sent', 'failed'].includes(message.status)
-  )
+const draftMessages = computed(() =>
+  scheduledMessages.value.filter(message => message.status === 'draft')
 );
 
-const filteredMessages = computed(() => {
-  if (showHistory.value) {
-    return scheduledMessages.value;
-  }
-  return scheduledMessages.value.filter(
-    message => !['sent', 'failed'].includes(message.status)
-  );
-});
+const pendingMessages = computed(() =>
+  scheduledMessages.value
+    .filter(message => message.status === 'pending')
+    .sort((a, b) => (a.scheduled_at || 0) - (b.scheduled_at || 0))
+);
+
+const historyMessages = computed(() =>
+  scheduledMessages.value
+    .filter(message => ['sent', 'failed'].includes(message.status))
+    .sort((a, b) => (b.scheduled_at || 0) - (a.scheduled_at || 0))
+);
+
+const hasActiveMessages = computed(
+  () => draftMessages.value.length > 0 || pendingMessages.value.length > 0
+);
+
+const hasHistory = computed(() => historyMessages.value.length > 0);
 
 const fetchScheduledMessages = conversationId => {
   if (!conversationId) return;
@@ -90,22 +98,29 @@ const closeModal = () => {
   editingMessage.value = null;
 };
 
-const toggleHistory = () => {
-  showHistory.value = !showHistory.value;
+const openDeleteConfirm = message => {
+  if (!props.conversationId || !message?.id || isDeleting.value) return;
+  messageToDelete.value = message;
+  showDeleteConfirm.value = true;
 };
 
-const onDelete = async message => {
-  if (!props.conversationId || !message?.id || isDeleting.value) return;
+const closeDeleteConfirm = () => {
+  showDeleteConfirm.value = false;
+  messageToDelete.value = null;
+};
+
+const confirmDelete = async () => {
+  if (!messageToDelete.value?.id) return;
   await store.dispatch('scheduledMessages/delete', {
     conversationId: props.conversationId,
-    scheduledMessageId: message.id,
+    scheduledMessageId: messageToDelete.value.id,
   });
+  closeDeleteConfirm();
 };
 
 watch(
   () => props.conversationId,
   newConversationId => {
-    showHistory.value = false;
     fetchScheduledMessages(newConversationId);
   },
   { immediate: true }
@@ -123,40 +138,72 @@ watch(
         :disabled="!conversationId || isFetching"
         @click="openCreateModal"
       />
-      <NextButton
-        v-if="hasHistory"
-        ghost
-        xs
-        :label="
-          showHistory
-            ? t('SCHEDULED_MESSAGES.HIDE_HISTORY')
-            : t('SCHEDULED_MESSAGES.SHOW_HISTORY')
-        "
-        @click="toggleHistory"
-      />
     </div>
 
     <ScheduledMessageSkeletonLoader v-if="isFetching" :rows="3" />
-    <div
-      v-else-if="filteredMessages.length"
-      class="flex flex-col max-h-[300px] overflow-y-auto"
-    >
-      <ScheduledMessageItem
-        v-for="message in filteredMessages"
-        :key="message.id"
-        class="px-4 py-4 last-of-type:border-b-0"
-        :scheduled-message="message"
-        :written-by="getWrittenBy(message)"
-        :allow-edit="['pending', 'draft'].includes(message.status)"
-        :allow-delete="['pending', 'draft'].includes(message.status)"
-        collapsible
-        @edit="openEditModal"
-        @delete="onDelete"
-      />
+
+    <div v-else class="flex flex-col max-h-[400px] overflow-y-auto">
+      <!-- Draft Messages -->
+      <template v-if="draftMessages.length">
+        <ScheduledMessageItem
+          v-for="message in draftMessages"
+          :key="message.id"
+          class="px-4 py-4"
+          :scheduled-message="message"
+          :written-by="getWrittenBy(message)"
+          allow-edit
+          allow-delete
+          collapsible
+          @edit="openEditModal"
+          @delete="openDeleteConfirm"
+        />
+      </template>
+
+      <!-- Pending Messages -->
+      <template v-if="pendingMessages.length">
+        <ScheduledMessageItem
+          v-for="message in pendingMessages"
+          :key="message.id"
+          class="px-4 py-4"
+          :scheduled-message="message"
+          :written-by="getWrittenBy(message)"
+          allow-edit
+          allow-delete
+          collapsible
+          @edit="openEditModal"
+          @delete="openDeleteConfirm"
+        />
+      </template>
+
+      <!-- Empty State for active messages -->
+      <p
+        v-if="!hasActiveMessages && !hasHistory"
+        class="px-6 py-6 text-sm leading-6 text-center text-n-slate-11"
+      >
+        {{ t('SCHEDULED_MESSAGES.EMPTY_STATE') }}
+      </p>
+
+      <!-- History Section -->
+      <template v-if="hasHistory">
+        <div
+          class="flex items-center gap-2 px-4 pt-4 pb-2 border-t border-n-weak"
+        >
+          <span class="text-xs font-medium text-n-slate-11 uppercase">
+            {{ t('SCHEDULED_MESSAGES.PAST_MESSAGES_SECTION') }}
+          </span>
+        </div>
+        <ScheduledMessageItem
+          v-for="message in historyMessages"
+          :key="message.id"
+          class="px-4 py-4"
+          :scheduled-message="message"
+          :written-by="getWrittenBy(message)"
+          :allow-edit="false"
+          :allow-delete="false"
+          collapsible
+        />
+      </template>
     </div>
-    <p v-else class="px-6 py-6 text-sm leading-6 text-center text-n-slate-11">
-      {{ t('SCHEDULED_MESSAGES.EMPTY_STATE') }}
-    </p>
 
     <ScheduledMessageModal
       v-model:show="shouldShowModal"
@@ -165,5 +212,37 @@ watch(
       :scheduled-message="editingMessage"
       @close="closeModal"
     />
+
+    <woot-modal
+      v-model:show="showDeleteConfirm"
+      :on-close="closeDeleteConfirm"
+      size="small"
+    >
+      <div class="flex w-full flex-col gap-4 px-6 py-6">
+        <h3 class="text-lg font-semibold text-n-slate-12">
+          {{ t('SCHEDULED_MESSAGES.CONFIRM_DELETE.TITLE') }}
+        </h3>
+        <p class="text-sm text-n-slate-11">
+          {{ t('SCHEDULED_MESSAGES.CONFIRM_DELETE.MESSAGE') }}
+        </p>
+        <div class="flex items-center justify-end gap-3">
+          <NextButton
+            ghost
+            slate
+            :label="t('SCHEDULED_MESSAGES.CONFIRM_DELETE.CANCEL')"
+            :disabled="isDeleting"
+            @click="closeDeleteConfirm"
+          />
+          <NextButton
+            solid
+            ruby
+            :label="t('SCHEDULED_MESSAGES.CONFIRM_DELETE.DELETE')"
+            :is-loading="isDeleting"
+            :disabled="isDeleting"
+            @click="confirmDelete"
+          />
+        </div>
+      </div>
+    </woot-modal>
   </div>
 </template>

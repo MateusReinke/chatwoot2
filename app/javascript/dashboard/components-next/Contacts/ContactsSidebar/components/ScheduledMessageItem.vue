@@ -46,7 +46,7 @@ const statusConfig = {
   },
   pending: {
     labelKey: 'SCHEDULED_MESSAGES.STATUS.PENDING',
-    class: 'bg-n-slate-9/10 text-n-slate-12',
+    class: 'bg-n-brand/10 text-n-blue-text',
   },
   sent: {
     labelKey: 'SCHEDULED_MESSAGES.STATUS.SENT',
@@ -178,7 +178,11 @@ watch(previewContent, () => {
         >
           {{ writtenBy }}
         </p>
-        <p v-if="formattedScheduledTime" class="text-xs text-n-slate-11 mb-0">
+        <p
+          v-if="formattedScheduledTime"
+          class="flex items-center gap-1 text-xs text-n-slate-11 mb-0"
+        >
+          <Icon icon="i-lucide-alarm-clock" class="size-3 shrink-0" />
           {{ formattedScheduledTime }}
         </p>
         <p v-else class="text-xs text-n-slate-11 mb-0">

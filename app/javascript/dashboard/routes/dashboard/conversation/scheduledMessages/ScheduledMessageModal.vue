@@ -65,6 +65,13 @@ const existingAttachment = ref(null);
 const templateParams = ref(null);
 const showConfirmClose = ref(false);
 const datePickerOpen = ref(false);
+const contentError = ref(false);
+const dateTimeError = ref('');
+
+// Original values for change detection
+const originalContent = ref('');
+const originalScheduledAt = ref(null);
+const originalHasAttachment = ref(false);
 
 // NOTE: Local ref to control modal visibility, prevents auto-close when unsaved changes exist
 const localShowModal = ref(false);
@@ -95,6 +102,12 @@ const resetForm = () => {
   attachments.value = [];
   existingAttachment.value = null;
   templateParams.value = null;
+  contentError.value = false;
+  dateTimeError.value = '';
+  // Reset original values
+  originalContent.value = '';
+  originalScheduledAt.value = null;
+  originalHasAttachment.value = false;
 };
 
 const setFormFromMessage = scheduledMessage => {
@@ -110,11 +123,18 @@ const setFormFromMessage = scheduledMessage => {
 
   if (scheduledMessage.scheduled_at) {
     const dateValue = new Date(scheduledMessage.scheduled_at * 1000);
-    dateValue.setSeconds(59, 0);
+    dateValue.setSeconds(0, 0);
     scheduledDateTime.value = dateValue;
   } else {
     scheduledDateTime.value = null;
   }
+
+  // Store original values for change detection
+  originalContent.value = messageContent.value?.trim() || '';
+  originalScheduledAt.value = scheduledDateTime.value
+    ? new Date(scheduledDateTime.value)
+    : null;
+  originalHasAttachment.value = !!existingAttachment.value;
 };
 
 const { onFileUpload } = useFileUpload({
@@ -139,7 +159,7 @@ const scheduledAt = computed(() => {
   if (!scheduledDateTime.value) return null;
 
   const date = new Date(scheduledDateTime.value);
-  date.setSeconds(59, 0);
+  date.setSeconds(0, 0);
 
   return date;
 });
@@ -153,19 +173,20 @@ const hasExistingAttachment = computed(() => !!existingAttachment.value);
 const showAttachmentUpload = computed(() => !hasNewAttachment.value);
 
 const hasUnsavedChanges = computed(() => {
-  return hasContent.value || hasNewAttachment.value || scheduledDateTime.value;
+  const contentChanged = messageContent.value?.trim() !== originalContent.value;
+  const dateChanged =
+    scheduledDateTime.value?.getTime() !== originalScheduledAt.value?.getTime();
+  const attachmentChanged =
+    hasNewAttachment.value !== originalHasAttachment.value;
+
+  return contentChanged || dateChanged || attachmentChanged;
 });
 
 const showModal = computed({
   get: () => localShowModal.value,
   set: value => {
     // NOTE: When trying to close the modal, check for unsaved changes first
-    if (
-      !value &&
-      hasUnsavedChanges.value &&
-      !isEditing.value &&
-      !showConfirmClose.value
-    ) {
+    if (!value && hasUnsavedChanges.value && !showConfirmClose.value) {
       showConfirmClose.value = true;
       return;
     }
@@ -194,6 +215,7 @@ const disablePastDates = date => {
 
 const onDateTimeChange = value => {
   scheduledDateTime.value = value;
+  dateTimeError.value = '';
 };
 
 const closeDatePicker = () => {
@@ -223,6 +245,8 @@ const isFutureSchedule = date => {
 };
 
 const validatePayload = status => {
+  contentError.value = false;
+
   const hasPayloadContent =
     hasContent.value ||
     hasTemplate.value ||
@@ -230,13 +254,17 @@ const validatePayload = status => {
     hasNewAttachment.value;
 
   if (!hasPayloadContent) {
-    useAlert(t('SCHEDULED_MESSAGES.ERRORS.CONTENT_REQUIRED'));
+    contentError.value = true;
     return false;
   }
 
   if (status === 'pending') {
-    if (!scheduledAt.value || !isFutureSchedule(scheduledAt.value)) {
-      useAlert(t('SCHEDULED_MESSAGES.ERRORS.SCHEDULE_IN_PAST'));
+    if (!scheduledAt.value) {
+      dateTimeError.value = t('SCHEDULED_MESSAGES.ERRORS.DATETIME_REQUIRED');
+      return false;
+    }
+    if (!isFutureSchedule(scheduledAt.value)) {
+      dateTimeError.value = t('SCHEDULED_MESSAGES.ERRORS.SCHEDULE_IN_PAST');
       return false;
     }
   }
@@ -299,21 +327,20 @@ const submit = async status => {
 };
 
 const handleClose = () => {
-  if (hasUnsavedChanges.value && !isEditing.value) {
+  if (hasUnsavedChanges.value) {
     showConfirmClose.value = true;
     return;
   }
   closeModal();
 };
 
+const handleContinueEditing = () => {
+  showConfirmClose.value = false;
+};
+
 const handleConfirmDiscard = () => {
   showConfirmClose.value = false;
   closeModal();
-};
-
-const handleConfirmSaveAsDraft = async () => {
-  showConfirmClose.value = false;
-  await submit('draft');
 };
 
 watch(
@@ -357,7 +384,8 @@ watch(
   <woot-modal
     v-model:show="showModal"
     :on-close="handleClose"
-    :close-on-backdrop-click="false"
+    :close-on-backdrop-click
+    class="[&_.modal-container]:!w-[45rem] [&_.modal-container]:!max-w-[90%]"
     size="medium"
   >
     <div class="flex w-full flex-col gap-6 px-6 py-6" @click="closeDatePicker">
@@ -375,61 +403,68 @@ watch(
         </span>
         <WootMessageEditor
           v-model="messageContent"
-          class="message-editor min-h-[6rem] !px-3"
+          class="message-editor min-h-[10rem] max-h-[20rem] !px-3 resize-y overflow-auto"
+          :class="contentError ? 'border border-n-ruby-9 rounded-xl' : ''"
           :placeholder="t('SCHEDULED_MESSAGES.MODAL.MESSAGE_PLACEHOLDER')"
           :channel-type="currentInbox?.channel_type"
           :medium="currentInbox?.medium"
           override-line-breaks
+          @update:model-value="contentError = false"
         />
+        <span v-if="contentError" class="text-xs text-n-ruby-9">
+          {{ t('SCHEDULED_MESSAGES.ERRORS.CONTENT_REQUIRED') }}
+        </span>
       </div>
 
       <div class="flex flex-col gap-2 min-w-0">
         <span class="text-sm font-medium text-n-slate-12">
           {{ t('SCHEDULED_MESSAGES.MODAL.DATETIME_LABEL') }}
         </span>
-        <div
-          class="w-full min-w-0 [&_.mx-datepicker]:w-full [&_.mx-input-wrapper]:w-full [&_.mx-input]:w-full"
-          @click.stop
-        >
-          <DatePicker
-            :value="scheduledDateTime"
-            :open="datePickerOpen"
-            type="datetime"
-            :placeholder="t('SCHEDULED_MESSAGES.MODAL.DATETIME_PLACEHOLDER')"
-            :lang="datePickerLang"
-            format="MMM D, YYYY h:mm A"
-            value-type="date"
-            :disabled-date="disablePastDates"
-            :show-second="false"
-            clearable
-            append-to-body
-            popup-class="z-[10000]"
-            @open="datePickerOpen = true"
-            @close="datePickerOpen = false"
-            @change="onDateTimeChange"
-          />
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-2">
-        <span class="text-sm font-medium text-n-slate-12">
-          {{ t('SCHEDULED_MESSAGES.MODAL.ATTACHMENT_LABEL') }}
-        </span>
-        <div class="flex flex-wrap items-center gap-2">
-          <FileUpload
-            v-if="showAttachmentUpload"
-            :accept="ALLOWED_FILE_TYPES"
-            :multiple="false"
-            :maximum="1"
-            @input-file="onFileUpload"
+        <div class="flex items-center gap-3">
+          <div
+            class="flex-1 min-w-0 [&_.mx-datepicker]:w-full [&_.mx-input-wrapper]:w-full [&_.mx-input]:w-full [&_.mx-input]:!mb-0"
+            :class="
+              dateTimeError
+                ? '[&_.mx-input]:!border-n-ruby-9 [&_.mx-input]:!border-solid'
+                : ''
+            "
+            @click.stop
           >
-            <NextButton
-              ghost
-              xs
-              icon="i-lucide-paperclip"
-              :label="t('SCHEDULED_MESSAGES.MODAL.ATTACHMENT_ADD')"
+            <DatePicker
+              :value="scheduledDateTime"
+              :open="datePickerOpen"
+              type="datetime"
+              :placeholder="t('SCHEDULED_MESSAGES.MODAL.DATETIME_PLACEHOLDER')"
+              :lang="datePickerLang"
+              format="MMM D, YYYY h:mm A"
+              value-type="date"
+              :disabled-date="disablePastDates"
+              :show-second="false"
+              clearable
+              append-to-body
+              popup-class="z-[10000]"
+              @open="datePickerOpen = true"
+              @close="datePickerOpen = false"
+              @change="onDateTimeChange"
             />
-          </FileUpload>
+          </div>
+          <div v-if="showAttachmentUpload" class="flex items-center h-10">
+            <FileUpload
+              :accept="ALLOWED_FILE_TYPES"
+              :multiple="false"
+              :maximum="1"
+              class="cursor-pointer [&:hover_button]:bg-n-alpha-2 [&:hover_button]:text-n-slate-12"
+              @input-file="onFileUpload"
+            >
+              <NextButton
+                ghost
+                xs
+                icon="i-lucide-paperclip"
+                :label="t('SCHEDULED_MESSAGES.MODAL.ATTACHMENT_ADD')"
+                class="pointer-events-none"
+              />
+            </FileUpload>
+          </div>
           <span
             v-if="existingAttachment && !attachments.length"
             class="text-xs text-n-slate-11"
@@ -447,6 +482,9 @@ watch(
             @update:attachments="onAttachmentsChange"
           />
         </div>
+        <span v-if="dateTimeError" class="text-xs text-n-ruby-9">
+          {{ dateTimeError }}
+        </span>
       </div>
 
       <div class="flex items-center justify-end gap-3">
@@ -484,7 +522,7 @@ watch(
               />
             </template>
             <template #default>
-              <DropdownBody class="bottom-9 right-0 min-w-[160px] z-[10000]">
+              <DropdownBody class="bottom-12 -right-10 min-w-[260px] z-[10000]">
                 <DropdownSection>
                   <DropdownItem
                     icon="i-lucide-file-text"
@@ -515,15 +553,15 @@ watch(
         <div class="flex items-center justify-end gap-3">
           <NextButton
             ghost
-            ruby
-            :label="t('SCHEDULED_MESSAGES.CONFIRM_CLOSE.DISCARD')"
-            @click="handleConfirmDiscard"
+            slate
+            :label="t('SCHEDULED_MESSAGES.CONFIRM_CLOSE.CONTINUE_EDITING')"
+            @click="handleContinueEditing"
           />
           <NextButton
             solid
             blue
-            :label="t('SCHEDULED_MESSAGES.CONFIRM_CLOSE.SAVE_DRAFT')"
-            @click="handleConfirmSaveAsDraft"
+            :label="t('SCHEDULED_MESSAGES.CONFIRM_CLOSE.DISCARD')"
+            @click="handleConfirmDiscard"
           />
         </div>
       </div>

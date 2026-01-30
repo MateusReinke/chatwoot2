@@ -386,9 +386,7 @@
   },
   "SCHEDULED_MESSAGES": {
     "NEW_BUTTON": "Agendar mensagem",
-    "SHOW_HISTORY": "Visão Detalhada",
-    "HIDE_HISTORY": "Visão Compactada",
-    "SHOW_MORE": "Mostrar mais",
+    "PAST_MESSAGES_SECTION": "Enviadas e falhadas",
     "EMPTY_STATE": "Ainda não há mensagens agendadas.",
     "STATUS": {
       "DRAFT": "Rascunho",
@@ -423,13 +421,20 @@
     },
     "CONFIRM_CLOSE": {
       "TITLE": "Alterações não salvas",
-      "MESSAGE": "Você tem conteúdo não salvo. Deseja salvar?",
-      "SAVE_DRAFT": "Salvar como rascunho",
+      "MESSAGE": "Você tem conteúdo não salvo. Deseja descartar suas alterações?",
+      "CONTINUE_EDITING": "Continuar editando",
       "DISCARD": "Descartar",
       "CANCEL": "Cancelar"
     },
+    "CONFIRM_DELETE": {
+      "TITLE": "Excluir mensagem agendada",
+      "MESSAGE": "Tem certeza de que deseja excluir esta mensagem agendada? Esta ação não pode ser desfeita.",
+      "CANCEL": "Cancelar",
+      "DELETE": "Excluir"
+    },
     "ERRORS": {
       "CONTENT_REQUIRED": "Adicione uma mensagem, template ou anexo antes de salvar.",
+      "DATETIME_REQUIRED": "Selecione uma data e hora para agendar a mensagem.",
       "SCHEDULE_IN_PAST": "O horário agendado deve ser no futuro.",
       "SAVE_FAILED": "Não foi possível salvar a mensagem agendada. Por favor, tente novamente."
     },
