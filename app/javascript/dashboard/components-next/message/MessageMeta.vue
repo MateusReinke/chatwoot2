@@ -218,6 +218,14 @@ const statusToShow = computed(() => {
 
   return MESSAGE_STATUS.PROGRESS;
 });
+
+const isEdited = computed(() => {
+  return contentAttributes.value?.isEdited === true;
+});
+
+const previousContent = computed(() => {
+  return contentAttributes.value?.previousContent || '';
+});
 </script>
 
 <template>
@@ -234,6 +242,16 @@ const statusToShow = computed(() => {
       class="inline-flex items-center gap-0.5"
     >
       <Icon icon="i-lucide-alarm-clock" class="size-3" />
+    </span>
+    <span
+      v-if="isEdited"
+      v-tooltip.top="{
+        content: previousContent,
+        delay: { show: 300, hide: 0 },
+      }"
+      class="inline-flex items-center gap-0.5 cursor-help"
+    >
+      <Icon icon="i-lucide-pencil" class="size-3" />
     </span>
     <Icon v-if="isPrivate" icon="i-lucide-lock-keyhole" class="size-3" />
     <MessageStatus v-if="showStatusIndicator" :status="statusToShow" />
