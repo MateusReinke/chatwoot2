@@ -223,7 +223,8 @@ const hasUnsavedChanges = computed(() => {
   const dateChanged =
     scheduledDateTime.value?.getTime() !== originalScheduledAt.value?.getTime();
   const attachmentChanged =
-    hasNewAttachment.value !== originalHasAttachment.value;
+    hasNewAttachment.value ||
+    (originalHasAttachment.value && !hasExistingAttachment.value);
 
   return contentChanged || dateChanged || attachmentChanged;
 });
