@@ -225,12 +225,16 @@ const statusToShow = computed(() => {
     <div class="inline">
       <time class="inline">{{ readableTime }}</time>
     </div>
-    <Icon
+    <span
       v-if="isScheduledMessage"
-      v-tooltip.top-start="scheduledTooltip"
-      icon="i-lucide-alarm-clock"
-      class="size-3 text-n-slate-10"
-    />
+      v-tooltip.top-start="{
+        content: scheduledTooltip,
+        delay: { show: 300, hide: 0 },
+      }"
+      class="inline-flex items-center gap-0.5"
+    >
+      <Icon icon="i-lucide-alarm-clock" class="size-3" />
+    </span>
     <Icon v-if="isPrivate" icon="i-lucide-lock-keyhole" class="size-3" />
     <MessageStatus v-if="showStatusIndicator" :status="statusToShow" />
   </div>
