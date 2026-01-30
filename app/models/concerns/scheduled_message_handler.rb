@@ -16,7 +16,7 @@ module ScheduledMessageHandler
   end
 
   def update_scheduled_message_status
-    scheduled_message = ScheduledMessage.find_by(id: scheduled_message_id)
+    scheduled_message = conversation.scheduled_messages.find_by(id: scheduled_message_id)
     return unless scheduled_message
 
     new_status = determine_scheduled_message_status
