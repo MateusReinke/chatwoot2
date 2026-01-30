@@ -427,8 +427,7 @@
       "ATTACHMENT_CURRENT": "Current attachment: {filename}",
       "CANCEL": "Cancel",
       "SAVE_DRAFT": "Save as draft",
-      "SCHEDULE": "Schedule",
-      "UPDATE": "Update schedule"
+      "SCHEDULE": "Schedule"
     },
     "CONFIRM_CLOSE": {
       "TITLE": "Unsaved changes",
@@ -452,6 +451,7 @@
     },
     "ERRORS": {
       "CONTENT_REQUIRED": "Add a message, template, or attachment before saving.",
+      "CONTENT_TOO_LONG": "Message is too long. Maximum {maxLength} characters allowed.",
       "DATETIME_REQUIRED": "Select a date and time to schedule the message.",
       "SCHEDULE_IN_PAST": "Scheduled time must be in the future.",
       "SAVE_FAILED": "Unable to save scheduled message. Please try again."

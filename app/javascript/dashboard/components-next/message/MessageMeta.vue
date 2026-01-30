@@ -249,7 +249,7 @@ const previousContent = computed(() => {
         content: previousContent,
         delay: { show: 300, hide: 0 },
       }"
-      class="inline-flex items-center gap-0.5 cursor-help"
+      class="inline-flex items-center gap-0.5"
     >
       <Icon icon="i-lucide-pencil" class="size-3" />
     </span>

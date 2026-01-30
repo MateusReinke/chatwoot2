@@ -426,8 +426,7 @@
       "ATTACHMENT_CURRENT": "Anexo atual: {filename}",
       "CANCEL": "Cancelar",
       "SAVE_DRAFT": "Salvar como rascunho",
-      "SCHEDULE": "Agendar",
-      "UPDATE": "Atualizar agendamento"
+      "SCHEDULE": "Agendar"
     },
     "CONFIRM_CLOSE": {
       "TITLE": "Alterações não salvas",
@@ -444,6 +443,7 @@
     },
     "ERRORS": {
       "CONTENT_REQUIRED": "Adicione uma mensagem, template ou anexo antes de salvar.",
+      "CONTENT_TOO_LONG": "A mensagem é muito longa. Máximo de {maxLength} caracteres permitidos.",
       "DATETIME_REQUIRED": "Selecione uma data e hora para agendar a mensagem.",
       "SCHEDULE_IN_PAST": "O horário agendado deve ser no futuro.",
       "SAVE_FAILED": "Não foi possível salvar a mensagem agendada. Por favor, tente novamente."

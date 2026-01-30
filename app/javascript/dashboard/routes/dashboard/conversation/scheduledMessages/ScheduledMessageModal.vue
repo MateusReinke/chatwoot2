@@ -8,6 +8,7 @@ import { useAlert } from 'dashboard/composables';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useFileUpload } from 'dashboard/composables/useFileUpload';
 import { ALLOWED_FILE_TYPES } from 'shared/constants/messages';
+import { MESSAGE_MAX_LENGTH } from 'shared/helpers/MessageTypeHelper';
 
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
@@ -66,6 +67,7 @@ const templateParams = ref(null);
 const showConfirmClose = ref(false);
 const datePickerOpen = ref(false);
 const contentError = ref(false);
+const contentLengthError = ref(false);
 const dateTimeError = ref('');
 
 // Original values for change detection
@@ -172,6 +174,50 @@ const hasTemplate = computed(
 const hasExistingAttachment = computed(() => !!existingAttachment.value);
 const showAttachmentUpload = computed(() => !hasNewAttachment.value);
 
+const maxLength = computed(() => {
+  const channelType = currentInbox.value?.channel_type;
+  const medium = currentInbox.value?.medium;
+
+  if (channelType === 'Channel::FacebookPage') {
+    return MESSAGE_MAX_LENGTH.FACEBOOK;
+  }
+  if (
+    channelType === 'Channel::FacebookPage' &&
+    medium === 'instagram_direct_message'
+  ) {
+    return MESSAGE_MAX_LENGTH.INSTAGRAM;
+  }
+  if (channelType === 'Channel::TwilioSms' && medium === 'whatsapp') {
+    return MESSAGE_MAX_LENGTH.TWILIO_WHATSAPP;
+  }
+  if (channelType === 'Channel::Whatsapp') {
+    return MESSAGE_MAX_LENGTH.WHATSAPP_CLOUD;
+  }
+  if (channelType === 'Channel::Sms') {
+    return MESSAGE_MAX_LENGTH.TWILIO_SMS;
+  }
+  if (channelType === 'Channel::TwilioSms' && medium === 'sms') {
+    return MESSAGE_MAX_LENGTH.TWILIO_SMS;
+  }
+  if (channelType === 'Channel::Email') {
+    return MESSAGE_MAX_LENGTH.EMAIL;
+  }
+  if (channelType === 'Channel::Telegram') {
+    return MESSAGE_MAX_LENGTH.TELEGRAM;
+  }
+  if (channelType === 'Channel::Line') {
+    return MESSAGE_MAX_LENGTH.LINE;
+  }
+  if (channelType === 'Channel::Tiktok') {
+    return MESSAGE_MAX_LENGTH.TIKTOK;
+  }
+  return MESSAGE_MAX_LENGTH.GENERAL;
+});
+
+const isContentTooLong = computed(
+  () => messageContent.value?.length > maxLength.value
+);
+
 const hasUnsavedChanges = computed(() => {
   const contentChanged = messageContent.value?.trim() !== originalContent.value;
   const dateChanged =
@@ -246,6 +292,7 @@ const isFutureSchedule = date => {
 
 const validatePayload = status => {
   contentError.value = false;
+  contentLengthError.value = false;
 
   const hasPayloadContent =
     hasContent.value ||
@@ -255,6 +302,11 @@ const validatePayload = status => {
 
   if (!hasPayloadContent) {
     contentError.value = true;
+    return false;
+  }
+
+  if (isContentTooLong.value) {
+    contentLengthError.value = true;
     return false;
   }
 
@@ -404,15 +456,31 @@ watch(
         <WootMessageEditor
           v-model="messageContent"
           class="message-editor min-h-[10rem] max-h-[20rem] !px-3 resize-y overflow-auto"
-          :class="contentError ? 'border border-n-ruby-9 rounded-xl' : ''"
+          :class="
+            contentError || contentLengthError
+              ? 'border border-n-ruby-9 rounded-xl'
+              : ''
+          "
           :placeholder="t('SCHEDULED_MESSAGES.MODAL.MESSAGE_PLACEHOLDER')"
           :channel-type="currentInbox?.channel_type"
           :medium="currentInbox?.medium"
           override-line-breaks
-          @update:model-value="contentError = false"
+          @update:model-value="
+            () => {
+              contentError = false;
+              contentLengthError = false;
+            }
+          "
         />
         <span v-if="contentError" class="text-xs text-n-ruby-9">
           {{ t('SCHEDULED_MESSAGES.ERRORS.CONTENT_REQUIRED') }}
+        </span>
+        <span v-if="contentLengthError" class="text-xs text-n-ruby-9">
+          {{
+            t('SCHEDULED_MESSAGES.ERRORS.CONTENT_TOO_LONG', {
+              maxLength: maxLength,
+            })
+          }}
         </span>
       </div>
 
@@ -499,11 +567,7 @@ watch(
           <NextButton
             solid
             blue
-            :label="
-              isEditing
-                ? t('SCHEDULED_MESSAGES.MODAL.UPDATE')
-                : t('SCHEDULED_MESSAGES.MODAL.SCHEDULE')
-            "
+            :label="t('SCHEDULED_MESSAGES.MODAL.SCHEDULE')"
             :is-loading="isSubmitting"
             :disabled="isSubmitting"
             class="rounded-r-none"
