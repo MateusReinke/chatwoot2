@@ -178,14 +178,14 @@ const maxLength = computed(() => {
   const channelType = currentInbox.value?.channel_type;
   const medium = currentInbox.value?.medium;
 
-  if (channelType === 'Channel::FacebookPage') {
-    return MESSAGE_MAX_LENGTH.FACEBOOK;
-  }
   if (
     channelType === 'Channel::FacebookPage' &&
     medium === 'instagram_direct_message'
   ) {
     return MESSAGE_MAX_LENGTH.INSTAGRAM;
+  }
+  if (channelType === 'Channel::FacebookPage') {
+    return MESSAGE_MAX_LENGTH.FACEBOOK;
   }
   if (channelType === 'Channel::TwilioSms' && medium === 'whatsapp') {
     return MESSAGE_MAX_LENGTH.TWILIO_WHATSAPP;
