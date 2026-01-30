@@ -437,7 +437,7 @@ watch(
   <woot-modal
     v-model:show="showModal"
     :on-close="handleClose"
-    :close-on-backdrop-click
+    close-on-backdrop-click
     class="[&_.modal-container]:!w-[45rem] [&_.modal-container]:!max-w-[90%]"
     size="medium"
   >
