@@ -443,7 +443,7 @@ export default {
               @click="toggle"
             />
           </template>
-          <DropdownBody class="bottom-9 right-0 min-w-48 z-50" strong>
+          <DropdownBody class="bottom-11 -right-8 min-w-48 z-50" strong>
             <DropdownSection>
               <DropdownItem
                 icon="i-lucide-clock"
