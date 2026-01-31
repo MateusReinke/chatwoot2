@@ -89,7 +89,6 @@ const formattedScheduledTime = computed(() => {
   if (!scheduledAt.value) return '';
   const date = fromUnixTime(scheduledAt.value);
   const now = new Date();
-  const dateLocale = locale.value === 'pt_BR' ? 'pt-BR' : 'en-US';
 
   const options = {
     month: 'short',
@@ -102,7 +101,7 @@ const formattedScheduledTime = computed(() => {
     options.year = 'numeric';
   }
 
-  return date.toLocaleString(dateLocale, options);
+  return date.toLocaleString(locale.value.replace('_', '-'), options);
 });
 
 const templateName = computed(() => {

@@ -79,7 +79,6 @@ const scheduledAtLabel = computed(() => {
   }
   const date = new Date(scheduledAtTimestamp.value * 1000);
   const now = new Date();
-  const dateLocale = locale.value === 'pt_BR' ? 'pt-BR' : 'en-US';
 
   const options = {
     month: 'short',
@@ -92,7 +91,7 @@ const scheduledAtLabel = computed(() => {
     options.year = 'numeric';
   }
 
-  return date.toLocaleString(dateLocale, options);
+  return date.toLocaleString(locale.value.replace('_', '-'), options);
 });
 
 const scheduledByLabel = computed(() => {

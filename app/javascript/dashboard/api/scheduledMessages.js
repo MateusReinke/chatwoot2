@@ -5,7 +5,6 @@ export const buildScheduledMessagePayload = ({
   content,
   status,
   scheduledAt,
-  private: isPrivate,
   templateParams,
   attachment,
 } = {}) => {
@@ -14,7 +13,6 @@ export const buildScheduledMessagePayload = ({
       content,
       status,
       scheduled_at: scheduledAt,
-      private: isPrivate,
       template_params: templateParams,
     };
   }
@@ -23,7 +21,6 @@ export const buildScheduledMessagePayload = ({
   if (content) payload.append('content', content);
   if (scheduledAt) payload.append('scheduled_at', scheduledAt);
   if (status) payload.append('status', status);
-  if (isPrivate !== undefined) payload.append('private', isPrivate);
   payload.append('attachment', attachment);
   if (templateParams) {
     payload.append('template_params', JSON.stringify(templateParams));

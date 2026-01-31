@@ -294,6 +294,7 @@ const isFutureSchedule = date => {
 const validatePayload = status => {
   contentError.value = false;
   contentLengthError.value = false;
+  dateTimeError.value = null;
 
   const hasPayloadContent =
     hasContent.value ||
