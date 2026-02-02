@@ -12,7 +12,7 @@ export default {
       default: false,
     },
     inboxId: {
-      type: Number,
+      type: [Number, String],
       default: undefined,
     },
     sendButtonLabel: {
