@@ -21,6 +21,8 @@ class AutomationRule < ApplicationRecord
   include Rails.application.routes.url_helpers
   include Reauthorizable
 
+  MAX_SCHEDULED_MESSAGE_DELAY_MINUTES = 1_438_560 # 999 days
+
   belongs_to :account
   has_many :scheduled_messages, as: :author, dependent: :nullify
   has_many_attached :files
@@ -120,7 +122,9 @@ class AutomationRule < ApplicationRecord
     params = action['action_params']&.first || {}
     delay_minutes = params['delay_minutes'].to_i
 
-    errors.add(:actions, I18n.t('errors.automation.scheduled_message.delay_out_of_range')) unless delay_minutes.between?(1, 1_438_560)
+    unless delay_minutes.between?(1, MAX_SCHEDULED_MESSAGE_DELAY_MINUTES)
+      errors.add(:actions, I18n.t('errors.automation.scheduled_message.delay_out_of_range'))
+    end
 
     has_content = params['content'].present?
     has_attachment = params['blob_id'].present?

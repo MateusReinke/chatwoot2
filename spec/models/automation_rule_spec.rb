@@ -147,13 +147,13 @@ RSpec.describe AutomationRule do
     end
 
     it 'is invalid when delay_minutes exceeds maximum' do
-      rule = build_rule_with_scheduled_message({ 'content' => 'Hello', 'delay_minutes' => 1_438_561 })
+      rule = build_rule_with_scheduled_message({ 'content' => 'Hello', 'delay_minutes' => described_class::MAX_SCHEDULED_MESSAGE_DELAY_MINUTES + 1 })
       expect(rule).not_to be_valid
       expect(rule.errors[:actions]).to be_present
     end
 
     it 'is valid at maximum delay boundary' do
-      rule = build_rule_with_scheduled_message({ 'content' => 'Hello', 'delay_minutes' => 1_438_560 })
+      rule = build_rule_with_scheduled_message({ 'content' => 'Hello', 'delay_minutes' => described_class::MAX_SCHEDULED_MESSAGE_DELAY_MINUTES })
       expect(rule).to be_valid
     end
 

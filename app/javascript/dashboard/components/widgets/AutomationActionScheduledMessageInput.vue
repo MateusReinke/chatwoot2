@@ -28,6 +28,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
+const DEFAULT_DELAY_MINUTES = 1440; // 24 hours
+const MAX_DELAY_MINUTES = 1438560; // 999 days
+
 const { t } = useI18n();
 const store = useStore();
 
@@ -56,9 +59,12 @@ const content = computed({
 });
 
 const delayMinutes = computed({
-  get: () => normalizedParams.value.delay_minutes ?? 1440,
+  get: () => normalizedParams.value.delay_minutes ?? DEFAULT_DELAY_MINUTES,
   set: value => {
-    const numValue = Math.min(Math.max(1, Number(value) || 1), 1438560);
+    const numValue = Math.min(
+      Math.max(1, Number(value) || 1),
+      MAX_DELAY_MINUTES
+    );
     updateParams({ delay_minutes: numValue });
   },
 });
@@ -78,8 +84,8 @@ onMounted(() => {
   // This ensures the data is in the correct array format for validation
   // and sets default delay_minutes if not present
   const currentDelay = normalizedParams.value.delay_minutes;
-  const rawDelay = currentDelay ?? 1440;
-  const delay = Math.min(Math.max(1, Number(rawDelay) || 1), 1438560);
+  const rawDelay = currentDelay ?? DEFAULT_DELAY_MINUTES;
+  const delay = Math.min(Math.max(1, Number(rawDelay) || 1), MAX_DELAY_MINUTES);
   updateParams({ delay_minutes: delay });
   delayUnit.value = detectUnit(delay);
 });
@@ -215,7 +221,7 @@ const clearTemplate = () => {
           v-model:model-value="delayMinutes"
           v-model:unit="delayUnit"
           :min="1"
-          :max="1438560"
+          :max="MAX_DELAY_MINUTES"
         />
       </div>
     </div>

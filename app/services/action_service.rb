@@ -83,7 +83,7 @@ class ActionService
     return if conversation_a_tweet?
 
     params = action_params.first&.with_indifferent_access || {}
-    delay_minutes = params[:delay_minutes].to_i.clamp(1, 1_438_560)
+    delay_minutes = params[:delay_minutes].to_i.clamp(1, AutomationRule::MAX_SCHEDULED_MESSAGE_DELAY_MINUTES)
     scheduled_at = delay_minutes.minutes.from_now
 
     scheduled_message = @conversation.scheduled_messages.new(
