@@ -21,7 +21,7 @@ class AutomationRule < ApplicationRecord
   include Rails.application.routes.url_helpers
   include Reauthorizable
 
-  MAX_SCHEDULED_MESSAGE_DELAY_MINUTES = 1_438_560 # 999 days
+  MAX_SCHEDULED_MESSAGE_DELAY_MINUTES = 999 * 24 * 60 # 999 days
 
   belongs_to :account
   has_many :scheduled_messages, as: :author, dependent: :nullify

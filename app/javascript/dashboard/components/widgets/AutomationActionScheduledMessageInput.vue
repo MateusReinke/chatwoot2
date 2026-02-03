@@ -28,8 +28,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
-const DEFAULT_DELAY_MINUTES = 1440; // 24 hours
-const MAX_DELAY_MINUTES = 1438560; // 999 days
+const DEFAULT_DELAY_MINUTES = 24 * 60; // 24 hours
+const MAX_DELAY_MINUTES = 999 * 24 * 60; // 999 days
 
 const { t } = useI18n();
 const store = useStore();
