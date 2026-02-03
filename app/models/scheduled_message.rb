@@ -50,7 +50,7 @@ class ScheduledMessage < ApplicationRecord
 
   enum status: { draft: 0, pending: 1, sent: 2, failed: 3 }
 
-  before_save :process_message_variables, if: :content_changed?
+  before_validation :process_message_variables, if: :content_changed?
   before_destroy :prevent_destroy_if_processed
 
   validates :scheduled_at, presence: true, unless: -> { status == 'draft' }

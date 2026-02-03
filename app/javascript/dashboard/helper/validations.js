@@ -144,7 +144,10 @@ const validateSingleAction = action => {
     const hasContent = params.content?.trim?.();
     const hasAttachment = params.blob_id;
     const hasTemplateParams =
-      params.template_params && Object.keys(params.template_params).length > 0;
+      params.template_params &&
+      typeof params.template_params === 'object' &&
+      !Array.isArray(params.template_params) &&
+      Object.keys(params.template_params).length > 0;
     const hasDelay = params.delay_minutes && params.delay_minutes >= 1;
     if (!hasContent && !hasAttachment && !hasTemplateParams) {
       return ACTION_PARAMETERS_REQUIRED;

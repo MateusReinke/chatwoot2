@@ -78,7 +78,8 @@ onMounted(() => {
   // This ensures the data is in the correct array format for validation
   // and sets default delay_minutes if not present
   const currentDelay = normalizedParams.value.delay_minutes;
-  const delay = currentDelay ?? 1440;
+  const rawDelay = currentDelay ?? 1440;
+  const delay = Math.min(Math.max(1, Number(rawDelay) || 1), 1438560);
   updateParams({ delay_minutes: delay });
   delayUnit.value = detectUnit(delay);
 });
@@ -172,9 +173,10 @@ const showWhatsappTemplates = computed(() => {
   return inboxIdForTemplates.value !== null;
 });
 
-// Show action buttons only when no attachment and no template
+// Show action buttons only when no attachment, no template, and not uploading
+const isUploading = computed(() => attachmentState.value === 'uploading');
 const showActionButtons = computed(
-  () => !hasAttachment.value && !hasTemplate.value
+  () => !hasAttachment.value && !hasTemplate.value && !isUploading.value
 );
 
 const openWhatsAppTemplatesModal = () => {
@@ -228,6 +230,20 @@ const clearTemplate = () => {
       :disabled="hasTemplate"
     />
 
+    <div
+      v-if="isUploading"
+      class="flex items-center gap-2 text-xs text-n-slate-11"
+    >
+      <NextButton
+        ghost
+        xs
+        icon="i-lucide-paperclip"
+        :label="t('AUTOMATION.ATTACHMENT.LABEL_UPLOADING')"
+        is-loading
+        disabled
+      />
+    </div>
+
     <div v-if="showActionButtons" class="flex items-center gap-2">
       <FileUpload
         :multiple="false"
@@ -240,7 +256,6 @@ const clearTemplate = () => {
           xs
           icon="i-lucide-paperclip"
           :label="t('AUTOMATION.ACTION.ATTACHMENT_ADD')"
-          :is-loading="attachmentState === 'uploading'"
           class="pointer-events-none"
         />
       </FileUpload>
