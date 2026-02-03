@@ -1,9 +1,14 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useStore } from 'dashboard/composables/store';
+import { useAlert } from 'dashboard/composables';
+import FileUpload from 'vue-upload-component';
 
-import AutomationActionFileInput from './AutomationFileInput.vue';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import DurationInput from 'dashboard/components-next/input/DurationInput.vue';
+import NextButton from 'dashboard/components-next/button/Button.vue';
+import WhatsappTemplates from 'dashboard/components/widgets/conversation/WhatsappTemplates/Modal.vue';
 import { DURATION_UNITS } from 'dashboard/components-next/input/constants';
 
 const props = defineProps({
@@ -15,9 +20,18 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  conditions: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const { t } = useI18n();
+const store = useStore();
+
+const showWhatsAppTemplatesModal = ref(false);
 
 const normalizedParams = computed(() => {
   const value = props.modelValue;
@@ -69,16 +83,122 @@ onMounted(() => {
   delayUnit.value = detectUnit(delay);
 });
 
-const attachmentBlobIds = computed({
-  get: () => {
-    const blobId = normalizedParams.value.blob_id;
-    return blobId ? [blobId] : [];
-  },
-  set: value => {
-    const blobId = Array.isArray(value) ? value[0] : value;
-    updateParams({ blob_id: blobId });
-  },
+// Attachment handling
+const attachmentState = ref('idle'); // 'idle' | 'uploading' | 'uploaded' | 'failed'
+const attachmentFileName = ref(props.initialFileName || '');
+
+const hasAttachment = computed(() => {
+  const blobId = normalizedParams.value.blob_id;
+  return !!blobId;
 });
+
+const attachmentLabel = computed(() => {
+  if (attachmentState.value === 'uploading') {
+    return t('AUTOMATION.ATTACHMENT.LABEL_UPLOADING');
+  }
+  if (attachmentFileName.value) {
+    return attachmentFileName.value;
+  }
+  return t('AUTOMATION.ATTACHMENT.LABEL_IDLE');
+});
+
+const onFileUpload = async file => {
+  if (!file?.file) return;
+
+  attachmentState.value = 'uploading';
+  try {
+    const id = await store.dispatch('automations/uploadAttachment', file.file);
+    updateParams({ blob_id: id });
+    attachmentState.value = 'uploaded';
+    attachmentFileName.value = file.file.name;
+  } catch {
+    attachmentState.value = 'failed';
+    useAlert(t('AUTOMATION.ATTACHMENT.UPLOAD_ERROR'));
+  }
+};
+
+const clearAttachment = () => {
+  updateParams({ blob_id: null });
+  attachmentState.value = 'idle';
+  attachmentFileName.value = '';
+};
+
+// Template params handling
+const templateParams = computed(
+  () => normalizedParams.value.template_params || null
+);
+
+const hasTemplate = computed(
+  () => templateParams.value && Object.keys(templateParams.value).length > 0
+);
+
+const templateName = computed(() => {
+  return templateParams.value?.name || templateParams.value?.id || null;
+});
+
+// Extract inbox IDs from conditions
+const inboxIdsFromConditions = computed(() => {
+  const inboxConditions = props.conditions.filter(
+    condition => condition.attribute_key === 'inbox_id'
+  );
+  const ids = [];
+  inboxConditions.forEach(condition => {
+    const values = condition.values;
+    if (Array.isArray(values)) {
+      values.forEach(v => {
+        const id = typeof v === 'object' ? v.id : v;
+        if (id) ids.push(Number(id));
+      });
+    } else if (values) {
+      const id = typeof values === 'object' ? values.id : values;
+      if (id) ids.push(Number(id));
+    }
+  });
+  return ids;
+});
+
+// Get the first inbox ID that has templates (for the modal)
+const inboxIdForTemplates = computed(() => {
+  const inboxWithTemplates = inboxIdsFromConditions.value.find(inboxId => {
+    const templates =
+      store.getters['inboxes/getWhatsAppTemplates'](inboxId) || [];
+    return templates.length > 0;
+  });
+  return inboxWithTemplates ?? null;
+});
+
+// Check if any inbox has WhatsApp templates
+const showWhatsappTemplates = computed(() => {
+  return inboxIdForTemplates.value !== null;
+});
+
+// Show action buttons only when no attachment and no template
+const showActionButtons = computed(
+  () => !hasAttachment.value && !hasTemplate.value
+);
+
+const openWhatsAppTemplatesModal = () => {
+  showWhatsAppTemplatesModal.value = true;
+};
+
+const hideWhatsAppTemplatesModal = () => {
+  showWhatsAppTemplatesModal.value = false;
+};
+
+const onTemplateSelect = messagePayload => {
+  updateParams({
+    template_params: messagePayload.templateParams,
+    content: messagePayload.message,
+  });
+  hideWhatsAppTemplatesModal();
+};
+
+const clearTemplate = () => {
+  updateParams({
+    template_params: null,
+    content: '',
+  });
+};
 </script>
 
 <template>
@@ -104,11 +224,60 @@ const attachmentBlobIds = computed({
       enable-variables
       :placeholder="$t('AUTOMATION.ACTION.TEAM_MESSAGE_INPUT_PLACEHOLDER')"
       class="action-message"
+      :class="hasTemplate ? 'opacity-60 cursor-not-allowed' : ''"
+      :disabled="hasTemplate"
     />
 
-    <AutomationActionFileInput
-      v-model="attachmentBlobIds"
-      :initial-file-name="initialFileName"
+    <div v-if="showActionButtons" class="flex items-center gap-2">
+      <FileUpload
+        :multiple="false"
+        :maximum="1"
+        class="cursor-pointer [&:hover_button]:bg-n-alpha-2 [&:hover_button]:text-n-slate-12"
+        @input-file="onFileUpload"
+      >
+        <NextButton
+          ghost
+          xs
+          icon="i-lucide-paperclip"
+          :label="t('AUTOMATION.ACTION.ATTACHMENT_ADD')"
+          :is-loading="attachmentState === 'uploading'"
+          class="pointer-events-none"
+        />
+      </FileUpload>
+      <NextButton
+        v-if="showWhatsappTemplates"
+        ghost
+        xs
+        icon="i-lucide-zap"
+        :label="t('AUTOMATION.ACTION.TEMPLATE_SELECT')"
+        @click="openWhatsAppTemplatesModal"
+      />
+    </div>
+
+    <div
+      v-if="hasAttachment"
+      class="flex items-center gap-2 text-xs text-n-slate-11"
+    >
+      <span>{{ attachmentLabel }}</span>
+      <NextButton ghost xs slate icon="i-lucide-x" @click="clearAttachment" />
+    </div>
+
+    <div
+      v-if="hasTemplate"
+      class="flex items-center gap-2 text-xs text-n-slate-11"
+    >
+      <span>
+        {{ t('AUTOMATION.ACTION.TEMPLATE_SELECTED', { name: templateName }) }}
+      </span>
+      <NextButton ghost xs slate icon="i-lucide-x" @click="clearTemplate" />
+    </div>
+
+    <WhatsappTemplates
+      v-model:show="showWhatsAppTemplatesModal"
+      :inbox-id="inboxIdForTemplates"
+      :send-button-label="t('AUTOMATION.ACTION.TEMPLATE_USE')"
+      @on-send="onTemplateSelect"
+      @cancel="hideWhatsAppTemplatesModal"
     />
   </div>
 </template>
