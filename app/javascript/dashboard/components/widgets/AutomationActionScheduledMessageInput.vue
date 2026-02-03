@@ -53,14 +53,20 @@ const delayUnit = ref(DURATION_UNITS.MINUTES);
 
 const detectUnit = minutes => {
   const m = Number(minutes) || 0;
-  if (m === 0) return DURATION_UNITS.MINUTES;
+  if (m === 0) return DURATION_UNITS.DAYS;
   if (m % (24 * 60) === 0) return DURATION_UNITS.DAYS;
   if (m % 60 === 0) return DURATION_UNITS.HOURS;
   return DURATION_UNITS.MINUTES;
 };
 
 onMounted(() => {
-  delayUnit.value = detectUnit(normalizedParams.value.delay_minutes);
+  // Always emit the properly formatted params on mount
+  // This ensures the data is in the correct array format for validation
+  // and sets default delay_minutes if not present
+  const currentDelay = normalizedParams.value.delay_minutes;
+  const delay = currentDelay ?? 1440;
+  updateParams({ delay_minutes: delay });
+  delayUnit.value = detectUnit(delay);
 });
 
 const attachmentBlobIds = computed({
