@@ -97,8 +97,7 @@
       "TEAM_DROPDOWN_PLACEHOLDER": "Select teams",
       "EMAIL_INPUT_PLACEHOLDER": "Enter email",
       "URL_INPUT_PLACEHOLDER": "Enter URL",
-      "SCHEDULED_MESSAGE_DELAY_LABEL": "Delay (minutes)",
-      "SCHEDULED_MESSAGE_DELAY_PLACEHOLDER": "Enter delay in minutes"
+      "SCHEDULED_MESSAGE_DELAY_LABEL": "Delay"
     },
     "TOGGLE": {
       "ACTIVATION_TITLE": "Activate Automation Rule",

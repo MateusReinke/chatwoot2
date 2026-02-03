@@ -97,8 +97,7 @@
       "TEAM_DROPDOWN_PLACEHOLDER": "Selecione times",
       "EMAIL_INPUT_PLACEHOLDER": "Insira o e-mail",
       "URL_INPUT_PLACEHOLDER": "Insira a URL",
-      "SCHEDULED_MESSAGE_DELAY_LABEL": "Atraso (minutos)",
-      "SCHEDULED_MESSAGE_DELAY_PLACEHOLDER": "Insira o atraso em minutos"
+      "SCHEDULED_MESSAGE_DELAY_LABEL": "Atraso"
     },
     "TOGGLE": {
       "ACTIVATION_TITLE": "Ativar regra de automação",

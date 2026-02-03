@@ -1,8 +1,10 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 
 import AutomationActionFileInput from './AutomationFileInput.vue';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
+import DurationInput from 'dashboard/components-next/input/DurationInput.vue';
+import { DURATION_UNITS } from 'dashboard/components-next/input/constants';
 
 const props = defineProps({
   modelValue: {
@@ -40,11 +42,25 @@ const content = computed({
 });
 
 const delayMinutes = computed({
-  get: () => normalizedParams.value.delay_minutes ?? '',
+  get: () => normalizedParams.value.delay_minutes ?? 1440,
   set: value => {
-    const numValue = Math.min(Math.max(1, Number(value) || 1), 999999);
+    const numValue = Math.min(Math.max(1, Number(value) || 1), 1438560);
     updateParams({ delay_minutes: numValue });
   },
+});
+
+const delayUnit = ref(DURATION_UNITS.MINUTES);
+
+const detectUnit = minutes => {
+  const m = Number(minutes) || 0;
+  if (m === 0) return DURATION_UNITS.MINUTES;
+  if (m % (24 * 60) === 0) return DURATION_UNITS.DAYS;
+  if (m % 60 === 0) return DURATION_UNITS.HOURS;
+  return DURATION_UNITS.MINUTES;
+};
+
+onMounted(() => {
+  delayUnit.value = detectUnit(normalizedParams.value.delay_minutes);
 });
 
 const attachmentBlobIds = computed({
@@ -65,16 +81,15 @@ const attachmentBlobIds = computed({
       <label class="text-xs text-n-slate-11">
         {{ $t('AUTOMATION.ACTION.SCHEDULED_MESSAGE_DELAY_LABEL') }}
       </label>
-      <input
-        v-model="delayMinutes"
-        type="number"
-        min="1"
-        max="999999"
-        class="answer--text-input !mb-0"
-        :placeholder="
-          $t('AUTOMATION.ACTION.SCHEDULED_MESSAGE_DELAY_PLACEHOLDER')
-        "
-      />
+      <div class="flex items-center gap-2">
+        <!-- allow 1 min to 999 days -->
+        <DurationInput
+          v-model:model-value="delayMinutes"
+          v-model:unit="delayUnit"
+          :min="1"
+          :max="1438560"
+        />
+      </div>
     </div>
 
     <WootMessageEditor
