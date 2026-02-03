@@ -131,7 +131,7 @@ class AutomationRule < ApplicationRecord
     has_template = params['template_params'].present?
     return if has_content || has_attachment || has_template
 
-    errors.add(:actions, I18n.t('errors.automation.scheduled_message.content_or_attachment_required'))
+    errors.add(:actions, I18n.t('errors.automation.scheduled_message.content_attachment_or_template_required'))
   end
 end
 

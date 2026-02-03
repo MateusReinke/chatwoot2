@@ -156,11 +156,22 @@ class ScheduledMessage < ApplicationRecord
   def process_message_variables
     return if content.blank?
 
-    template = Liquid::Template.parse(content)
+    processed_content = modified_liquid_content(content)
+    template = Liquid::Template.parse(processed_content)
     self.content = template.render(message_drops)
   rescue Liquid::Error
     # Keep original content if Liquid parsing/rendering fails
     nil
+  end
+
+  def modified_liquid_content(raw_content)
+    return raw_content if raw_content.blank?
+
+    # Wrap inline code (text between single backticks) in Liquid raw blocks
+    # so that any {{ ... }} inside code is not interpreted by Liquid.
+    raw_content.gsub(/`([^`\n]+)`/) do
+      "{% raw %}`#{Regexp.last_match(1)}`{% endraw %}"
+    end
   end
 
   def message_drops
