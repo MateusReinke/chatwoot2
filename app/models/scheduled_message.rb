@@ -158,8 +158,8 @@ class ScheduledMessage < ApplicationRecord
 
     template = Liquid::Template.parse(content)
     self.content = template.render(message_drops)
-  rescue Liquid::SyntaxError
-    # Keep original content if Liquid parsing fails
+  rescue Liquid::Error
+    # Keep original content if Liquid parsing/rendering fails
     nil
   end
 
