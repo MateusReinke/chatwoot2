@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onBeforeMount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
@@ -79,15 +79,12 @@ const detectUnit = minutes => {
   return DURATION_UNITS.MINUTES;
 };
 
-onMounted(() => {
-  // Always emit the properly formatted params on mount
-  // This ensures the data is in the correct array format for validation
-  // and sets default delay_minutes if not present
-  const currentDelay = normalizedParams.value.delay_minutes;
-  const rawDelay = currentDelay ?? DEFAULT_DELAY_MINUTES;
-  const delay = Math.min(Math.max(1, Number(rawDelay) || 1), MAX_DELAY_MINUTES);
-  updateParams({ delay_minutes: delay });
-  delayUnit.value = detectUnit(delay);
+onBeforeMount(() => {
+  // Set the appropriate unit for the duration input based on current delay
+  // The default delay_minutes is now set by resetAction in useAutomation.js
+  const currentDelay =
+    normalizedParams.value.delay_minutes ?? DEFAULT_DELAY_MINUTES;
+  delayUnit.value = detectUnit(currentDelay);
 });
 
 // Attachment handling

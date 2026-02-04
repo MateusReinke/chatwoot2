@@ -123,10 +123,19 @@ export function useAutomation(startValue = null) {
    * @param {number} index - The index of the action to reset.
    */
   const resetAction = index => {
+    const action = automation.value.actions[index];
     const newActions = [...automation.value.actions];
+
+    // For scheduled messages, initialize with default delay
+    const DEFAULT_DELAY_MINUTES = 24 * 60; // 24 hours
+    const actionParams =
+      action.action_name === 'create_scheduled_message'
+        ? [{ delay_minutes: DEFAULT_DELAY_MINUTES }]
+        : [];
+
     newActions[index] = {
       ...newActions[index],
-      action_params: [],
+      action_params: actionParams,
     };
 
     automation.value.actions = newActions;
