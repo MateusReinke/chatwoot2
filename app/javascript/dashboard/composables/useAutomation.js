@@ -15,6 +15,7 @@ import {
   // AUTOMATION_RULE_EVENTS,
   // AUTOMATION_ACTION_TYPES,
   AUTOMATIONS,
+  DEFAULT_SCHEDULED_MESSAGE_DELAY_MINUTES,
 } from 'dashboard/routes/dashboard/settings/automation/constants.js';
 
 /**
@@ -127,10 +128,9 @@ export function useAutomation(startValue = null) {
     const newActions = [...automation.value.actions];
 
     // For scheduled messages, initialize with default delay
-    const DEFAULT_DELAY_MINUTES = 24 * 60; // 24 hours
     const actionParams =
       action.action_name === 'create_scheduled_message'
-        ? [{ delay_minutes: DEFAULT_DELAY_MINUTES }]
+        ? [{ delay_minutes: DEFAULT_SCHEDULED_MESSAGE_DELAY_MINUTES }]
         : [];
 
     newActions[index] = {
