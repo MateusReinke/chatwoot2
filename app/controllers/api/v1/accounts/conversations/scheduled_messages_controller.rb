@@ -28,7 +28,7 @@ class Api::V1::Accounts::Conversations::ScheduledMessagesController < Api::V1::A
 
   def destroy
     if @scheduled_message.sent? || @scheduled_message.failed?
-      return render json: { errors: ['Cannot delete a scheduled message that has already been sent or failed'] }, status: :unprocessable_entity
+      return render json: { error: I18n.t('errors.scheduled_messages.cannot_delete_processed') }, status: :unprocessable_entity
     end
 
     scheduled_message = @scheduled_message
