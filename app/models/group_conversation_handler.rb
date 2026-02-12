@@ -11,7 +11,7 @@ module GroupConversationHandler # rubocop:disable Metrics/ModuleLength
   # - extract_sender_identifier: Returns a unique identifier for the message sender
   # - extract_sender_source_id: Returns the source_id for the sender contact_inbox
   # - extract_sender_name: Returns the display name of the sender
-  # - extract_sender_phone: Returns the phone number of the sender (optional)
+  # - extract_sender_phone: Returns the phone number of the sender
   # - build_sender_contact_attributes: Returns a hash of attributes for the sender contact
 
   private
