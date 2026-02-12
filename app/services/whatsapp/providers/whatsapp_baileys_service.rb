@@ -225,6 +225,19 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     response.parsed_response
   end
 
+  def group_metadata(group_jid)
+    response = HTTParty.get(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-metadata",
+      headers: api_headers,
+      query: { jid: group_jid },
+      format: :json
+    )
+
+    return nil unless process_response(response)
+
+    response.parsed_response&.deep_symbolize_keys
+  end
+
   def on_whatsapp(recipient_id)
     @recipient_id = recipient_id
 

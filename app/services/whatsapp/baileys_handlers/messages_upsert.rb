@@ -1,5 +1,6 @@
 module Whatsapp::BaileysHandlers::MessagesUpsert
   include Whatsapp::BaileysHandlers::Helpers
+  include Whatsapp::BaileysHandlers::Concerns::GroupMessageHandler
   include Whatsapp::BaileysHandlers::Concerns::ContactMessageHandler
   include BaileysHelper
 
@@ -28,5 +29,6 @@ module Whatsapp::BaileysHandlers::MessagesUpsert
     return if find_message_by_source_id(raw_message_id)
 
     return handle_contact_message if %w[lid user].include?(jid_type)
+    return handle_group_message if jid_type == 'group'
   end
 end
