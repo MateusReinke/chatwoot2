@@ -157,9 +157,12 @@ module GroupConversationHandler # rubocop:disable Metrics/ModuleLength
   end
 
   def build_sender_contact_attributes
+    phone = extract_sender_phone
+    identifier = extract_sender_identifier
+
     attrs = { name: extract_sender_name }
-    attrs[:phone_number] = extract_sender_phone if extract_sender_phone.present?
-    attrs[:identifier] = extract_sender_identifier if extract_sender_identifier.present?
+    attrs[:phone_number] = phone if phone.present?
+    attrs[:identifier] = identifier if identifier.present?
     attrs
   end
 end
