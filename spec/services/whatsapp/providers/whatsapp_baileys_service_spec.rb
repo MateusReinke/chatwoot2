@@ -577,6 +577,30 @@ describe Whatsapp::Providers::WhatsappBaileysService do
       end
     end
 
+    context 'when recipient is a group' do
+      let(:group_jid) { '123456789123456789@g.us' }
+
+      it 'uses the group JID as-is without transformation' do
+        stub_request(:post, request_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: { text: message.content }
+            }.to_json
+          )
+          .to_return(
+            status: 200,
+            headers: { 'Content-Type' => 'application/json' },
+            body: result_body.to_json
+          )
+
+        result = service.send_message(group_jid, message)
+
+        expect(result).to eq('msg_123')
+      end
+    end
+
     context 'when request is unsuccessful' do
       it 'raises ProviderUnavailableError' do
         stub_request(:post, request_path)
