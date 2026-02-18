@@ -539,8 +539,6 @@ RSpec.describe Api::V1::Accounts::InboxCsatTemplatesController, type: :request d
       it 'returns only compatible templates' do
         whatsapp_channel.update!(message_templates: [compatible_template, incompatible_template])
 
-        allow(mock_service).to receive(:valid_csat_template?).with(compatible_template).and_return(true)
-        allow(mock_service).to receive(:valid_csat_template?).with(incompatible_template).and_return(false)
         allow(mock_service).to receive(:available_csat_templates).and_return([
                                                                                {
                                                                                  name: 'survey_template',

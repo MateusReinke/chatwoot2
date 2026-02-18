@@ -155,7 +155,8 @@ class CsatSurveyService
     return value if value.blank?
 
     template = Liquid::Template.parse(value)
-    template.render(liquid_drops)
+    result = template.render(liquid_drops)
+    result.presence || value
   rescue Liquid::Error
     value
   end

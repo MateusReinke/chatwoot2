@@ -920,13 +920,16 @@
         "LINK_SUCCESS": "Modelo vinculado com sucesso",
         "LINK_ERROR": "Falha ao vincular o modelo",
         "LOADING": "Carregando modelos...",
-        "USING_LABEL": "Usando modelo existente: {name}"
+        "USING_LABEL": "Usando modelo existente: {name}",
+        "SYNC_ERROR": "Falha ao sincronizar modelos. Por favor, tente novamente."
       },
       "TEMPLATE_VARIABLES": {
         "TITLE": "Variáveis do modelo",
-        "DESCRIPTION": "Defina os valores para as variáveis do corpo do modelo. Você pode usar variáveis dinâmicas como {{contact.name}} que serão resolvidas no momento do envio.",
+        "DESCRIPTION": "Defina os valores para as variáveis do corpo do modelo. Você pode usar variáveis dinâmicas como {'{{'} contact.name {'}}'} que serão resolvidas no momento do envio.",
         "VARIABLE_LABEL": "Variável {variable}",
         "VARIABLE_PLACEHOLDER": "Insira o valor para {variable}",
+        "VARIABLE_REQUIRED": "Esta variável é obrigatória",
+        "VALIDATION_ERROR": "Por favor, defina todas as variáveis do modelo antes de salvar.",
         "INSERT_VARIABLE": "Inserir variável"
       },
       "TEMPLATE_UPDATE_DIALOG": {

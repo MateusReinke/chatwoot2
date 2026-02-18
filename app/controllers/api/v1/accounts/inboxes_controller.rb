@@ -215,7 +215,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController #
      { csat_config: [:display_type, :message, :button_text, :language,
                      { survey_rules: [:operator, { values: [] }],
                        template: [:name, :template_id, :friendly_name, :content_sid, :approval_sid,
-                                  :created_at, :linked_at, :language, :status, :source, { body_variables: {} }] }] }]
+                                  :created_at, :linked_at, :language, :source, :status, { body_variables: {} }] }] }]
   end
 
   def permitted_params(channel_attributes = [])

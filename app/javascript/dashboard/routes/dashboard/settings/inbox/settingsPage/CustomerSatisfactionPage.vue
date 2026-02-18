@@ -55,6 +55,7 @@ const state = reactive({
 const templateStatus = ref(null);
 const templateLoading = ref(false);
 const confirmDialog = ref(null);
+const templateSelectorRef = ref(null);
 const templateMode = ref('create_new');
 const selectedExistingTemplateName = ref('');
 const bodyVariables = ref({});
@@ -111,7 +112,7 @@ const resolvedExistingTemplateBody = computed(() => {
   let message = existingTemplateBody.value;
   Object.entries(bodyVariables.value).forEach(([key, value]) => {
     if (value) {
-      message = message.replace(`{{${key}}}`, value);
+      message = message.replaceAll(`{{${key}}}`, value);
     }
   });
   return message;
@@ -132,7 +133,10 @@ const messagePreviewData = computed(() => {
 
 const previewButtonText = computed(() => {
   if (templateMode.value === 'use_existing') {
-    return existingTemplateButtonText.value || 'Please rate us';
+    return (
+      existingTemplateButtonText.value ||
+      t('INBOX_MGMT.CSAT.BUTTON_TEXT.PLACEHOLDER')
+    );
   }
   return state.templateButtonText;
 });
@@ -431,6 +435,15 @@ const performSave = async () => {
         // Link existing template mode — require selection
         if (!selectedExistingTemplateName.value) return;
 
+        // Validate all body variables are filled
+        if (
+          templateSelectorRef.value &&
+          !templateSelectorRef.value.validate()
+        ) {
+          useAlert(t('INBOX_MGMT.CSAT.TEMPLATE_VARIABLES.VALIDATION_ERROR'));
+          return;
+        }
+
         try {
           newTemplateData = await linkTemplate();
         } catch (error) {
@@ -608,6 +621,7 @@ const handleConfirmTemplateUpdate = async () => {
                 "
               >
                 <ExistingTemplateSelector
+                  ref="templateSelectorRef"
                   v-model="selectedExistingTemplateName"
                   :inbox-id="inbox.id"
                   :body-variables="bodyVariables"

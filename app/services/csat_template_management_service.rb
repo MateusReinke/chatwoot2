@@ -36,19 +36,14 @@ class CsatTemplateManagementService # rubocop:disable Metrics/ClassLength
 
   def link_existing_template(template_name, language, body_variables: {})
     raise ArgumentError, 'Template name is required' if template_name.blank?
-    raise ArgumentError, 'Only WhatsApp Cloud channels are supported' unless @inbox.whatsapp?
+    raise ArgumentError, 'Only WhatsApp Cloud channels are supported' unless whatsapp_cloud_channel?
 
     csat_service = Whatsapp::CsatTemplateService.new(@inbox.channel)
     status_result = csat_service.get_template_status(template_name)
     raise ArgumentError, 'Template not found on Meta' unless status_result[:success]
 
     template_data = find_template_in_synced(template_name)
-    raise ArgumentError, 'Template not found in synced templates. Please sync templates first.' if template_data.blank?
-
-    unless csat_service.valid_csat_template?(template_data)
-      raise ArgumentError,
-            'Template is not compatible with CSAT surveys. It must have a URL button with a dynamic parameter.'
-    end
+    validate_synced_template!(csat_service, template_data, body_variables)
 
     delete_existing_template_if_needed
 
@@ -61,15 +56,45 @@ class CsatTemplateManagementService # rubocop:disable Metrics/ClassLength
   end
 
   def available_templates
-    raise ArgumentError, 'Only WhatsApp Cloud channels are supported' unless @inbox.whatsapp?
+    raise ArgumentError, 'Only WhatsApp Cloud channels are supported' unless whatsapp_cloud_channel?
 
     Whatsapp::CsatTemplateService.new(@inbox.channel).available_csat_templates
+  rescue ArgumentError
+    []
   rescue StandardError => e
     Rails.logger.error "Error fetching available CSAT templates: #{e.message}"
     []
   end
 
   private
+
+  def whatsapp_cloud_channel?
+    @inbox.whatsapp? && @inbox.channel&.provider == 'whatsapp_cloud'
+  end
+
+  def validate_body_variables!(required_variables, body_variables)
+    return if required_variables.blank?
+
+    missing = required_variables.select { |key| body_variables[key].blank? }
+    raise ArgumentError, "All body variables must be set. Missing: #{missing.join(', ')}" if missing.any?
+  end
+
+  def extract_required_variables(template_data)
+    body_text = template_data['components']&.find { |c| c['type'] == 'BODY' }&.dig('text')
+    return [] if body_text.blank?
+
+    body_text.scan(/\{\{(\d+)\}\}/).flatten.uniq.sort_by(&:to_i)
+  end
+
+  def validate_synced_template!(csat_service, template_data, body_variables)
+    raise ArgumentError, 'Template not found in synced templates. Please sync templates first.' if template_data.blank?
+
+    unless csat_service.valid_csat_template?(template_data)
+      raise ArgumentError, 'Template is not compatible with CSAT surveys. It must have a URL button with a dynamic parameter.'
+    end
+
+    validate_body_variables!(extract_required_variables(template_data), body_variables)
+  end
 
   def validate_template_params!(template_params)
     raise ActionController::ParameterMissing, 'message' if template_params[:message].blank?
@@ -117,7 +142,7 @@ class CsatTemplateManagementService # rubocop:disable Metrics/ClassLength
       'source' => 'user_selected',
       'linked_at' => Time.current.iso8601
     }
-    template_data['body_variables'] = body_variables.to_h if body_variables.present?
+    template_data['body_variables'] = body_variables if body_variables.present?
     @inbox.update!(csat_config: current_config.merge('template' => template_data))
 
     {

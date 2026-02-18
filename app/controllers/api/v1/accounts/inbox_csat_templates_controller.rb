@@ -34,6 +34,8 @@ class Api::V1::Accounts::InboxCsatTemplatesController < Api::V1::Accounts::BaseC
     )
 
     render_link_result(result)
+  rescue ActionController::ParameterMissing
+    render json: { error: 'Template parameters are required' }, status: :unprocessable_entity
   end
 
   def available_templates

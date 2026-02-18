@@ -967,13 +967,16 @@
         "LINK_SUCCESS": "Template linked successfully",
         "LINK_ERROR": "Failed to link template",
         "LOADING": "Loading templates...",
-        "USING_LABEL": "Using existing template: {name}"
+        "USING_LABEL": "Using existing template: {name}",
+        "SYNC_ERROR": "Failed to sync templates. Please try again."
       },
       "TEMPLATE_VARIABLES": {
         "TITLE": "Template variables",
-        "DESCRIPTION": "Set values for the template body variables. You can use dynamic variables like {{contact.name}} that will be resolved at send time.",
+        "DESCRIPTION": "Set values for the template body variables. You can use dynamic variables like {'{{'} contact.name {'}}'} that will be resolved at send time.",
         "VARIABLE_LABEL": "Variable {variable}",
         "VARIABLE_PLACEHOLDER": "Enter value for {variable}",
+        "VARIABLE_REQUIRED": "This variable is required",
+        "VALIDATION_ERROR": "Please set all template variables before saving.",
         "INSERT_VARIABLE": "Insert variable"
       },
       "TEMPLATE_UPDATE_DIALOG": {

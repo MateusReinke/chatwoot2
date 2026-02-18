@@ -88,7 +88,7 @@ class Whatsapp::CsatTemplateService
   def extract_body_variables(body_text)
     return [] if body_text.blank?
 
-    body_text.scan(/\{\{(\d+)\}\}/).flatten.uniq.sort
+    body_text.scan(/\{\{(\d+)\}\}/).flatten.uniq.sort_by(&:to_i)
   end
 
   def generate_template_name(base_name)

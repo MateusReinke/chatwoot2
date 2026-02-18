@@ -120,6 +120,25 @@ const clearVariable = key => {
   emit('update:bodyVariables', { ...localBodyVariables.value });
 };
 
+const variableErrors = ref({});
+
+const validate = () => {
+  const errors = {};
+  bodyVariableKeys.value.forEach(key => {
+    if (!localBodyVariables.value[key]?.trim()) {
+      errors[key] = true;
+    }
+  });
+  variableErrors.value = errors;
+  return Object.keys(errors).length === 0;
+};
+
+const clearErrors = () => {
+  variableErrors.value = {};
+};
+
+defineExpose({ validate, clearErrors });
+
 const fetchAvailableTemplates = async () => {
   try {
     isLoading.value = true;
@@ -144,7 +163,7 @@ const syncAndRefetch = async () => {
     await store.dispatch('inboxes/syncTemplates', props.inboxId);
     await fetchAvailableTemplates();
   } catch {
-    useAlert(t('INBOX_MGMT.CSAT.TEMPLATE_CREATION.ERROR_MESSAGE'));
+    useAlert(t('INBOX_MGMT.CSAT.EXISTING_TEMPLATE.SYNC_ERROR'));
   } finally {
     isSyncing.value = false;
   }
@@ -228,6 +247,7 @@ onMounted(fetchAvailableTemplates);
             {{ liquidVariableLabel(localBodyVariables[key]) }}
           </span>
           <button
+            type="button"
             class="flex items-center p-0.5 rounded transition-colors text-n-slate-10 hover:text-n-slate-12 hover:bg-n-alpha-black2"
             @click="clearVariable(key)"
           >
@@ -243,7 +263,18 @@ onMounted(fetchAvailableTemplates);
                 variable: key,
               })
             "
-            @update:model-value="value => updateBodyVariable(key, value)"
+            :message-type="variableErrors[key] ? 'error' : 'info'"
+            :message="
+              variableErrors[key]
+                ? $t('INBOX_MGMT.CSAT.TEMPLATE_VARIABLES.VARIABLE_REQUIRED')
+                : ''
+            "
+            @update:model-value="
+              value => {
+                updateBodyVariable(key, value);
+                if (value?.trim()) variableErrors[key] = false;
+              }
+            "
           />
           <ComboBox
             :options="LIQUID_VARIABLES"
