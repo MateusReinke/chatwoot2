@@ -79,13 +79,6 @@ class CsatTemplateManagementService # rubocop:disable Metrics/ClassLength
     raise ArgumentError, "All body variables must be set. Missing: #{missing.join(', ')}" if missing.any?
   end
 
-  def extract_required_variables(template_data)
-    body_text = template_data['components']&.find { |c| c['type'] == 'BODY' }&.dig('text')
-    return [] if body_text.blank?
-
-    body_text.scan(/\{\{(\d+)\}\}/).flatten.uniq.sort_by(&:to_i)
-  end
-
   def validate_synced_template!(csat_service, template_data, body_variables)
     raise ArgumentError, 'Template not found in synced templates. Please sync templates first.' if template_data.blank?
 
@@ -93,7 +86,8 @@ class CsatTemplateManagementService # rubocop:disable Metrics/ClassLength
       raise ArgumentError, 'Template is not compatible with CSAT surveys. It must have a URL button with a dynamic parameter.'
     end
 
-    validate_body_variables!(extract_required_variables(template_data), body_variables)
+    body_text = template_data['components']&.find { |c| c['type'] == 'BODY' }&.dig('text')
+    validate_body_variables!(csat_service.extract_body_variables(body_text), body_variables)
   end
 
   def validate_template_params!(template_params)

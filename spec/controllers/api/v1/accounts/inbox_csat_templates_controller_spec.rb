@@ -438,6 +438,8 @@ RSpec.describe Api::V1::Accounts::InboxCsatTemplatesController, type: :request d
         allow(mock_service).to receive(:valid_csat_template?)
           .with(compatible_template)
           .and_return(true)
+        allow(mock_service).to receive(:extract_body_variables)
+          .and_return([])
 
         post "/api/v1/accounts/#{account.id}/inboxes/#{whatsapp_inbox.id}/csat_template/link",
              headers: admin.create_new_auth_token,

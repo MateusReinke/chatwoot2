@@ -60,6 +60,12 @@ class Whatsapp::CsatTemplateService
     approved_csat_templates.map { |template| build_available_template_entry(template) }
   end
 
+  def extract_body_variables(body_text)
+    return [] if body_text.blank?
+
+    body_text.scan(/\{\{(\d+)\}\}/).flatten.uniq.sort_by(&:to_i)
+  end
+
   private
 
   def extract_url_button(template)
@@ -83,12 +89,6 @@ class Whatsapp::CsatTemplateService
       button_url: url_button&.dig('url'),
       body_variables: extract_body_variables(body_text)
     }
-  end
-
-  def extract_body_variables(body_text)
-    return [] if body_text.blank?
-
-    body_text.scan(/\{\{(\d+)\}\}/).flatten.uniq.sort_by(&:to_i)
   end
 
   def generate_template_name(base_name)
