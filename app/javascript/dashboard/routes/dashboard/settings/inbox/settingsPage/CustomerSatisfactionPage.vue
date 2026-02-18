@@ -418,7 +418,8 @@ const linkTemplate = async () => {
 const handleTemplateSelected = template => {
   state.templateLanguage = template.language || 'en';
   existingTemplateBody.value = template.body_text || '';
-  existingTemplateButtonText.value = template.button_text || 'Please rate us';
+  existingTemplateButtonText.value =
+    template.button_text || t('INBOX_MGMT.CSAT.BUTTON_TEXT.PLACEHOLDER');
 };
 
 const performSave = async () => {
@@ -494,7 +495,7 @@ const performSave = async () => {
           language: newTemplateData.language,
           status: newTemplateData.status,
           source: 'user_selected',
-          linked_at: new Date().toISOString(),
+          linked_at: newTemplateData.linked_at,
           body_variables: bodyVariables.value,
         };
       } else if (isATwilioWhatsAppChannel.value) {

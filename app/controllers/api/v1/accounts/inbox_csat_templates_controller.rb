@@ -71,13 +71,14 @@ class Api::V1::Accounts::InboxCsatTemplatesController < Api::V1::Accounts::BaseC
       render json: {
         template: {
           name: result[:template_name], template_id: result[:template_id],
-          status: result[:status], language: result[:language], source: result[:source]
+          status: result[:status], language: result[:language], source: result[:source],
+          linked_at: result[:linked_at]
         }
       }, status: :ok
     elsif result[:error]
       render json: { error: result[:error] }, status: :unprocessable_entity
     else
-      render json: { error: result[:service_error] }, status: :internal_server_error
+      render json: { error: result[:service_error] || 'An unexpected error occurred' }, status: :internal_server_error
     end
   end
 

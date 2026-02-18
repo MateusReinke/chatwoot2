@@ -145,7 +145,8 @@ class CsatTemplateManagementService # rubocop:disable Metrics/ClassLength
       template_id: template_data['template_id'],
       language: template_data['language'],
       status: status_result.dig(:template, :status),
-      source: 'user_selected'
+      source: 'user_selected',
+      linked_at: template_data['linked_at']
     }
   end
 
