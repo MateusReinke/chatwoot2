@@ -163,7 +163,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop
   end
 
   def extract_sender_jid
-    return @raw_message[:key][:fromMe] ? 'me' : nil if @raw_message[:key][:participant].blank?
+    return if @raw_message[:key][:participant].blank?
 
     @raw_message[:key][:participant]
   end
@@ -180,7 +180,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop
     end
 
     sender_jid = extract_sender_jid
-    return nil if sender_jid.blank? || sender_jid == 'me'
+    return if sender_jid.blank?
 
     jid_part = sender_jid.split('@').first
     parts = jid_part.split(':')
@@ -189,7 +189,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop
 
   def baileys_sender_lid
     sender_jid = extract_sender_jid
-    return nil if sender_jid.blank? || sender_jid == 'me'
+    return if sender_jid.blank?
 
     jid_part, jid_suffix = sender_jid.split('@')
     return jid_part if jid_suffix == 'lid' && jid_part.match?(/^\d+$/)
