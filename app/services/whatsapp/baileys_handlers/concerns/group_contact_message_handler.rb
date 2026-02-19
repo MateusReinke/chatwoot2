@@ -1,11 +1,11 @@
-module Whatsapp::BaileysHandlers::Concerns::GroupMessageHandler # rubocop:disable Metrics/ModuleLength
+module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop:disable Metrics/ModuleLength
   extend ActiveSupport::Concern
   include GroupConversationHandler
   include Whatsapp::BaileysHandlers::Concerns::MessageCreationHandler
 
   private
 
-  def handle_group_message
+  def handle_group_contact_message
     @lock_acquired = acquire_message_processing_lock
     return unless @lock_acquired
 

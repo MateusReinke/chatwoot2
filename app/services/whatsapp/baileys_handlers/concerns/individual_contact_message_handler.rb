@@ -1,10 +1,10 @@
-module Whatsapp::BaileysHandlers::Concerns::ContactMessageHandler
+module Whatsapp::BaileysHandlers::Concerns::IndividualContactMessageHandler
   extend ActiveSupport::Concern
   include Whatsapp::BaileysHandlers::Concerns::MessageCreationHandler
 
   private
 
-  def handle_contact_message
+  def handle_individual_contact_message
     return unless extract_from_jid(type: 'lid')
 
     @lock_acquired = acquire_message_processing_lock
