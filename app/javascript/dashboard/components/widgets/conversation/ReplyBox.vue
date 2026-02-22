@@ -1030,9 +1030,9 @@ export default {
       };
       return file && this.onFileUpload(autoRecordedFile);
     },
-    onRecordError({ message }) {
+    onRecordError() {
       this.toggleAudioRecorder();
-      useAlert(message);
+      useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'));
     },
     toggleTyping(status) {
       const conversationId = this.currentChat.id;

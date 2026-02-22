@@ -68,7 +68,7 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
                              else
                                file_type(uploaded_attachment&.content_type)
                              end
-      transcode_attachment(attachment, uploaded_attachment) if should_transcode?(attachment)
+      transcode_attachment(attachment, file_like_source(uploaded_attachment)) if should_transcode?(attachment)
     end
   end
 
@@ -114,6 +114,13 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
 
   def should_transcode?(attachment)
     @transcode_audio.present? && attachment.file_type == 'audio'
+  end
+
+  # Returns the uploaded file only when it's a real file-like object (ActionDispatch::Http::UploadedFile,
+  # Tempfile, etc.). Direct-upload signed-ID Strings are not usable as source files for transcoding;
+  # TranscodeService falls back to downloading from the blob in that case.
+  def file_like_source(uploaded_attachment)
+    return uploaded_attachment if uploaded_attachment.respond_to?(:path) || uploaded_attachment.respond_to?(:tempfile)
   end
 
   def transcode_attachment(attachment, uploaded_file = nil)

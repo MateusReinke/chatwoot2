@@ -40,6 +40,7 @@ const formatTimeProgress = time => {
 const AUDIO_EXTENSION_MAP = {
   'audio/ogg': 'ogg',
   'audio/mp3': 'mp3',
+  'audio/mpeg': 'mp3',
   'audio/wav': 'wav',
   'audio/webm': 'webm',
 };
@@ -103,7 +104,7 @@ const initWaveSurfer = () => {
     } catch (error) {
       isRecording.value = false;
       hasRecording.value = false;
-      emit('recordError', { message: 'Conversion failed', error });
+      emit('recordError', { error });
     }
   });
 

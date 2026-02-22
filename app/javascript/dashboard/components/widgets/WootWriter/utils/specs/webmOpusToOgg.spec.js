@@ -10,9 +10,10 @@ function blobFrom(bytes) {
   const blob = new Blob([bytes], { type: 'audio/webm' });
   if (!blob.arrayBuffer) {
     blob.arrayBuffer = () =>
-      new Promise(resolve => {
+      new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
         reader.readAsArrayBuffer(blob);
       });
   }
@@ -26,9 +27,10 @@ async function readBlobAsArrayBuffer(blob) {
   if (blob.arrayBuffer) {
     return blob.arrayBuffer();
   }
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
     reader.readAsArrayBuffer(blob);
   });
 }
@@ -270,7 +272,7 @@ describe('remuxWebmToOgg', () => {
     const outBytes = new Uint8Array(outBuf);
 
     // Find second OggS page
-    let pageStarts = [];
+    const pageStarts = [];
     for (let i = 0; i <= outBytes.length - 4; i += 1) {
       if (
         outBytes[i] === 0x4f &&

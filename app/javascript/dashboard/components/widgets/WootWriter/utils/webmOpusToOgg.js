@@ -96,6 +96,7 @@ function readUintBE(data, offset, length) {
 }
 
 function readFloatBE(data, offset, length) {
+  if (length !== 4 && length !== 8) return NaN;
   const buf = new ArrayBuffer(length);
   const u8 = new Uint8Array(buf);
   for (let i = 0; i < length; i += 1) u8[i] = data[offset + i];
