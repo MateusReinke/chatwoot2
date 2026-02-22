@@ -27,6 +27,7 @@ const record = ref(null);
 const isRecording = ref(false);
 const isPlaying = ref(false);
 const hasRecording = ref(false);
+const recordedAudioUrl = ref(null);
 
 const formatTimeProgress = time => {
   const duration = intervalToDuration({ start: 0, end: time });
@@ -81,16 +82,16 @@ const initWaveSurfer = () => {
   });
 
   record.value.on('record-end', async blob => {
-    let audioUrl;
     try {
-      audioUrl = URL.createObjectURL(blob);
       const audioBlob = await convertAudio(blob, props.audioRecordFormat);
       const ext = AUDIO_EXTENSION_MAP[props.audioRecordFormat] || 'mp3';
       const fileName = `${getUuid()}.${ext}`;
       const file = new File([audioBlob], fileName, {
         type: props.audioRecordFormat,
       });
-      wavesurfer.value.load(audioUrl);
+      if (recordedAudioUrl.value) URL.revokeObjectURL(recordedAudioUrl.value);
+      recordedAudioUrl.value = URL.createObjectURL(audioBlob);
+      wavesurfer.value.load(recordedAudioUrl.value);
       emit('finishRecord', {
         name: file.name,
         type: file.type,
@@ -100,7 +101,6 @@ const initWaveSurfer = () => {
       hasRecording.value = true;
       isRecording.value = false;
     } catch (error) {
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
       isRecording.value = false;
       hasRecording.value = false;
       emit('recordError', { message: 'Conversion failed', error });
@@ -137,6 +137,10 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (recordedAudioUrl.value) {
+    URL.revokeObjectURL(recordedAudioUrl.value);
+    recordedAudioUrl.value = null;
+  }
   if (wavesurfer.value) {
     wavesurfer.value.destroy();
   }

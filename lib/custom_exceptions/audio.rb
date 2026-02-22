@@ -1,4 +1,13 @@
 module CustomExceptions::Audio
-  class UnsupportedFormatError < StandardError; end
-  class TranscodingError < StandardError; end
+  class UnsupportedFormatError < CustomExceptions::Base
+    def message
+      @data
+    end
+  end
+
+  class TranscodingError < CustomExceptions::Base
+    def message
+      @data
+    end
+  end
 end

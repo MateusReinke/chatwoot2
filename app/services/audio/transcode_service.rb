@@ -30,10 +30,12 @@ class Audio::TranscodeService
 
   def transcode_attachment
     format_config = SUPPORTED_FORMATS[@target_format]
-    input_file = download_to_tempfile
-    output_file = Tempfile.new(['transcoded', ".#{format_config[:extension]}"])
+    input_file = nil
+    output_file = nil
 
     begin
+      input_file = download_to_tempfile
+      output_file = Tempfile.new(['transcoded', ".#{format_config[:extension]}"])
       movie = FFMPEG::Movie.new(input_file.path)
       raise CustomExceptions::Audio::TranscodingError, 'Invalid or unreadable audio file' unless movie.valid?
 

@@ -33,6 +33,48 @@ async function readBlobAsArrayBuffer(blob) {
   });
 }
 
+// --- EBML element helpers (shared across tests) ---
+
+function writeVint(value) {
+  // 1-byte VINT for values 0-126
+  if (value < 0x7f) return [0x80 | value];
+  // 2-byte VINT for values up to 0x3fff
+  return [0x40 | ((value >> 8) & 0x3f), value & 0xff];
+}
+
+function writeId(id) {
+  if (id <= 0xff) return [id];
+  if (id <= 0xffff) return [(id >> 8) & 0xff, id & 0xff];
+  if (id <= 0xffffff) return [(id >> 16) & 0xff, (id >> 8) & 0xff, id & 0xff];
+  return [(id >> 24) & 0xff, (id >> 16) & 0xff, (id >> 8) & 0xff, id & 0xff];
+}
+
+function element(id, payload) {
+  return [...writeId(id), ...writeVint(payload.length), ...payload];
+}
+
+function masterUnknown(id, children) {
+  // Unknown size: 0x01 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF (8-byte VINT all-ones)
+  const childBytes = children.flat();
+  return [
+    ...writeId(id),
+    0x01,
+    0xff,
+    0xff,
+    0xff,
+    0xff,
+    0xff,
+    0xff,
+    0xff,
+    ...childBytes,
+  ];
+}
+
+function master(id, children) {
+  const childBytes = children.flat();
+  return element(id, childBytes);
+}
+
 /**
  * Build a minimal valid WebM-like buffer that contains at least one
  * SimpleBlock with a synthetic Opus packet.
@@ -50,47 +92,6 @@ async function readBlobAsArrayBuffer(blob) {
  */
 function buildMinimalWebM() {
   const parts = [];
-
-  // --- EBML element helpers ---
-  function writeVint(value) {
-    // 1-byte VINT for values 0-126
-    if (value < 0x7f) return [0x80 | value];
-    // 2-byte VINT for values up to 0x3fff
-    return [0x40 | ((value >> 8) & 0x3f), value & 0xff];
-  }
-
-  function writeId(id) {
-    if (id <= 0xff) return [id];
-    if (id <= 0xffff) return [(id >> 8) & 0xff, id & 0xff];
-    if (id <= 0xffffff) return [(id >> 16) & 0xff, (id >> 8) & 0xff, id & 0xff];
-    return [(id >> 24) & 0xff, (id >> 16) & 0xff, (id >> 8) & 0xff, id & 0xff];
-  }
-
-  function element(id, payload) {
-    return [...writeId(id), ...writeVint(payload.length), ...payload];
-  }
-
-  function masterUnknown(id, children) {
-    // Unknown size: 0x01 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF (8-byte VINT all-ones)
-    const childBytes = children.flat();
-    return [
-      ...writeId(id),
-      0x01,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      ...childBytes,
-    ];
-  }
-
-  function master(id, children) {
-    const childBytes = children.flat();
-    return element(id, childBytes);
-  }
 
   // Channels = 1 (element 0x9F, uint8)
   const channels = element(0x9f, [1]);
@@ -322,49 +323,6 @@ describe('remuxWebmToOgg', () => {
 
     // Build a WebM with a laced SimpleBlock (flags byte with lacing bits set)
     const parts = [];
-
-    function writeVint(value) {
-      if (value < 0x7f) return [0x80 | value];
-      return [0x40 | ((value >> 8) & 0x3f), value & 0xff];
-    }
-
-    function writeId(id) {
-      if (id <= 0xff) return [id];
-      if (id <= 0xffff) return [(id >> 8) & 0xff, id & 0xff];
-      if (id <= 0xffffff)
-        return [(id >> 16) & 0xff, (id >> 8) & 0xff, id & 0xff];
-      return [
-        (id >> 24) & 0xff,
-        (id >> 16) & 0xff,
-        (id >> 8) & 0xff,
-        id & 0xff,
-      ];
-    }
-
-    function element(id, payload) {
-      return [...writeId(id), ...writeVint(payload.length), ...payload];
-    }
-
-    function masterUnknown(id, children) {
-      const childBytes = children.flat();
-      return [
-        ...writeId(id),
-        0x01,
-        0xff,
-        0xff,
-        0xff,
-        0xff,
-        0xff,
-        0xff,
-        0xff,
-        ...childBytes,
-      ];
-    }
-
-    function master(id, children) {
-      const childBytes = children.flat();
-      return element(id, childBytes);
-    }
 
     const tracks = master(0x1654ae6b, [
       master(0xae, [master(0xe1, [element(0x9f, [1])])]),

@@ -1030,6 +1030,10 @@ export default {
       };
       return file && this.onFileUpload(autoRecordedFile);
     },
+    onRecordError({ message }) {
+      this.toggleAudioRecorder();
+      useAlert(message);
+    },
     toggleTyping(status) {
       const conversationId = this.currentChat.id;
       const isPrivate = this.isPrivate;
@@ -1097,13 +1101,11 @@ export default {
             sender: this.sender,
           };
 
-          if (attachment.isRecordedAudio) {
-            if (!attachmentPayload.isRecordedAudio) {
-              attachmentPayload.isRecordedAudio = [];
-            }
-            attachmentPayload.isRecordedAudio.push(
-              attachment.resource.file.name
-            );
+          if (
+            attachment.isRecordedAudio &&
+            !this.globalConfig.directUploadsEnabled
+          ) {
+            attachmentPayload.isRecordedAudio = [attachment.resource.file.name];
           }
 
           attachmentPayload = this.setReplyToInPayload(attachmentPayload);
@@ -1316,6 +1318,7 @@ export default {
           :audio-record-format="audioRecordFormat"
           @recorder-progress-changed="onRecordProgressChanged"
           @finish-record="onFinishRecorder"
+          @record-error="onRecordError"
           @play="recordingAudioState = 'playing'"
           @pause="recordingAudioState = 'paused'"
         />

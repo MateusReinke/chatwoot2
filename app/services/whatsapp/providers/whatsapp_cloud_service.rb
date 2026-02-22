@@ -158,7 +158,7 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     attachment = message.attachments.first
     normalize_opus_content_type(attachment)
     type = %w[image audio video].include?(attachment.file_type) ? attachment.file_type : 'document'
-    type_content = { 'link': attachment.download_url }
+    type_content = { 'link' => attachment.download_url }
     type_content['caption'] = message.outgoing_content unless %w[audio sticker].include?(type)
     type_content['filename'] = attachment.file.filename if type == 'document'
     type_content['voice'] = true if voice_message?(type, attachment)
@@ -191,7 +191,9 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     blob = attachment.file.blob
     return unless blob.content_type == 'audio/opus'
 
-    blob.update!(content_type: 'audio/ogg')
+    return if blob.update(content_type: 'audio/ogg')
+
+    Rails.logger.error("Failed to normalize blob #{blob.id} content_type from audio/opus to audio/ogg")
   end
 
   def error_message(response)

@@ -398,7 +398,7 @@ export async function remuxWebmToOgg(webmBlob) {
     }
   }
 
-  const serial = (Math.random() * 0xffffffff) >>> 0;
+  const serial = (Math.random() * 0x100000000) >>> 0;
   let pageSeq = 0;
   const pages = [];
 
