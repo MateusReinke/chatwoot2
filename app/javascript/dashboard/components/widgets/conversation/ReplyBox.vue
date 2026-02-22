@@ -1101,11 +1101,11 @@ export default {
             sender: this.sender,
           };
 
-          if (
-            attachment.isRecordedAudio &&
-            !this.globalConfig.directUploadsEnabled
-          ) {
-            attachmentPayload.isRecordedAudio = [attachment.resource.file.name];
+          if (attachment.isRecordedAudio) {
+            attachmentPayload.isRecordedAudio = this.globalConfig
+              .directUploadsEnabled
+              ? true
+              : [attachment.resource.file.name];
           }
 
           attachmentPayload = this.setReplyToInPayload(attachmentPayload);
@@ -1156,6 +1156,9 @@ export default {
         this.attachedFiles.forEach(attachment => {
           if (this.globalConfig.directUploadsEnabled) {
             messagePayload.files.push(attachment.blobSignedId);
+            if (attachment.isRecordedAudio) {
+              messagePayload.isRecordedAudio = true;
+            }
           } else {
             messagePayload.files.push(attachment.resource.file);
             if (attachment.isRecordedAudio) {
