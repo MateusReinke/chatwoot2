@@ -1097,11 +1097,13 @@ export default {
             sender: this.sender,
           };
 
-          if (
-            attachment.isRecordedAudio &&
-            !this.globalConfig.directUploadsEnabled
-          ) {
-            attachmentPayload.isRecordedAudio = [attachment.resource.file.name];
+          if (attachment.isRecordedAudio) {
+            if (!attachmentPayload.isRecordedAudio) {
+              attachmentPayload.isRecordedAudio = [];
+            }
+            attachmentPayload.isRecordedAudio.push(
+              attachment.resource.file.name
+            );
           }
 
           attachmentPayload = this.setReplyToInPayload(attachmentPayload);

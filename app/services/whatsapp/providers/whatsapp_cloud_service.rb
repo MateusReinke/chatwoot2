@@ -181,9 +181,10 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     type == 'audio' && attachment.meta&.dig('is_recorded_audio') && attachment.file.content_type == 'audio/ogg'
   end
 
-  # Marcel gem detects OGG/Opus files as audio/opus, but WhatsApp Cloud API
-  # requires audio/ogg for voice messages. Normalize so the download URL
-  # serves the correct Content-Type header.
+  # Marcel gem may re-detect OGG/Opus files as audio/opus after ActiveStorage
+  # blob attachment, but WhatsApp Cloud API requires audio/ogg content type
+  # for voice messages. Normalize so the download URL serves the correct
+  # Content-Type header. No-op when the frontend already uploads as audio/ogg.
   def normalize_opus_content_type(attachment)
     return unless attachment.file.attached?
 

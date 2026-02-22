@@ -126,8 +126,8 @@ describe Whatsapp::Providers::WhatsappCloudService do
 
         # Ensure voice flag is NOT present for non-ogg audio
         expect(service.send_message('+123456789', message)).to eq 'message_id'
-        expect(WebMock).to(have_requested(:post, 'https://graph.facebook.com/v24.0/123456789/messages')
-          .with { |req| !JSON.parse(req.body).dig('audio', 'voice') })
+        expect(WebMock).not_to(have_requested(:post, 'https://graph.facebook.com/v24.0/123456789/messages')
+          .with { |req| JSON.parse(req.body).dig('audio', 'voice') })
       end
 
       it 'sends voice flag for recorded audio in ogg format' do

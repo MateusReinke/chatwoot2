@@ -203,6 +203,7 @@ describe Messages::MessageBuilder do
           message = message_builder
 
           expect(Audio::TranscodeService).to have_received(:new)
+          expect(service_instance).to have_received(:perform)
           expect(message.attachments.first.meta).to include('is_recorded_audio' => true)
         end
 

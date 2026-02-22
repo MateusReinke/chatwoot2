@@ -18,6 +18,7 @@ const emit = defineEmits([
   'finishRecord',
   'pause',
   'play',
+  'recordError',
 ]);
 
 const waveformContainer = ref(null);
@@ -80,22 +81,30 @@ const initWaveSurfer = () => {
   });
 
   record.value.on('record-end', async blob => {
-    const audioUrl = URL.createObjectURL(blob);
-    const audioBlob = await convertAudio(blob, props.audioRecordFormat);
-    const ext = AUDIO_EXTENSION_MAP[props.audioRecordFormat] || 'mp3';
-    const fileName = `${getUuid()}.${ext}`;
-    const file = new File([audioBlob], fileName, {
-      type: props.audioRecordFormat,
-    });
-    wavesurfer.value.load(audioUrl);
-    emit('finishRecord', {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      file,
-    });
-    hasRecording.value = true;
-    isRecording.value = false;
+    let audioUrl;
+    try {
+      audioUrl = URL.createObjectURL(blob);
+      const audioBlob = await convertAudio(blob, props.audioRecordFormat);
+      const ext = AUDIO_EXTENSION_MAP[props.audioRecordFormat] || 'mp3';
+      const fileName = `${getUuid()}.${ext}`;
+      const file = new File([audioBlob], fileName, {
+        type: props.audioRecordFormat,
+      });
+      wavesurfer.value.load(audioUrl);
+      emit('finishRecord', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        file,
+      });
+      hasRecording.value = true;
+      isRecording.value = false;
+    } catch (error) {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      isRecording.value = false;
+      hasRecording.value = false;
+      emit('recordError', { message: 'Conversion failed', error });
+    }
   });
 
   record.value.on('record-progress', time => {

@@ -111,7 +111,16 @@ function extractFrameFromBlock(data, offset, end) {
 
   // int16 relative timecode (big-endian, signed) – skip
   pos += 2;
-  // flags byte – skip
+  // Flags byte – skip. Lacing (Xiph/EBML/fixed-size) is NOT supported;
+  // this assumes single-frame blocks as produced by MediaRecorder.
+  const flags = data[pos];
+  const lacingBits = (flags >> 1) & 0x03;
+  if (lacingBits !== 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'webmOpusToOgg: laced SimpleBlock detected (unsupported), frame may be invalid'
+    );
+  }
   pos += 1;
 
   if (pos >= end) return null;
@@ -143,7 +152,8 @@ function parseWebM(buffer) {
       pos += sizeRes.length;
 
       // Handle "unknown size" (all-ones VINT) by treating it as the rest of the parent
-      const maxVint = (1 << (7 * sizeRes.length)) - 1;
+      // Use Math.pow instead of bit-shift to avoid 32-bit overflow for 5+ byte VINTs
+      const maxVint = 2 ** (7 * sizeRes.length) - 1;
       const elEnd =
         sizeRes.value === maxVint ? end : Math.min(pos + sizeRes.value, end);
 

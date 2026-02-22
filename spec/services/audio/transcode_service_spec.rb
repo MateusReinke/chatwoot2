@@ -12,9 +12,16 @@ RSpec.describe Audio::TranscodeService do
   describe '#perform' do
     context 'with unsupported format' do
       it 'raises UnsupportedFormatError' do
-        expect do
+        error = nil
+        begin
           described_class.new(attachment, 'aac').perform
-        end.to raise_error(Audio::TranscodeService::UnsupportedFormatError, /Unsupported transcode format: aac/)
+        rescue StandardError => e
+          error = e
+        end
+
+        expect(error).not_to be_nil
+        expect(error.class.name).to eq('CustomExceptions::Audio::UnsupportedFormatError')
+        expect(error.message).to match(/Unsupported transcode format: aac/)
       end
     end
 
@@ -46,13 +53,36 @@ RSpec.describe Audio::TranscodeService do
         expect(attachment.file_type).to eq('audio')
       end
 
+      it 'transcodes using source_file when provided' do
+        uploaded_file = Rack::Test::UploadedFile.new(Rails.root.join('spec/assets/sample.mp3').to_s, 'audio/mpeg')
+
+        mock_movie = instance_double(FFMPEG::Movie, valid?: true)
+        allow(FFMPEG::Movie).to receive(:new).and_return(mock_movie)
+        allow(mock_movie).to receive(:transcode) do |output_path, _options|
+          File.write(output_path, 'fake_opus_data')
+        end
+
+        described_class.new(attachment, 'opus', source_file: uploaded_file).perform
+
+        expect(attachment.file.filename.to_s).to eq('sample.ogg')
+        expect(attachment.file.content_type).to eq('audio/ogg')
+        expect(attachment.file_type).to eq('audio')
+      end
+
       it 'raises TranscodingError when the audio file is invalid' do
         mock_movie = instance_double(FFMPEG::Movie, valid?: false)
         allow(FFMPEG::Movie).to receive(:new).and_return(mock_movie)
 
-        expect do
+        error = nil
+        begin
           described_class.new(attachment, 'opus').perform
-        end.to raise_error(Audio::TranscodeService::TranscodingError, /Invalid or unreadable audio file/)
+        rescue StandardError => e
+          error = e
+        end
+
+        expect(error).not_to be_nil
+        expect(error.class.name).to eq('CustomExceptions::Audio::TranscodingError')
+        expect(error.message).to match(/Invalid or unreadable audio file/)
       end
 
       it 'raises TranscodingError when FFmpeg fails' do
@@ -60,9 +90,16 @@ RSpec.describe Audio::TranscodeService do
         allow(FFMPEG::Movie).to receive(:new).and_return(mock_movie)
         allow(mock_movie).to receive(:transcode).and_raise(FFMPEG::Error, 'encoding failed')
 
-        expect do
+        error = nil
+        begin
           described_class.new(attachment, 'opus').perform
-        end.to raise_error(Audio::TranscodeService::TranscodingError, /FFmpeg transcoding failed/)
+        rescue StandardError => e
+          error = e
+        end
+
+        expect(error).not_to be_nil
+        expect(error.class.name).to eq('CustomExceptions::Audio::TranscodingError')
+        expect(error.message).to match(/FFmpeg transcoding failed/)
       end
     end
   end

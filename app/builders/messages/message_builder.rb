@@ -120,6 +120,8 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
     Audio::TranscodeService.new(attachment, @transcode_audio, source_file: uploaded_file).perform
     attachment.meta ||= {}
     attachment.meta['is_recorded_audio'] = true
+  rescue CustomExceptions::Audio::UnsupportedFormatError, CustomExceptions::Audio::TranscodingError => e
+    Rails.logger.error("Audio transcoding failed, keeping original attachment: #{e.message}")
   end
 
   def process_emails
