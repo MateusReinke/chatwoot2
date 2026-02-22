@@ -4,7 +4,7 @@ import { ref, onMounted, onUnmounted, defineEmits, defineExpose } from 'vue';
 import WaveSurfer from 'wavesurfer.js';
 import RecordPlugin from 'wavesurfer.js/dist/plugins/record.js';
 import { format, intervalToDuration } from 'date-fns';
-import { convertAudio } from './utils/mp3ConversionUtils';
+import { convertAudio } from './utils/audioConversionUtils';
 
 const props = defineProps({
   audioRecordFormat: {
@@ -35,6 +35,27 @@ const formatTimeProgress = time => {
   );
 };
 
+const AUDIO_EXTENSION_MAP = {
+  'audio/ogg': 'ogg',
+  'audio/mp3': 'mp3',
+  'audio/wav': 'wav',
+  'audio/webm': 'webm',
+};
+
+const getRecordPluginOptions = audioFormat => {
+  const options = {
+    scrollingWaveform: true,
+    renderRecordedAudio: false,
+  };
+  if (
+    audioFormat === 'audio/ogg' &&
+    MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+  ) {
+    options.mimeType = 'audio/ogg;codecs=opus';
+  }
+  return options;
+};
+
 const initWaveSurfer = () => {
   wavesurfer.value = WaveSurfer.create({
     container: waveformContainer.value,
@@ -45,10 +66,7 @@ const initWaveSurfer = () => {
     barGap: 1,
     barRadius: 2,
     plugins: [
-      RecordPlugin.create({
-        scrollingWaveform: true,
-        renderRecordedAudio: false,
-      }),
+      RecordPlugin.create(getRecordPluginOptions(props.audioRecordFormat)),
     ],
   });
 
@@ -64,7 +82,8 @@ const initWaveSurfer = () => {
   record.value.on('record-end', async blob => {
     const audioUrl = URL.createObjectURL(blob);
     const audioBlob = await convertAudio(blob, props.audioRecordFormat);
-    const fileName = `${getUuid()}.mp3`;
+    const ext = AUDIO_EXTENSION_MAP[props.audioRecordFormat] || 'mp3';
+    const fileName = `${getUuid()}.${ext}`;
     const file = new File([audioBlob], fileName, {
       type: props.audioRecordFormat,
     });

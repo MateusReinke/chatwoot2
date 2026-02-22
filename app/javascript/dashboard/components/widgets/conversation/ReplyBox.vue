@@ -360,6 +360,9 @@ export default {
       return `draft-${this.conversationIdByRoute}-${this.replyType}`;
     },
     audioRecordFormat() {
+      if (this.isAWhatsAppCloudChannel) {
+        return AUDIO_FORMATS.OGG;
+      }
       if (this.isAWhatsAppChannel || this.isATelegramChannel) {
         return AUDIO_FORMATS.MP3;
       }
@@ -1093,6 +1096,13 @@ export default {
             message: caption,
             sender: this.sender,
           };
+
+          if (
+            attachment.isRecordedAudio &&
+            !this.globalConfig.directUploadsEnabled
+          ) {
+            attachmentPayload.isRecordedAudio = [attachment.resource.file.name];
+          }
 
           attachmentPayload = this.setReplyToInPayload(attachmentPayload);
           multipleMessagePayload.push(attachmentPayload);

@@ -14,6 +14,7 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
     @message_type = params[:message_type] || 'outgoing'
     @attachments = params[:attachments]
     @is_recorded_audio = params[:is_recorded_audio]
+    @transcode_audio = params[:transcode_audio]
     @attachments_metadata = normalize_attachments_metadata(params[:attachments_metadata])
     @automation_rule = content_attributes&.dig(:automation_rule_id)
     return unless params.instance_of?(ActionController::Parameters)
@@ -67,6 +68,7 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
                              else
                                file_type(uploaded_attachment&.content_type)
                              end
+      transcode_attachment(attachment, uploaded_attachment) if should_transcode?(attachment)
     end
   end
 
@@ -108,6 +110,16 @@ class Messages::MessageBuilder # rubocop:disable Metrics/ClassLength
 
     metadata = metadata.to_unsafe_h if metadata.respond_to?(:to_unsafe_h)
     metadata.deep_stringify_keys
+  end
+
+  def should_transcode?(attachment)
+    @transcode_audio.present? && attachment.file_type == 'audio'
+  end
+
+  def transcode_attachment(attachment, uploaded_file = nil)
+    Audio::TranscodeService.new(attachment, @transcode_audio, source_file: uploaded_file).perform
+    attachment.meta ||= {}
+    attachment.meta['is_recorded_audio'] = true
   end
 
   def process_emails
