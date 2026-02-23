@@ -31,7 +31,10 @@ module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop
 
     consolidate_contact(baileys_sender_phone, baileys_sender_lid, baileys_sender_identifier)
     @sender_contact = find_or_create_sender_contact
-    update_contact_whatsapp_info(@sender_contact, baileys_sender_phone, baileys_sender_identifier, name: extract_sender_name) if @sender_contact
+    if @sender_contact
+      update_contact_whatsapp_info(@sender_contact, baileys_sender_phone, baileys_sender_identifier, name: extract_sender_name)
+      try_update_contact_avatar(@sender_contact)
+    end
 
     @conversation = find_or_create_group_conversation(@group_contact_inbox)
     sync_group_participants_as_members
