@@ -82,6 +82,19 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
   def sync_templates; end
 
+  def sync_group(conversation)
+    group_contact = conversation.contact
+    inbox = conversation.inbox
+
+    metadata = group_metadata(group_contact.identifier)
+    raise ProviderUnavailableError, 'Could not fetch group metadata' if metadata.blank?
+
+    update_group_contact_info(group_contact, metadata)
+
+    participant_contacts = build_participant_contacts(metadata[:participants], inbox)
+    sync_group_members(conversation, participant_contacts)
+  end
+
   def media_url(media_id)
     "#{provider_url}/media/#{media_id}"
   end
@@ -418,6 +431,115 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     @message.update!(external_created_at: external_created_at)
   end
 
+  def build_participant_contacts(participants, inbox)
+    return [] if participants.blank?
+
+    participants.filter_map do |participant|
+      contact = find_or_create_participant_contact(participant, inbox)
+      next if contact.blank?
+
+      try_update_participant_avatar(contact)
+      { contact: contact, admin: participant[:admin] }
+    end
+  end
+
+  def update_group_contact_info(group_contact, metadata)
+    update_params = {}
+    update_params[:name] = metadata[:subject] if metadata[:subject].present? && group_contact.name != metadata[:subject]
+
+    new_attrs = (group_contact.additional_attributes || {}).merge(
+      'description' => metadata[:desc].presence,
+      'owner' => metadata[:owner],
+      'owner_pn' => metadata[:ownerPn].presence
+    )
+    update_params[:additional_attributes] = new_attrs if new_attrs != group_contact.additional_attributes
+
+    group_contact.update!(update_params) if update_params.present?
+  end
+
+  def sync_group_members(conversation, participant_contacts)
+    return if participant_contacts.blank?
+
+    new_contact_ids = participant_contacts.filter_map do |entry|
+      role = entry[:admin].in?(%w[admin superadmin]) ? :admin : :member
+      member = ConversationGroupMember.find_or_initialize_by(conversation: conversation, contact: entry[:contact])
+      member.assign_attributes(role: role, is_active: true)
+      member.save! if member.changed?
+      entry[:contact].id
+    end
+
+    conversation.group_members.active.where.not(contact_id: new_contact_ids).find_each do |member|
+      member.update!(is_active: false)
+    end
+  end
+
+  def try_update_participant_avatar(contact)
+    return if contact.avatar.attached?
+
+    phone = contact.phone_number&.delete('+')
+    return if phone.blank?
+
+    profile_pic_url = fetch_profile_picture_url(phone)
+    ::Avatar::AvatarFromUrlJob.perform_later(contact, profile_pic_url) if profile_pic_url
+  rescue StandardError => e
+    Rails.logger.error "Failed to update avatar for contact #{contact.id}: #{e.message}"
+  end
+
+  def fetch_profile_picture_url(phone_number)
+    jid = "#{phone_number}@s.whatsapp.net"
+    response = get_profile_pic(jid)
+    response&.dig('data', 'profilePictureUrl')
+  end
+
+  def find_or_create_participant_contact(participant, inbox)
+    lid = extract_lid_from_participant(participant)
+    phone = extract_phone_from_participant(participant)
+    identifier = lid ? "#{lid}@lid" : nil
+    source_id = lid || phone
+
+    return nil if source_id.blank?
+
+    Whatsapp::ContactInboxConsolidationService.new(
+      inbox: inbox, phone: phone, lid: lid, identifier: identifier
+    ).perform
+
+    contact_inbox = ::ContactInboxWithContactBuilder.new(
+      source_id: source_id,
+      inbox: inbox,
+      contact_attributes: {
+        name: phone,
+        phone_number: ("+#{phone}" if phone),
+        identifier: identifier
+      }
+    ).perform
+
+    update_participant_contact_info(contact_inbox.contact, phone, identifier)
+  end
+
+  def update_participant_contact_info(contact, phone, identifier)
+    update_params = {
+      phone_number: ("+#{phone}" if phone && contact.phone_number.blank?),
+      identifier: (identifier if identifier && contact.identifier.blank?)
+    }.compact
+
+    contact.update!(update_params) if update_params.present?
+    contact
+  end
+
+  def extract_lid_from_participant(participant)
+    return nil if participant[:id].blank?
+
+    jid_part, jid_suffix = participant[:id].split('@')
+    jid_part if jid_suffix == 'lid' && jid_part.match?(/^\d+$/)
+  end
+
+  def extract_phone_from_participant(participant)
+    return nil if participant[:phoneNumber].blank?
+
+    phone = participant[:phoneNumber].split('@').first
+    phone if phone.match?(/^\d+$/)
+  end
+
   private_class_method def self.with_error_handling(*method_names)
     method_names.each do |method_name|
       original_method = instance_method(method_name)
@@ -459,6 +581,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
                       :unread_message,
                       :received_messages,
                       :group_metadata,
+                      :sync_group,
                       :on_whatsapp,
                       :delete_message,
                       :edit_message

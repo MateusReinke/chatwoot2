@@ -135,6 +135,13 @@ class Conversation < ApplicationRecord
     Conversations::MessageWindowService.new(self).can_reply?
   end
 
+  def sync_group
+    channel = inbox.channel
+    return unless channel.respond_to?(:sync_group)
+
+    channel.sync_group(self)
+  end
+
   def language
     additional_attributes&.dig('conversation_language')
   end

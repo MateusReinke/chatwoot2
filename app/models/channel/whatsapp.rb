@@ -159,6 +159,12 @@ class Channel::Whatsapp < ApplicationRecord
     provider_service.edit_message(recipient_id, message, new_content)
   end
 
+  def sync_group(conversation)
+    return unless provider_service.respond_to?(:sync_group)
+
+    provider_service.sync_group(conversation)
+  end
+
   delegate :setup_channel_provider, to: :provider_service
   delegate :send_message, to: :provider_service
   delegate :send_template, to: :provider_service

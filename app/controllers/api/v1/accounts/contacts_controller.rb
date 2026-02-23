@@ -84,6 +84,8 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
 
   def sync_group
     @contact = Contacts::SyncGroupService.new(contact: @contact).perform
+  rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
+    render_internal_server_error(e.message)
   end
 
   def create
