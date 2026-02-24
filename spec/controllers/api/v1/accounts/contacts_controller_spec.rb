@@ -784,6 +784,63 @@ RSpec.describe 'Contacts API', type: :request do
     end
   end
 
+  describe 'POST /api/v1/accounts/{account.id}/contacts/:id/sync_group' do
+    let(:agent) { create(:user, account: account, role: :agent) }
+    let(:contact) { create(:contact, account: account, group_type: :group, identifier: '12345678901234567890@g.us') }
+
+    context 'when it is an unauthenticated user' do
+      it 'returns unauthorized' do
+        post "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/sync_group"
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when it is an authenticated user' do
+      it 'syncs the group and returns contact with group members' do
+        post "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/sync_group",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body['payload']['id']).to eq(contact.id)
+      end
+
+      it 'returns bad request when contact is not a group' do
+        individual_contact = create(:contact, account: account, group_type: :individual)
+
+        post "/api/v1/accounts/#{account.id}/contacts/#{individual_contact.id}/sync_group",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:bad_request)
+      end
+
+      it 'returns bad request when contact has no identifier' do
+        group_without_id = create(:contact, account: account, group_type: :group, identifier: nil)
+
+        post "/api/v1/accounts/#{account.id}/contacts/#{group_without_id.id}/sync_group",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:bad_request)
+      end
+
+      it 'returns internal server error when provider is unavailable' do
+        allow(Contacts::SyncGroupService).to receive(:new).and_raise(
+          Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError, 'Provider offline'
+        )
+
+        post "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/sync_group",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:internal_server_error)
+        expect(response.parsed_body['error']).to eq('Provider offline')
+      end
+    end
+  end
+
   describe 'DELETE /api/v1/accounts/{account.id}/contacts/:id/avatar' do
     let(:contact) { create(:contact, account: account) }
     let(:agent) { create(:user, account: account, role: :agent) }
