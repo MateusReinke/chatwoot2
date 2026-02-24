@@ -360,7 +360,7 @@ RSpec.describe 'Conversation Messages API', type: :request do
   end
 
   describe 'POST /api/v1/accounts/{account.id}/conversations/:conversation_id/messages/:id/retry' do
-    let(:message) { create(:message, account: account, status: :failed, content_attributes: { external_error: 'error' }) }
+    let(:message) { create(:message, account: account, message_type: :outgoing, status: :failed, content_attributes: { external_error: 'error' }) }
 
     context 'when it is an unauthenticated user' do
       it 'returns unauthorized' do
@@ -395,6 +395,33 @@ RSpec.describe 'Conversation Messages API', type: :request do
 
         expect(response).to have_http_status(:success)
         expect(message.reload.source_id).to be_nil
+      end
+    end
+
+    context 'when the message is not failed or not outgoing' do
+      let(:agent) { create(:user, account: account, role: :agent) }
+      let(:sent_message) { create(:message, account: account, message_type: :outgoing, status: :sent) }
+      let(:incoming_failed) { create(:message, account: account, message_type: :incoming, status: :failed) }
+
+      before do
+        create(:inbox_member, inbox: sent_message.conversation.inbox, user: agent)
+        create(:inbox_member, inbox: incoming_failed.conversation.inbox, user: agent)
+      end
+
+      it 'returns unprocessable_entity for non-failed messages' do
+        post "/api/v1/accounts/#{account.id}/conversations/#{sent_message.conversation.display_id}/messages/#{sent_message.id}/retry",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it 'returns unprocessable_entity for incoming messages' do
+        post "/api/v1/accounts/#{account.id}/conversations/#{incoming_failed.conversation.display_id}/messages/#{incoming_failed.id}/retry",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
       end
     end
 

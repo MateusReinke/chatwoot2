@@ -32,6 +32,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def retry
     return if message.blank?
+    return head :unprocessable_entity unless message.failed? && (message.outgoing? || message.template?)
 
     service = Messages::StatusUpdateService.new(message, 'sent')
     service.perform
