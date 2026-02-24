@@ -385,6 +385,17 @@ RSpec.describe 'Conversation Messages API', type: :request do
         expect(message.reload.status).to eq('sent')
         expect(message.reload.content_attributes['external_error']).to be_nil
       end
+
+      it 'clears source_id so the send job does not skip the message' do
+        message.update!(source_id: 'wamid.old_message_id')
+
+        post "/api/v1/accounts/#{account.id}/conversations/#{message.conversation.display_id}/messages/#{message.id}/retry",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(message.reload.source_id).to be_nil
+      end
     end
 
     context 'when the message id is invalid' do
