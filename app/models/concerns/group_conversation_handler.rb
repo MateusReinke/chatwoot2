@@ -52,7 +52,7 @@ module GroupConversationHandler # rubocop:disable Metrics/ModuleLength
   end
 
   def find_or_create_group_conversation(group_contact_inbox)
-    @conversation = group_contact_inbox.conversations.where(status: :open).last
+    @conversation = group_contact_inbox.conversations.where(status: %i[open pending]).last
     return @conversation if @conversation.present?
 
     @conversation = ::Conversation.create!(
