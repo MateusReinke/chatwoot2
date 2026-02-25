@@ -18,8 +18,8 @@ RSpec.describe Contacts::SyncGroupService do
       contact = create(:contact, group_type: :group, identifier: 'group@g.us')
       open_conv = instance_double(Conversation)
       pending_conv = instance_double(Conversation)
-      allow(open_conv).to receive(:sync_group)
-      allow(pending_conv).to receive(:sync_group)
+      allow(open_conv).to receive(:sync_group).and_return(true)
+      allow(pending_conv).to receive(:sync_group).and_return(true)
 
       scope = instance_double(ActiveRecord::Relation)
       allow(scope).to receive(:find_each).and_yield(open_conv).and_yield(pending_conv)
@@ -35,8 +35,24 @@ RSpec.describe Contacts::SyncGroupService do
       expect(pending_conv).to have_received(:sync_group)
     end
 
+    it 'raises BadRequest when no conversation supports group sync' do
+      contact = create(:contact, group_type: :group, identifier: 'group@g.us')
+
+      expect { described_class.new(contact: contact).perform }.to raise_error(ActionController::BadRequest)
+    end
+
     it 'dispatches contact_group_synced event' do
       contact = create(:contact, group_type: :group, identifier: 'group@g.us')
+      conv = instance_double(Conversation)
+      allow(conv).to receive(:sync_group).and_return(true)
+
+      scope = instance_double(ActiveRecord::Relation)
+      allow(scope).to receive(:find_each).and_yield(conv)
+
+      conversations = instance_double(ActiveRecord::Associations::CollectionProxy)
+      allow(conversations).to receive(:where).with(status: %i[open pending]).and_return(scope)
+      allow(contact).to receive(:conversations).and_return(conversations)
+      allow(contact).to receive(:reload).and_return(contact)
 
       expect(Rails.configuration.dispatcher).to receive(:dispatch)
         .with(Events::Types::CONTACT_GROUP_SYNCED, anything, contact: contact)
