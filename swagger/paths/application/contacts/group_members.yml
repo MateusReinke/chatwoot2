@@ -59,6 +59,12 @@ get:
                         thumbnail:
                           type: string
                           description: Thumbnail URL of the member contact
+    '400':
+      description: Bad request — contact is not a group, has no identifier, or no supported inbox found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/bad_request_error'
     '401':
       description: Unauthorized
       content:
@@ -67,6 +73,12 @@ get:
             $ref: '#/components/schemas/bad_request_error'
     '404':
       description: Contact not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/bad_request_error'
+    '500':
+      description: Internal server error — channel provider unavailable
       content:
         application/json:
           schema:
