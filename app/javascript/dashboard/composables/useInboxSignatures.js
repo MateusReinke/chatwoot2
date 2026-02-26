@@ -19,8 +19,9 @@ export function useInboxSignatures() {
     () => currentUser.value?.message_signature || ''
   );
 
-  const fetchInboxSignatures = async () => {
+  const fetchInboxSignatures = async ({ force = false } = {}) => {
     if (isFetching.value) return;
+    if (hasFetched.value && !force) return;
 
     isFetching.value = true;
     try {
@@ -106,5 +107,10 @@ export function useInboxSignatures() {
     getSignatureSettingsForInbox,
     getInboxSignature,
     hasInboxSignature,
+    _resetForTesting: () => {
+      inboxSignatures.value = {};
+      isFetching.value = false;
+      hasFetched.value = false;
+    },
   };
 }

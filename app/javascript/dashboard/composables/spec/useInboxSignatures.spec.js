@@ -32,6 +32,8 @@ vi.mock('dashboard/composables/store', () => ({
 describe('useInboxSignatures', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    const { _resetForTesting } = useInboxSignatures();
+    _resetForTesting();
   });
 
   describe('fetchInboxSignatures', () => {

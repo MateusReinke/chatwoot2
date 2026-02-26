@@ -159,8 +159,8 @@ watch(selectedInbox, newVal => {
   loadSignatureForSelection();
 });
 
-// Fetch inbox signatures on mount
-fetchInboxSignatures();
+// Fetch inbox signatures on mount, then reload form values
+fetchInboxSignatures().then(() => loadSignatureForSelection());
 
 watch(
   () => props.signaturePosition,
@@ -231,7 +231,7 @@ const resetToDefault = () => {
 <template>
   <form class="flex flex-col gap-6" @submit.prevent="updateSignature()">
     <div class="flex flex-col gap-2">
-      <label for="inboxSelector" class="text-sm font-medium text-n-slate-12">
+      <label class="text-sm font-medium text-n-slate-12">
         {{
           t(
             'PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.INBOX_SELECTOR.LABEL'

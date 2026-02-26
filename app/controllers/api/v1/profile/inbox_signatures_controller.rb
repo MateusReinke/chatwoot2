@@ -4,13 +4,14 @@ class Api::V1::Profile::InboxSignaturesController < Api::BaseController
   before_action :validate_inbox_access, only: %i[show update destroy]
 
   def index
-    @inbox_signatures = if params[:account_id].present?
-                          validate_account_access!
-                          account_inbox_ids = Inbox.where(account_id: params[:account_id]).ids
-                          @user.inbox_signatures.where(inbox_id: account_inbox_ids)
-                        else
-                          @user.inbox_signatures
-                        end
+    if params[:account_id].present?
+      validate_account_access!
+      return if performed?
+
+      @inbox_signatures = @user.inbox_signatures.joins(:inbox).where(inboxes: { account_id: params[:account_id] })
+    else
+      @inbox_signatures = @user.inbox_signatures
+    end
   end
 
   def show
