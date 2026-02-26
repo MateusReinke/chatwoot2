@@ -85,7 +85,11 @@ class Api::V1::Accounts::PortalsController < Api::V1::Accounts::BaseController
 
   def merged_portal_params
     update_params = portal_params.to_h
-    update_params['config'] = @portal.config.merge(update_params['config']) if update_params.key?('config')
+    if update_params.key?('config')
+      base_config = @portal.config.is_a?(Hash) ? @portal.config : {}
+      incoming_config = update_params['config']
+      update_params['config'] = incoming_config.is_a?(Hash) ? base_config.merge(incoming_config) : base_config
+    end
     update_params
   end
 

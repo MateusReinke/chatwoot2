@@ -47,7 +47,7 @@ class Portal < ApplicationRecord
   CONFIG_JSON_KEYS = %w[allowed_locales default_locale website_token show_author].freeze
 
   def show_author?
-    config['show_author'] != false
+    !ActiveModel::Type::Boolean.new.cast(config['show_author']).equal?(false)
   end
 
   def file_base_data
