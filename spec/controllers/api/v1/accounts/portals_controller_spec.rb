@@ -131,7 +131,8 @@ RSpec.describe 'Api::V1::Accounts::Portals', type: :request do
         json_response = response.parsed_body
         expect(json_response['name']).to eql(portal_params[:portal][:name])
         expect(json_response['config']).to eql({ 'allowed_locales' => [{ 'articles_count' => 0, 'categories_count' => 0, 'code' => 'en' },
-                                                                       { 'articles_count' => 0, 'categories_count' => 0, 'code' => 'es' }] })
+                                                                       { 'articles_count' => 0, 'categories_count' => 0, 'code' => 'es' }],
+                                                 'show_author' => true })
       end
 
       it 'archive portal' do
