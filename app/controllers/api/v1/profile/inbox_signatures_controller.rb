@@ -1,10 +1,12 @@
 class Api::V1::Profile::InboxSignaturesController < Api::BaseController
   before_action :set_user
   before_action :set_inbox_signature, only: %i[show update destroy]
+  before_action :validate_inbox_access, only: %i[show update destroy]
 
   def index
     @inbox_signatures = if params[:account_id].present?
-                          account_inbox_ids = Account.find(params[:account_id]).inbox_ids
+                          validate_account_access!
+                          account_inbox_ids = Inbox.where(account_id: params[:account_id]).ids
                           @user.inbox_signatures.where(inbox_id: account_inbox_ids)
                         else
                           @user.inbox_signatures
@@ -42,5 +44,19 @@ class Api::V1::Profile::InboxSignaturesController < Api::BaseController
 
   def inbox_signature_params
     params.require(:inbox_signature).permit(:message_signature, :signature_position, :signature_separator)
+  end
+
+  def validate_inbox_access
+    inbox_id = params[:inbox_id]
+    return if InboxMember.exists?(user_id: @user.id, inbox_id: inbox_id)
+
+    head :unauthorized
+  end
+
+  def validate_account_access!
+    account_id = params[:account_id]
+    return if @user.account_ids.include?(account_id.to_i)
+
+    head :unauthorized
   end
 end

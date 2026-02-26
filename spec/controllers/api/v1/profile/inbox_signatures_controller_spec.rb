@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe 'Profile Inbox Signatures API', type: :request do
@@ -47,6 +49,17 @@ RSpec.describe 'Profile Inbox Signatures API', type: :request do
         json_response = response.parsed_body
         expect(json_response.length).to eq(0)
       end
+
+      it 'returns unauthorized when filtering by an account the user does not belong to' do
+        other_account = create(:account)
+
+        get '/api/v1/profile/inbox_signatures',
+            params: { account_id: other_account.id },
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
     end
   end
 
@@ -75,6 +88,18 @@ RSpec.describe 'Profile Inbox Signatures API', type: :request do
             as: :json
 
         expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    context 'when the user is not a member of the inbox' do
+      let(:non_member_inbox) { create(:inbox, account: account) }
+
+      it 'returns unauthorized' do
+        get "/api/v1/profile/inbox_signatures/#{non_member_inbox.id}",
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:unauthorized)
       end
     end
   end
@@ -125,6 +150,43 @@ RSpec.describe 'Profile Inbox Signatures API', type: :request do
         expect(json_response['signature_position']).to eq('bottom')
       end
     end
+
+    context 'when the user is not a member of the inbox' do
+      let(:non_member_inbox) { create(:inbox, account: account) }
+
+      it 'returns unauthorized' do
+        put "/api/v1/profile/inbox_signatures/#{non_member_inbox.id}",
+            params: signature_params,
+            headers: agent.create_new_auth_token,
+            as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when params are invalid' do
+      let(:invalid_params) do
+        {
+          inbox_signature: {
+            message_signature: '<p>Custom Signature</p>',
+            signature_position: 'invalid'
+          }
+        }
+      end
+
+      it 'returns unprocessable entity and does not create a signature' do
+        expect do
+          put "/api/v1/profile/inbox_signatures/#{inbox.id}",
+              params: invalid_params,
+              headers: agent.create_new_auth_token,
+              as: :json
+        end.not_to change(InboxSignature, :count)
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json_response = response.parsed_body
+        expect(json_response['attributes']).to include('signature_position')
+      end
+    end
   end
 
   describe 'DELETE /api/v1/profile/inbox_signatures/:inbox_id' do
@@ -146,6 +208,18 @@ RSpec.describe 'Profile Inbox Signatures API', type: :request do
              as: :json
 
       expect(response).to have_http_status(:no_content)
+    end
+
+    context 'when the user is not a member of the inbox' do
+      let(:non_member_inbox) { create(:inbox, account: account) }
+
+      it 'returns unauthorized' do
+        delete "/api/v1/profile/inbox_signatures/#{non_member_inbox.id}",
+               headers: agent.create_new_auth_token,
+               as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+      end
     end
   end
 end

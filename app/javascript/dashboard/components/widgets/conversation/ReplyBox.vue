@@ -102,7 +102,6 @@ export default {
       fetchInboxSignatures,
       getSignatureForInbox,
       getSignatureSettingsForInbox,
-      hasFetched: inboxSignaturesFetched,
     } = useInboxSignatures();
 
     fetchInboxSignatures();
@@ -121,7 +120,6 @@ export default {
       fetchQuotedReplyFlagFromUISettings,
       getSignatureForInbox,
       getSignatureSettingsForInbox,
-      inboxSignaturesFetched,
       replyEditor,
       copilot,
       shortcutKey,

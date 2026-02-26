@@ -13,6 +13,7 @@
 #
 # Indexes
 #
+#  index_inbox_signatures_on_inbox_id              (inbox_id)
 #  index_inbox_signatures_on_user_id_and_inbox_id  (user_id,inbox_id) UNIQUE
 #
 

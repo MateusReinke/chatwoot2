@@ -313,7 +313,7 @@ const resetToDefault = () => {
     <WootMessageEditor
       id="message-signature-input"
       v-model="signature"
-      class="message-editor h-[10rem] !px-3"
+      class="message-editor h-40 !px-3"
       is-format-mode
       :placeholder="$t('PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE.PLACEHOLDER')"
       channel-type="Context::MessageSignature"
@@ -357,6 +357,7 @@ const resetToDefault = () => {
       />
       <NextButton
         v-if="!isDefaultSelected && currentInboxHasOverride"
+        type="button"
         variant="faded"
         color="ruby"
         :label="
