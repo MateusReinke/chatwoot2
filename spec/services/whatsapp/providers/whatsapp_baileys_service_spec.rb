@@ -601,6 +601,134 @@ describe Whatsapp::Providers::WhatsappBaileysService do
       end
     end
 
+    context 'when replying in a group conversation' do
+      let(:inbox) { whatsapp_channel.inbox }
+      let(:account_user) { create(:account_user, account: inbox.account) }
+      let(:group_jid) { '123456789123456789@g.us' }
+      let(:participant_lid) { '1111111@lid' }
+      let(:group_contact) { create(:contact, account: inbox.account, name: 'Test Group', identifier: group_jid, group_type: :group) }
+      let(:sender_contact) do
+        create(:contact, account: inbox.account, name: 'Participant', identifier: participant_lid, phone_number: '+5511999999999')
+      end
+      let(:conversation) do
+        contact_inbox = create(:contact_inbox, inbox: inbox, contact: group_contact, source_id: group_jid.split('@').first)
+        create(:conversation, inbox: inbox, contact_inbox: contact_inbox, contact: group_contact, conversation_type: :group)
+      end
+
+      it 'includes participant in quotedMessage key when replying to incoming message' do
+        original_message = create(:message, inbox: inbox, conversation: conversation, sender: sender_contact,
+                                            message_type: 'incoming', source_id: 'incoming_group_msg', content: 'Hello')
+        reply_message = create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                                         content: 'World!',
+                                         content_attributes: { in_reply_to_external_id: original_message.source_id })
+        stub_request(:post, request_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: {
+                text: 'World!',
+                quotedMessage: {
+                  key: {
+                    id: 'incoming_group_msg',
+                    remoteJid: group_jid,
+                    fromMe: false,
+                    participant: participant_lid
+                  },
+                  message: { conversation: 'Hello' }
+                }
+              }
+            }.to_json
+          )
+          .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: result_body.to_json)
+
+        result = service.send_message(group_jid, reply_message)
+
+        expect(result).to eq('msg_123')
+      end
+
+      it 'does not include participant when replying to outgoing message' do
+        original_message = create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                                            message_type: 'outgoing', source_id: 'outgoing_group_msg', content: 'Hello')
+        reply_message = create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                                         content: 'World!',
+                                         content_attributes: { in_reply_to_external_id: original_message.source_id })
+        stub_request(:post, request_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: {
+                text: 'World!',
+                quotedMessage: {
+                  key: {
+                    id: 'outgoing_group_msg',
+                    remoteJid: group_jid,
+                    fromMe: true
+                  },
+                  message: { conversation: 'Hello' }
+                }
+              }
+            }.to_json
+          )
+          .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: result_body.to_json)
+
+        result = service.send_message(group_jid, reply_message)
+
+        expect(result).to eq('msg_123')
+      end
+
+      it 'includes participant in reaction key when reacting to incoming message' do
+        original_message = create(:message, inbox: inbox, conversation: conversation, sender: sender_contact,
+                                            message_type: 'incoming', source_id: 'react_group_msg', content: 'Nice')
+        reaction = create(:message, inbox: inbox, conversation: conversation, sender: account_user, content: '👍',
+                                    content_attributes: { is_reaction: true, in_reply_to: original_message.id })
+        stub_request(:post, request_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: {
+                react: {
+                  key: { id: original_message.source_id, remoteJid: group_jid, fromMe: false, participant: participant_lid },
+                  text: '👍'
+                }
+              }
+            }.to_json
+          )
+          .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: result_body.to_json)
+
+        result = service.send_message(group_jid, reaction)
+
+        expect(result).to eq('msg_123')
+      end
+
+      it 'does not include participant in reaction key when reacting to outgoing message' do
+        original_message = create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                                            message_type: 'outgoing', source_id: 'react_out_msg', content: 'Sent')
+        reaction = create(:message, inbox: inbox, conversation: conversation, sender: account_user, content: '❤️',
+                                    content_attributes: { is_reaction: true, in_reply_to: original_message.id })
+        stub_request(:post, request_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: {
+                react: {
+                  key: { id: original_message.source_id, remoteJid: group_jid, fromMe: true },
+                  text: '❤️'
+                }
+              }
+            }.to_json
+          )
+          .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: result_body.to_json)
+
+        result = service.send_message(group_jid, reaction)
+
+        expect(result).to eq('msg_123')
+      end
+    end
+
     context 'when request is unsuccessful' do
       it 'raises ProviderUnavailableError' do
         stub_request(:post, request_path)

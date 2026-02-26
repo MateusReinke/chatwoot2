@@ -323,10 +323,15 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
   def reaction_message_content
     reply_to = Message.find(@message.in_reply_to)
     {
-      react: { key: { id: reply_to.source_id,
-                      remoteJid: remote_jid,
-                      fromMe: reply_to.message_type == 'outgoing' },
-               text: @message.outgoing_content }
+      react: {
+        key: {
+          id: reply_to.source_id,
+          remoteJid: remote_jid,
+          fromMe: reply_to.message_type == 'outgoing',
+          participant: participant_jid_for(reply_to)
+        }.compact,
+        text: @message.outgoing_content
+      }
     }
   end
 
@@ -342,11 +347,19 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
         key: {
           id: reply_to_external_id,
           remoteJid: remote_jid,
-          fromMe: reply_to_message.message_type == 'outgoing'
-        },
+          fromMe: reply_to_message.message_type == 'outgoing',
+          participant: participant_jid_for(reply_to_message)
+        }.compact,
         message: quoted_message_content(reply_to_message)
       }
     }
+  end
+
+  def participant_jid_for(message)
+    return unless @message.conversation.conversation_type_group?
+    return if message.message_type == 'outgoing'
+
+    message.sender&.identifier
   end
 
   def quoted_message_content(message)
