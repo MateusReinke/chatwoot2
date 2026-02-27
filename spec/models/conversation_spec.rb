@@ -1103,19 +1103,19 @@ RSpec.describe Conversation do
     end
   end
 
-  describe 'conversation_type' do
+  describe 'group_type' do
     it 'provides type check methods' do
-      individual_conversation = create(:conversation, conversation_type: :individual)
-      group_conversation = create(:conversation, conversation_type: :group)
+      individual_conversation = create(:conversation, group_type: :individual)
+      group_conversation = create(:conversation, group_type: :group)
 
-      expect(individual_conversation).to be_conversation_type_individual
-      expect(group_conversation).to be_conversation_type_group
+      expect(individual_conversation).to be_group_type_individual
+      expect(group_conversation).to be_group_type_group
     end
   end
 
   describe 'group_members association' do
     it 'returns associated group members' do
-      conversation = create(:conversation, conversation_type: :group)
+      conversation = create(:conversation, group_type: :group)
       group_member = create(:conversation_group_member, conversation: conversation)
 
       expect(conversation.group_members).to eq([group_member])
@@ -1124,7 +1124,7 @@ RSpec.describe Conversation do
 
   describe 'group_contacts association' do
     it 'returns contacts through group_members' do
-      conversation = create(:conversation, conversation_type: :group)
+      conversation = create(:conversation, group_type: :group)
       contact = create(:contact, account: conversation.account)
       create(:conversation_group_member, conversation: conversation, contact: contact)
 
@@ -1132,7 +1132,7 @@ RSpec.describe Conversation do
     end
 
     it 'returns multiple contacts for group conversations' do
-      conversation = create(:conversation, conversation_type: :group)
+      conversation = create(:conversation, group_type: :group)
       contact1 = create(:contact, account: conversation.account)
       contact2 = create(:contact, account: conversation.account)
       create(:conversation_group_member, conversation: conversation, contact: contact1)

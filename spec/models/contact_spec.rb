@@ -219,8 +219,8 @@ RSpec.describe Contact do
   describe 'group_conversations association' do
     it 'returns conversations through group_memberships' do
       contact = create(:contact)
-      conversation1 = create(:conversation, conversation_type: :group, account: contact.account)
-      conversation2 = create(:conversation, conversation_type: :group, account: contact.account)
+      conversation1 = create(:conversation, group_type: :group, account: contact.account)
+      conversation2 = create(:conversation, group_type: :group, account: contact.account)
       create(:conversation_group_member, contact: contact, conversation: conversation1)
       create(:conversation_group_member, contact: contact, conversation: conversation2)
 

@@ -22,7 +22,7 @@ describe Whatsapp::BaileysHandlers::GroupsUpdate do
     contact = create(:contact, account: inbox.account, identifier: group_jid, group_type: :group, name: name)
     contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: group_source_id)
     conversation = create(:conversation, account: inbox.account, inbox: inbox, contact: contact,
-                                         contact_inbox: contact_inbox, conversation_type: :group, status: :open)
+                                         contact_inbox: contact_inbox, group_type: :group, status: :open)
     [conversation, contact]
   end
 

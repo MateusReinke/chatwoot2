@@ -1048,7 +1048,7 @@ describe Whatsapp::Providers::WhatsappBaileysService do
     end
     let(:conversation) do
       contact_inbox = create(:contact_inbox, inbox: inbox, contact: group_contact, source_id: group_jid.split('@').first)
-      create(:conversation, inbox: inbox, contact_inbox: contact_inbox, contact: group_contact, conversation_type: :group)
+      create(:conversation, inbox: inbox, contact_inbox: contact_inbox, contact: group_contact, group_type: :group)
     end
     let(:incoming_group_message) do
       create(:message, inbox: inbox, conversation: conversation, sender: sender_contact,

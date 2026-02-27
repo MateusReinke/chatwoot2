@@ -23,7 +23,7 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
     context 'when user is logged in' do
       it 'returns active group members' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        conversation = create(:conversation, account: account, contact: contact, conversation_type: :group)
+        conversation = create(:conversation, account: account, contact: contact, group_type: :group)
         create(:conversation_group_member, conversation: conversation, contact: contact)
         create(:conversation_group_member, conversation: conversation, contact: create(:contact, account: account))
 
@@ -36,7 +36,7 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
 
       it 'does not return inactive group members' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        conversation = create(:conversation, account: account, contact: contact, conversation_type: :group)
+        conversation = create(:conversation, account: account, contact: contact, group_type: :group)
         create(:conversation_group_member, conversation: conversation, contact: contact)
         create(:conversation_group_member, :inactive, conversation: conversation, contact: create(:contact, account: account))
 
@@ -49,11 +49,11 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
 
       it 'does not return group members from another account' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        conversation = create(:conversation, account: account, contact: contact, conversation_type: :group)
+        conversation = create(:conversation, account: account, contact: contact, group_type: :group)
         create(:conversation_group_member, conversation: conversation, contact: contact)
         other_account = create(:account)
         other_conversation = create(:conversation, account: other_account, contact: create(:contact, account: other_account),
-                                                   conversation_type: :group)
+                                                   group_type: :group)
         create(:conversation_group_member, conversation: other_conversation, contact: create(:contact, account: other_account))
 
         get "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/group_members",
@@ -65,7 +65,7 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
 
       it 'returns expected attributes in the response' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        conversation = create(:conversation, account: account, contact: contact, conversation_type: :group)
+        conversation = create(:conversation, account: account, contact: contact, group_type: :group)
         create(:conversation_group_member, conversation: conversation, contact: contact)
 
         get "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/group_members",
@@ -83,9 +83,9 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
 
       it 'only returns members from open and pending conversations' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        open_conversation = create(:conversation, account: account, contact: contact, conversation_type: :group, status: :open)
-        pending_conversation = create(:conversation, account: account, contact: contact, conversation_type: :group, status: :pending)
-        resolved_conversation = create(:conversation, account: account, contact: contact, conversation_type: :group, status: :resolved)
+        open_conversation = create(:conversation, account: account, contact: contact, group_type: :group, status: :open)
+        pending_conversation = create(:conversation, account: account, contact: contact, group_type: :group, status: :pending)
+        resolved_conversation = create(:conversation, account: account, contact: contact, group_type: :group, status: :resolved)
         create(:conversation_group_member, conversation: open_conversation, contact: contact)
         create(:conversation_group_member, conversation: pending_conversation, contact: create(:contact, account: account))
         create(:conversation_group_member, conversation: resolved_conversation, contact: create(:contact, account: account))

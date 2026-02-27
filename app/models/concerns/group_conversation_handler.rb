@@ -60,7 +60,7 @@ module GroupConversationHandler # rubocop:disable Metrics/ModuleLength
       inbox_id: inbox.id,
       contact_id: group_contact_inbox.contact_id,
       contact_inbox_id: group_contact_inbox.id,
-      conversation_type: :group
+      group_type: :group
     )
   end
 

@@ -498,7 +498,7 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
 
       expect(group_contact.group_type).to eq('group')
       expect(group_contact.identifier).to eq(group_jid)
-      expect(conversation.conversation_type).to eq('group')
+      expect(conversation.group_type).to eq('group')
       expect(message.content).to eq('Hello group')
       expect(message.sender).not_to eq(group_contact)
       expect(conversation.group_members.active.pluck(:contact_id)).to include(message.sender_id)

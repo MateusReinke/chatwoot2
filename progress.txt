@@ -1,0 +1,14 @@
+## Codebase Patterns
+
+- Backend group models: Contact (group_type enum), Conversation (group_type enum, renamed from conversation_type), ConversationGroupMember (role enum: member/admin, is_active for soft delete)
+- Baileys provider: all group operations are in WhatsappBaileysService; new group endpoints must be defined as abstract methods on the base service first
+- Frontend routing uses conversationType (mention/participating/unattended) — never confuse with the model field group_type
+- Avatar placeholder colors: AVATAR_COLORS palette, index = name.length % 6 (6 pairs light + dark)
+- Mention format stored in messages: [@Name](mention://user/ID/Name) or [@Name](mention://team/ID/Name) — group contacts use mention://contact/ID/Name
+- ConversationBasicFilter dropdown uses SelectMenu from components-next/selectmenu; emits changeFilter and updates UI settings via updateUISettings
+- Advanced filter attributes defined in advancedFilterItems/index.js + filterAttributeGroups; backend keys in lib/filters/filter_keys.yml
+- All new Vue components must use <script setup> + Composition API; Tailwind only (no custom/scoped CSS)
+- ActionCable events flow through a message handler that dispatches to Vuex; group_synced payload includes all member data — no re-fetch needed
+- i18n: always add both en (app/javascript/dashboard/i18n/locale/en/) and pt_BR translations
+
+---
