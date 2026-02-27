@@ -1,6 +1,18 @@
+## 2026-02-27 - US-001
+- Renamed conversation_type column to group_type on conversations table
+- Created migration 20260227135739 with rename_column + execute(ALTER INDEX) instead of rename_index
+- Updated Conversation model enum, GroupConversationHandler concern, contacts_controller, group_members_controller
+- Updated specs: conversation_spec, contact_spec, group_members_controller_spec, baileys handler specs
+- Frontend routing concept (conversation_type with mention/participating/unattended values) left untouched
+- **Learnings for future iterations:**
+  - `rename_index` inside Rails migrations fails with PG error; use `execute("ALTER INDEX IF EXISTS ... RENAME TO ...")` instead
+  - Enum predicate methods also need renaming: `be_conversation_type_group` → `be_group_type_group`
+---
+
 ## Codebase Patterns
 
-- Backend group models: Contact (group_type enum), Conversation (group_type enum, renamed from conversation_type), ConversationGroupMember (role enum: member/admin, is_active for soft delete)
+- Backend group models: Contact (group_type enum), Conversation (group_type enum, column renamed from conversation_type via migration 20260227135739), ConversationGroupMember (role enum: member/admin, is_active for soft delete)
+- Migrations: use `execute("ALTER INDEX IF EXISTS old_name RENAME TO new_name")` instead of `rename_index` to avoid PG DDL transaction issues
 - Baileys provider: all group operations are in WhatsappBaileysService; new group endpoints must be defined as abstract methods on the base service first
 - Frontend routing uses conversationType (mention/participating/unattended) — never confuse with the model field group_type
 - Avatar placeholder colors: AVATAR_COLORS palette, index = name.length % 6 (6 pairs light + dark)
