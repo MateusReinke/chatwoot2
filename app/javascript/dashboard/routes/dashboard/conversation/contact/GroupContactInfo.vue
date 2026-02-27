@@ -5,6 +5,7 @@ import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { debounce } from '@chatwoot/utils';
 import ContactsAPI from 'dashboard/api/contacts';
+import GroupMembersAPI from 'dashboard/api/groupMembers';
 import Avatar from 'next/avatar/Avatar.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
@@ -149,6 +150,11 @@ const showSearchDropdown = ref(false);
 const activeMenuMemberId = ref(null);
 const loadingMemberId = ref(null);
 
+// Invite link state
+const inviteUrl = ref('');
+const isFetchingInvite = ref(false);
+const isRevokingInvite = ref(false);
+
 const onSync = async () => {
   try {
     await store.dispatch('groupMembers/sync', {
@@ -291,9 +297,45 @@ const handleMemberAction = async (member, { action }) => {
   }
 };
 
+// Invite link methods
+const fetchInviteLink = async () => {
+  isFetchingInvite.value = true;
+  try {
+    const { data } = await GroupMembersAPI.getInviteLink(props.contact.id);
+    inviteUrl.value = data.invite_url || '';
+  } catch {
+    useAlert(t('GROUP.INVITE.FETCH_ERROR'));
+  } finally {
+    isFetchingInvite.value = false;
+  }
+};
+
+const copyInviteLink = async () => {
+  try {
+    await navigator.clipboard.writeText(inviteUrl.value);
+    useAlert(t('GROUP.INVITE.COPY_SUCCESS'));
+  } catch {
+    useAlert(t('GROUP.INVITE.FETCH_ERROR'));
+  }
+};
+
+const revokeInviteLink = async () => {
+  isRevokingInvite.value = true;
+  try {
+    const { data } = await GroupMembersAPI.revokeInviteLink(props.contact.id);
+    inviteUrl.value = data.invite_url || '';
+    useAlert(t('GROUP.INVITE.REVOKE_SUCCESS'));
+  } catch {
+    useAlert(t('GROUP.INVITE.REVOKE_ERROR'));
+  } finally {
+    isRevokingInvite.value = false;
+  }
+};
+
 onMounted(() => {
   if (props.contact.id) {
     store.dispatch('groupMembers/fetch', { contactId: props.contact.id });
+    fetchInviteLink();
   }
 });
 </script>
@@ -518,6 +560,42 @@ onMounted(() => {
                 @action="handleMemberAction(member, $event)"
               />
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invite Link section -->
+      <div class="mt-4">
+        <h4 class="mb-2 text-sm font-semibold text-n-slate-11">
+          {{ t('GROUP.INVITE.SECTION_TITLE') }}
+        </h4>
+        <div
+          v-if="isFetchingInvite"
+          class="w-full h-8 rounded bg-n-slate-3 animate-pulse"
+        />
+        <div v-else-if="inviteUrl" class="flex flex-col gap-2">
+          <div
+            class="px-3 py-2 text-sm break-all border rounded-lg bg-n-alpha-black2 border-n-weak text-n-slate-12"
+          >
+            {{ inviteUrl }}
+          </div>
+          <div class="flex items-center gap-2">
+            <NextButton
+              :label="t('GROUP.INVITE.COPY_BUTTON')"
+              icon="i-lucide-copy"
+              variant="ghost"
+              size="xs"
+              @click="copyInviteLink"
+            />
+            <NextButton
+              :label="t('GROUP.INVITE.REVOKE_BUTTON')"
+              icon="i-lucide-refresh-cw"
+              variant="ghost"
+              size="xs"
+              :is-loading="isRevokingInvite"
+              :disabled="isRevokingInvite"
+              @click="revokeInviteLink"
+            />
           </div>
         </div>
       </div>
