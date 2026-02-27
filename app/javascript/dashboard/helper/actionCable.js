@@ -26,6 +26,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'presence.update': this.onPresenceUpdate,
       'contact.deleted': this.onContactDelete,
       'contact.updated': this.onContactUpdate,
+      'contact.group_synced': this.onContactGroupSynced,
       'conversation.mentioned': this.onConversationMentioned,
       'notification.created': this.onNotificationCreated,
       'notification.deleted': this.onNotificationDeleted,
@@ -191,6 +192,13 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onContactUpdate = data => {
     this.app.$store.dispatch('contacts/updateContact', data);
+  };
+
+  onContactGroupSynced = data => {
+    this.app.$store.dispatch('groupMembers/setGroupMembers', {
+      contactId: data.id,
+      members: data.group_members,
+    });
   };
 
   onNotificationCreated = data => {

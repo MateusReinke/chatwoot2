@@ -21,6 +21,10 @@ export const getters = {
 };
 
 export const actions = {
+  setGroupMembers({ commit }, { contactId, members }) {
+    commit(types.SET_GROUP_MEMBERS, { contactId, members });
+  },
+
   async createGroup({ commit }, params) {
     commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isCreating: true });
     try {

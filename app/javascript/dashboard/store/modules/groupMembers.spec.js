@@ -68,6 +68,19 @@ describe('groupMembers store', () => {
   });
 
   describe('actions', () => {
+    describe('setGroupMembers', () => {
+      it('commits SET_GROUP_MEMBERS directly', () => {
+        actions.setGroupMembers(
+          { commit },
+          { contactId: 42, members: sampleMembers }
+        );
+        expect(commit).toHaveBeenCalledWith(types.default.SET_GROUP_MEMBERS, {
+          contactId: 42,
+          members: sampleMembers,
+        });
+      });
+    });
+
     describe('fetch', () => {
       it('commits SET_GROUP_MEMBERS on success', async () => {
         GroupMembersAPI.getGroupMembers.mockResolvedValue({
