@@ -171,6 +171,14 @@ class Channel::Whatsapp < ApplicationRecord
   delegate :sync_templates, to: :provider_service
   delegate :media_url, to: :provider_service
   delegate :api_headers, to: :provider_service
+  delegate :create_group, to: :provider_service
+  delegate :update_group_subject, to: :provider_service
+  delegate :update_group_description, to: :provider_service
+  delegate :update_group_participants, to: :provider_service
+  delegate :group_invite_code, to: :provider_service
+  delegate :revoke_group_invite, to: :provider_service
+  delegate :group_join_requests, to: :provider_service
+  delegate :handle_group_join_requests, to: :provider_service
 
   def setup_webhooks
     perform_webhook_setup

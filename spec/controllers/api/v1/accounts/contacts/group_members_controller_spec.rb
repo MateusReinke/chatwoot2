@@ -123,4 +123,138 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
       end
     end
   end
+
+  describe 'POST /api/v1/accounts/{account.id}/contacts/:id/group_members' do
+    let(:whatsapp_channel) do
+      create(:channel_whatsapp, provider: 'baileys', validate_provider_config: false, sync_templates: false, account: account)
+    end
+    let(:inbox) { whatsapp_channel.inbox }
+    let(:group_contact) { create(:contact, account: account, group_type: :group, identifier: 'group@g.us') }
+    let(:conversation) { create(:conversation, account: account, contact: group_contact, inbox: inbox, group_type: :group) }
+    let(:baileys_service) { instance_double(Whatsapp::Providers::WhatsappBaileysService) }
+
+    before do
+      conversation
+      allow(Whatsapp::Providers::WhatsappBaileysService).to receive(:new).and_return(baileys_service)
+      allow(baileys_service).to receive(:update_group_participants).and_return(true)
+    end
+
+    context 'when unauthenticated' do
+      it 'returns unauthorized' do
+        post "/api/v1/accounts/#{account.id}/contacts/#{group_contact.id}/group_members"
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when user is logged in' do
+      it 'adds members and returns ok' do
+        allow(baileys_service).to receive(:validate_provider_config?).and_return(true)
+        allow(ContactInboxWithContactBuilder).to receive(:new).and_call_original
+
+        post "/api/v1/accounts/#{account.id}/contacts/#{group_contact.id}/group_members",
+             params: { participants: ['+5511999990001'] },
+             headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns 422 when provider is unavailable' do
+        allow(baileys_service).to receive(:update_group_participants)
+          .and_raise(Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError, 'Offline')
+
+        post "/api/v1/accounts/#{account.id}/contacts/#{group_contact.id}/group_members",
+             params: { participants: ['+5511999990001'] },
+             headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body['error']).to eq('Offline')
+      end
+    end
+  end
+
+  describe 'DELETE /api/v1/accounts/{account.id}/contacts/:id/group_members/:id' do
+    let(:whatsapp_channel) do
+      create(:channel_whatsapp, provider: 'baileys', validate_provider_config: false, sync_templates: false, account: account)
+    end
+    let(:inbox) { whatsapp_channel.inbox }
+    let(:group_contact) { create(:contact, account: account, group_type: :group, identifier: 'group@g.us') }
+    let(:conversation) { create(:conversation, account: account, contact: group_contact, inbox: inbox, group_type: :group) }
+    let(:member_contact) { create(:contact, account: account, phone_number: '+5511999990002') }
+    let!(:member) { create(:conversation_group_member, conversation: conversation, contact: member_contact) }
+    let(:baileys_service) { instance_double(Whatsapp::Providers::WhatsappBaileysService) }
+
+    before do
+      allow(Whatsapp::Providers::WhatsappBaileysService).to receive(:new).and_return(baileys_service)
+      allow(baileys_service).to receive(:update_group_participants).and_return(true)
+    end
+
+    context 'when user is logged in' do
+      it 'deactivates the member and returns ok' do
+        delete "/api/v1/accounts/#{account.id}/contacts/#{group_contact.id}/group_members/#{member.id}",
+               headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:ok)
+        expect(member.reload.is_active).to be false
+      end
+
+      it 'returns 422 when provider is unavailable' do
+        allow(baileys_service).to receive(:update_group_participants)
+          .and_raise(Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError, 'Offline')
+
+        delete "/api/v1/accounts/#{account.id}/contacts/#{group_contact.id}/group_members/#{member.id}",
+               headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+  end
+
+  describe 'PATCH /api/v1/accounts/{account.id}/contacts/:id/group_members/:member_id' do
+    let(:whatsapp_channel) do
+      create(:channel_whatsapp, provider: 'baileys', validate_provider_config: false, sync_templates: false, account: account)
+    end
+    let(:inbox) { whatsapp_channel.inbox }
+    let(:group_contact) { create(:contact, account: account, group_type: :group, identifier: 'group@g.us') }
+    let(:conversation) { create(:conversation, account: account, contact: group_contact, inbox: inbox, group_type: :group) }
+    let(:member_contact) { create(:contact, account: account, phone_number: '+5511999990003') }
+    let!(:member) { create(:conversation_group_member, conversation: conversation, contact: member_contact, role: :member) }
+    let(:baileys_service) { instance_double(Whatsapp::Providers::WhatsappBaileysService) }
+
+    before do
+      allow(Whatsapp::Providers::WhatsappBaileysService).to receive(:new).and_return(baileys_service)
+      allow(baileys_service).to receive(:update_group_participants).and_return(true)
+    end
+
+    context 'when user is logged in' do
+      it 'promotes member to admin' do
+        patch "/api/v1/accounts/#{account.id}/contacts/#{group_contact.id}/group_members/#{member.id}",
+              params: { role: 'admin' },
+              headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:ok)
+        expect(member.reload.role).to eq('admin')
+      end
+
+      it 'demotes admin to member' do
+        member.update!(role: :admin)
+        patch "/api/v1/accounts/#{account.id}/contacts/#{group_contact.id}/group_members/#{member.id}",
+              params: { role: 'member' },
+              headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:ok)
+        expect(member.reload.role).to eq('member')
+      end
+
+      it 'returns 422 when provider is unavailable' do
+        allow(baileys_service).to receive(:update_group_participants)
+          .and_raise(Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError, 'Offline')
+
+        patch "/api/v1/accounts/#{account.id}/contacts/#{group_contact.id}/group_members/#{member.id}",
+              params: { role: 'admin' },
+              headers: admin.create_new_auth_token
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+  end
 end

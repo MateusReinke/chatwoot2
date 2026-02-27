@@ -1,3 +1,27 @@
+## 2026-02-27 - US-006
+- Added create, destroy, update actions to GroupMembersController
+- Added group management method delegates to Channel::Whatsapp (create_group, update_group_participants, etc.)
+- create: calls update_group_participants('add'), creates ConversationGroupMember records via ContactInboxWithContactBuilder
+- destroy: calls update_group_participants('remove'), sets is_active=false on member
+- update: maps role 'admin'→'promote'/'member'→'demote', calls update_group_participants, updates member.role
+- **Learnings for future iterations:**
+  - Channel::Whatsapp delegates methods to provider_service; new service methods need `delegate :method_name, to: :provider_service`
+  - `allow_any_instance_of(Channel::Whatsapp).to receive(:method)` is the easiest way to stub channel methods in request specs
+  - Use `let!` for conversations/members referenced in route setup to ensure creation before request
+---
+
+## 2026-02-27 - US-005
+- Created POST /api/v1/accounts/:account_id/groups endpoint (GroupsController)
+- Created Groups::CreateService using channel.create_group via WhatsappBaileysService
+- Extended BaseService + WhatsappBaileysService with 8 abstract group management methods
+- Added routes for groups, group_members, group_metadata, group_invite, group_join_requests
+- Created create.json.jbuilder view using existing conversation partial
+- 403 test root cause: administrators have assigned_inboxes = all account inboxes; used agent user for the inbox-access test
+- **Learnings for future iterations:**
+  - Administrators have access to ALL account inboxes via assigned_inboxes; use agent user when testing inbox-level access denial
+  - `return render json:..., status: :forbidden unless cond` works correctly in Rails actions; the real issue was admin bypassing the check
+---
+
 ## 2026-02-27 - US-004
 - Added group_type to lib/filters/filter_keys.yml (attribute_type: standard, data_type: text, equal_to/not_equal_to)
 - Added conversation_group_type_values to FilterHelper (converts string 'individual'/'group' to integer enum values)
