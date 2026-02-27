@@ -1037,6 +1037,267 @@ describe Whatsapp::Providers::WhatsappBaileysService do
     end
   end
 
+  context 'when managing group messages with participant' do # rubocop:disable RSpec/MultipleMemoizedHelpers
+    let(:inbox) { whatsapp_channel.inbox }
+    let(:account_user) { create(:account_user, account: inbox.account) }
+    let(:group_jid) { '123456789123456789@g.us' }
+    let(:participant_lid) { '1111111@lid' }
+    let(:group_contact) { create(:contact, account: inbox.account, name: 'Test Group', identifier: group_jid, group_type: :group) }
+    let(:sender_contact) do
+      create(:contact, account: inbox.account, name: 'Participant', identifier: participant_lid, phone_number: '+5511999999999')
+    end
+    let(:conversation) do
+      contact_inbox = create(:contact_inbox, inbox: inbox, contact: group_contact, source_id: group_jid.split('@').first)
+      create(:conversation, inbox: inbox, contact_inbox: contact_inbox, contact: group_contact, conversation_type: :group)
+    end
+    let(:incoming_group_message) do
+      create(:message, inbox: inbox, conversation: conversation, sender: sender_contact,
+                       message_type: 'incoming', source_id: 'group_msg_123', content: 'Hello',
+                       content_attributes: { external_created_at: 123 })
+    end
+    let(:outgoing_group_message) do
+      create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                       message_type: 'outgoing', source_id: 'group_msg_456', content: 'Reply')
+    end
+    let(:send_message_path) { "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/send-message" }
+    let(:result_body) { { 'data' => { 'key' => { 'id' => 'msg_123' } } } }
+
+    describe '#send_message' do # rubocop:disable RSpec/MultipleMemoizedHelpers
+      it 'includes participant in quotedMessage key when replying to incoming message' do
+        original_message = create(:message, inbox: inbox, conversation: conversation, sender: sender_contact,
+                                            message_type: 'incoming', source_id: 'incoming_group_msg', content: 'Hello')
+        reply_message = create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                                         content: 'World!',
+                                         content_attributes: { in_reply_to_external_id: original_message.source_id })
+        stub_request(:post, send_message_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: {
+                text: 'World!',
+                quotedMessage: {
+                  key: { id: 'incoming_group_msg', remoteJid: group_jid, fromMe: false, participant: participant_lid },
+                  message: { conversation: 'Hello' }
+                }
+              }
+            }.to_json
+          )
+          .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: result_body.to_json)
+
+        result = service.send_message(group_jid, reply_message)
+
+        expect(result).to eq('msg_123')
+      end
+
+      it 'does not include participant when replying to outgoing message' do
+        original_message = create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                                            message_type: 'outgoing', source_id: 'outgoing_group_msg', content: 'Hello')
+        reply_message = create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                                         content: 'World!',
+                                         content_attributes: { in_reply_to_external_id: original_message.source_id })
+        stub_request(:post, send_message_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: {
+                text: 'World!',
+                quotedMessage: {
+                  key: { id: 'outgoing_group_msg', remoteJid: group_jid, fromMe: true },
+                  message: { conversation: 'Hello' }
+                }
+              }
+            }.to_json
+          )
+          .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: result_body.to_json)
+
+        result = service.send_message(group_jid, reply_message)
+
+        expect(result).to eq('msg_123')
+      end
+
+      it 'includes participant in reaction key when reacting to incoming message' do
+        original_message = create(:message, inbox: inbox, conversation: conversation, sender: sender_contact,
+                                            message_type: 'incoming', source_id: 'react_group_msg', content: 'Nice')
+        reaction = create(:message, inbox: inbox, conversation: conversation, sender: account_user, content: '👍',
+                                    content_attributes: { is_reaction: true, in_reply_to: original_message.id })
+        stub_request(:post, send_message_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: {
+                react: {
+                  key: { id: original_message.source_id, remoteJid: group_jid, fromMe: false, participant: participant_lid },
+                  text: '👍'
+                }
+              }
+            }.to_json
+          )
+          .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: result_body.to_json)
+
+        result = service.send_message(group_jid, reaction)
+
+        expect(result).to eq('msg_123')
+      end
+
+      it 'does not include participant in reaction key when reacting to outgoing message' do
+        original_message = create(:message, inbox: inbox, conversation: conversation, sender: account_user,
+                                            message_type: 'outgoing', source_id: 'react_out_msg', content: 'Sent')
+        reaction = create(:message, inbox: inbox, conversation: conversation, sender: account_user, content: '❤️',
+                                    content_attributes: { is_reaction: true, in_reply_to: original_message.id })
+        stub_request(:post, send_message_path)
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              messageContent: {
+                react: {
+                  key: { id: original_message.source_id, remoteJid: group_jid, fromMe: true },
+                  text: '❤️'
+                }
+              }
+            }.to_json
+          )
+          .to_return(status: 200, headers: { 'Content-Type' => 'application/json' }, body: result_body.to_json)
+
+        result = service.send_message(group_jid, reaction)
+
+        expect(result).to eq('msg_123')
+      end
+    end
+
+    describe '#read_messages' do # rubocop:disable RSpec/MultipleMemoizedHelpers
+      it 'includes participant for incoming group messages' do
+        stub_request(:post, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/read-messages")
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: { keys: [{ id: incoming_group_message.source_id, remoteJid: group_jid, fromMe: false, participant: participant_lid }] }.to_json
+          ).to_return(status: 200)
+
+        result = service.read_messages([incoming_group_message], recipient_id: group_jid)
+
+        expect(result).to be(true)
+      end
+
+      it 'does not include participant for outgoing group messages' do
+        stub_request(:post, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/read-messages")
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: { keys: [{ id: outgoing_group_message.source_id, remoteJid: group_jid, fromMe: true }] }.to_json
+          ).to_return(status: 200)
+
+        result = service.read_messages([outgoing_group_message], recipient_id: group_jid)
+
+        expect(result).to be(true)
+      end
+    end
+
+    describe '#unread_message' do # rubocop:disable RSpec/MultipleMemoizedHelpers
+      it 'includes participant for incoming group message' do
+        stub_request(:post, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/chat-modify")
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              mod: {
+                markRead: false,
+                lastMessages: [{
+                  key: { id: incoming_group_message.source_id, remoteJid: group_jid, fromMe: false, participant: participant_lid },
+                  messageTimestamp: 123
+                }]
+              }
+            }.to_json
+          ).to_return(status: 200)
+
+        result = service.unread_message(group_jid, incoming_group_message)
+
+        expect(result).to be(true)
+      end
+    end
+
+    describe '#received_messages' do # rubocop:disable RSpec/MultipleMemoizedHelpers
+      it 'includes participant for incoming group messages' do
+        stub_request(:post, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/send-receipts")
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: { keys: [{ id: incoming_group_message.source_id, remoteJid: group_jid, fromMe: false, participant: participant_lid }] }.to_json
+          ).to_return(status: 200)
+
+        result = service.received_messages(group_jid, [incoming_group_message])
+
+        expect(result).to be(true)
+      end
+    end
+
+    describe '#delete_message' do # rubocop:disable RSpec/MultipleMemoizedHelpers
+      it 'includes participant for incoming group message' do
+        stub_request(:delete, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/messages")
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              key: { id: incoming_group_message.source_id, remoteJid: group_jid, fromMe: false, participant: participant_lid }
+            }.to_json
+          ).to_return(status: 200, body: '{}')
+
+        result = service.delete_message(group_jid, incoming_group_message)
+
+        expect(result).to be(true)
+      end
+
+      it 'does not include participant for outgoing group message' do
+        stub_request(:delete, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/messages")
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              key: { id: outgoing_group_message.source_id, remoteJid: group_jid, fromMe: true }
+            }.to_json
+          ).to_return(status: 200, body: '{}')
+
+        result = service.delete_message(group_jid, outgoing_group_message)
+
+        expect(result).to be(true)
+      end
+    end
+
+    describe '#edit_message' do # rubocop:disable RSpec/MultipleMemoizedHelpers
+      it 'includes participant for incoming group message' do
+        stub_request(:patch, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/messages")
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              key: { id: incoming_group_message.source_id, remoteJid: group_jid, fromMe: false, participant: participant_lid },
+              messageContent: { text: 'Edited text' }
+            }.to_json
+          ).to_return(status: 200, body: '{}')
+
+        result = service.edit_message(group_jid, incoming_group_message, 'Edited text')
+
+        expect(result).to be(true)
+      end
+
+      it 'does not include participant for outgoing group message' do
+        stub_request(:patch, "#{whatsapp_channel.provider_config['provider_url']}/connections/#{whatsapp_channel.phone_number}/messages")
+          .with(
+            headers: stub_headers(whatsapp_channel),
+            body: {
+              jid: group_jid,
+              key: { id: outgoing_group_message.source_id, remoteJid: group_jid, fromMe: true },
+              messageContent: { text: 'Edited text' }
+            }.to_json
+          ).to_return(status: 200, body: '{}')
+
+        result = service.edit_message(group_jid, outgoing_group_message, 'Edited text')
+
+        expect(result).to be(true)
+      end
+    end
+  end
+
   context 'when environment variable BAILEYS_PROVIDER_DEFAULT_URL is set' do
     it 'uses the base url from the environment variable' do
       stub_const('Whatsapp::Providers::WhatsappBaileysService::DEFAULT_URL', 'http://test.com')
