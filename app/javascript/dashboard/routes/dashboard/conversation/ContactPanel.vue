@@ -14,6 +14,7 @@ import ContactConversations from './ContactConversations.vue';
 import ConversationAction from './ConversationAction.vue';
 import ConversationParticipant from './ConversationParticipant.vue';
 import ContactInfo from './contact/ContactInfo.vue';
+import GroupContactInfo from './contact/GroupContactInfo.vue';
 import ContactNotes from './contact/ContactNotes.vue';
 import ScheduledMessages from './scheduledMessages/ScheduledMessages.vue';
 import ConversationInfo from './ConversationInfo.vue';
@@ -88,6 +89,14 @@ const conversationAdditionalAttributes = computed(
 );
 
 const channelType = computed(() => currentChat.value.meta?.channel);
+const isGroupConversation = computed(
+  () => currentChat.value.group_type === 'group'
+);
+const sidebarTitle = computed(() =>
+  isGroupConversation.value
+    ? 'GROUP.INFO.SIDEBAR_TITLE'
+    : 'CONVERSATION.SIDEBAR.CONTACT'
+);
 
 const contactGetter = useMapGetter('contacts/getContact');
 const contactId = computed(() => currentChat.value.meta?.sender?.id);
@@ -134,10 +143,11 @@ onMounted(() => {
 <template>
   <div class="w-full">
     <SidebarActionsHeader
-      :title="$t('CONVERSATION.SIDEBAR.CONTACT')"
+      :title="$t(sidebarTitle)"
       @close="closeContactPanel"
     />
-    <ContactInfo :contact="contact" :channel-type="channelType" />
+    <GroupContactInfo v-if="isGroupConversation" :contact="contact" />
+    <ContactInfo v-else :contact="contact" :channel-type="channelType" />
     <div class="px-2 pb-8 list-group">
       <Draggable
         :list="conversationSidebarItems"
