@@ -1,3 +1,11 @@
+## 2026-02-27 - US-009
+- Created GroupJoinRequestsController with index and handle actions
+- index: calls group_join_requests(jid), returns { payload: requests }
+- handle: calls handle_group_join_requests(jid, participants, request_action), returns 200
+- **Learnings for future iterations:**
+  - params[:action] is reserved in Rails for controller action name; use params[:request_action] or similar for custom action params
+---
+
 ## 2026-02-27 - US-008
 - Created GroupInvitesController (note: singular resource :group_invite routes to group_invites_controller)
 - show: calls group_invite_code(jid), returns { invite_code, invite_url }
