@@ -1,7 +1,7 @@
 {
   "project": "chatwoot",
   "branchName": "ralph/group-conversations-full-feature",
-  "description": "Full group conversations feature — backend refactor, serialization, filtering, GroupContactInfo sidebar, group management (create/members/metadata/invite/join requests), group message bubbles, @mention system, real-time updates.",
+  "description": "Full group conversations feature \u2014 backend refactor, serialization, filtering, GroupContactInfo sidebar, group management (create/members/metadata/invite/join requests), group message bubbles, @mention system, real-time updates.",
   "userStories": [
     {
       "id": "US-001",
@@ -31,12 +31,12 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Backend — group_type filter on conversations index",
+      "title": "Backend \u2014 group_type filter on conversations index",
       "description": "As a developer, I need the conversations index endpoint to accept a group_type query param so the basic filter dropdown can filter by conversation type.",
       "acceptanceCriteria": [
         "GET /api/v1/accounts/:account_id/conversations accepts group_type param with values 'individual' and 'group'",
@@ -46,12 +46,12 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Backend — add group_type to filter_keys.yml and FilterService",
+      "title": "Backend \u2014 add group_type to filter_keys.yml and FilterService",
       "description": "As a developer, I need group_type supported in the advanced filter system so agents can build complex filters including conversation type.",
       "acceptanceCriteria": [
         "group_type added to lib/filters/filter_keys.yml under conversations: with attribute_type: standard, data_type: text, filter_operators: [equal_to, not_equal_to]",
@@ -61,12 +61,12 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Backend — group creation endpoint",
+      "title": "Backend \u2014 group creation endpoint",
       "description": "As an agent, I want to create a new WhatsApp group from Chatwoot so I can start group conversations directly.",
       "acceptanceCriteria": [
         "POST /api/v1/accounts/:account_id/groups accepts { inbox_id, subject, participants: [phone_numbers] }",
@@ -79,12 +79,12 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Backend — add/remove members and role management endpoints",
+      "title": "Backend \u2014 add/remove members and role management endpoints",
       "description": "As an agent, I want to add/remove members from a group and promote/demote admins via the API.",
       "acceptanceCriteria": [
         "POST /api/v1/accounts/:account_id/contacts/:id/group_members accepts { participants: [phone_numbers] } and adds members via Baileys groupParticipantsUpdate with action add",
@@ -101,7 +101,7 @@
     },
     {
       "id": "US-007",
-      "title": "Backend — group metadata update endpoint",
+      "title": "Backend \u2014 group metadata update endpoint",
       "description": "As an agent, I want to edit group name and description via the API so agents can manage group metadata.",
       "acceptanceCriteria": [
         "PATCH /api/v1/accounts/:account_id/contacts/:id/group_metadata accepts { subject, description }",
@@ -119,7 +119,7 @@
     },
     {
       "id": "US-008",
-      "title": "Backend — invite link management endpoints",
+      "title": "Backend \u2014 invite link management endpoints",
       "description": "As an agent, I want to get and revoke the group invite link via the API.",
       "acceptanceCriteria": [
         "GET /api/v1/accounts/:account_id/contacts/:id/group_invite returns { invite_code, invite_url } by calling Baileys groupInviteCode(jid)",
@@ -134,7 +134,7 @@
     },
     {
       "id": "US-009",
-      "title": "Backend — join request management endpoints",
+      "title": "Backend \u2014 join request management endpoints",
       "description": "As an agent/admin, I want to list and approve/reject pending join requests via the API.",
       "acceptanceCriteria": [
         "GET /api/v1/accounts/:account_id/contacts/:id/group_join_requests lists pending join requests by calling Baileys groupRequestParticipantsList(jid)",
@@ -149,7 +149,7 @@
     },
     {
       "id": "US-010",
-      "title": "Backend — extend MentionService for contact mentions",
+      "title": "Backend \u2014 extend MentionService for contact mentions",
       "description": "As a developer, I need the backend MentionService to handle mention://contact/ID/Name URIs in group messages and create Mention records for mentioned contacts.",
       "acceptanceCriteria": [
         "Messages::MentionService extracts mention://contact/ID/EncodedName URIs from message content",
@@ -164,7 +164,7 @@
     },
     {
       "id": "US-011",
-      "title": "Frontend — API clients for all group endpoints",
+      "title": "Frontend \u2014 API clients for all group endpoints",
       "description": "As a developer, I need frontend API client methods for all group-related backend endpoints.",
       "acceptanceCriteria": [
         "New file app/javascript/dashboard/api/groupMembers.js exists",
@@ -178,11 +178,11 @@
     },
     {
       "id": "US-012",
-      "title": "Frontend — Vuex store module groupMembers",
+      "title": "Frontend \u2014 Vuex store module groupMembers",
       "description": "As a developer, I need a Vuex store module to manage group member state so components can reactively access and mutate group data.",
       "acceptanceCriteria": [
         "New file app/javascript/dashboard/store/modules/groupMembers.js exists",
-        "State: records (object keyed by contactId → array of members), uiFlags: { isFetching, isSyncing, isUpdating }",
+        "State: records (object keyed by contactId \u2192 array of members), uiFlags: { isFetching, isSyncing, isUpdating }",
         "Getter getGroupMembers(contactId) returns members array for the given contactId",
         "Action fetch({ contactId }) calls getGroupMembers API and commits SET_GROUP_MEMBERS",
         "Action sync({ contactId }) calls syncGroup API and then re-fetches via fetch",
@@ -197,7 +197,7 @@
     },
     {
       "id": "US-013",
-      "title": "Frontend — i18n keys for group features (en + pt-BR)",
+      "title": "Frontend \u2014 i18n keys for group features (en + pt-BR)",
       "description": "As a developer, I need all group-related UI strings defined in i18n so no bare strings are used in components.",
       "acceptanceCriteria": [
         "New or updated JSON file(s) in app/javascript/dashboard/i18n/locale/en/ with keys for: group info header, member list section title, admin badge label, sync button label, sync success message, sync error message, empty member list state, filter type label (All/Individual/Group), group creation modal labels, edit metadata labels (name/description/avatar), invite link section labels (copy/revoke), member management labels (add/remove/promote/demote), join request labels (approve/reject/pending count), mention dropdown header",
@@ -210,11 +210,11 @@
     },
     {
       "id": "US-014",
-      "title": "Frontend — add group_type filter to ConversationBasicFilter",
+      "title": "Frontend \u2014 add group_type filter to ConversationBasicFilter",
       "description": "As an agent, I want a Type filter section in the basic filter dropdown to quickly show only individual or group conversations.",
       "acceptanceCriteria": [
         "ConversationBasicFilter.vue has a new Type section in the dropdown, alongside Status and Sort Order",
-        "Options: All (default), Individual, Group — using i18n labels",
+        "Options: All (default), Individual, Group \u2014 using i18n labels",
         "Selected value is stored in UI settings under conversations_filter_by.group_type and restored on reload",
         "Filter value is included in conversationFilters and passed as group_type query param to the fetch API call",
         "Selecting Individual shows only conversations with group_type individual, selecting Group shows only group_type group, All shows all",
@@ -227,7 +227,7 @@
     },
     {
       "id": "US-015",
-      "title": "Frontend — add group_type to advanced filter system",
+      "title": "Frontend \u2014 add group_type to advanced filter system",
       "description": "As an agent, I want group_type available as a filter attribute in the advanced filter so I can build complex filter rules.",
       "acceptanceCriteria": [
         "New entry in advancedFilterItems/index.js: attributeKey group_type, inputType multi_select, filterOperators OPERATOR_TYPES_1 (equal_to, not_equal_to), attributeModel standard",
@@ -243,12 +243,12 @@
     },
     {
       "id": "US-016",
-      "title": "Frontend — GroupContactInfo basic display",
+      "title": "Frontend \u2014 GroupContactInfo basic display",
       "description": "As an agent, I want to see a group-specific info panel in the sidebar with the group avatar, name, member count, and member list with skeleton loading.",
       "acceptanceCriteria": [
         "New component app/javascript/dashboard/routes/dashboard/conversation/contact/GroupContactInfo.vue using <script setup> and Composition API",
         "Displays group avatar (using existing Avatar component), group name, and active member count",
-        "Member list shows each active member with: Avatar, name, Admin badge (only for role admin — no badge for member)",
+        "Member list shows each active member with: Avatar, name, Admin badge (only for role admin \u2014 no badge for member)",
         "Skeleton loading placeholders appear while isFetching is true in the groupMembers store",
         "Empty state message shown when fetch completes with zero members",
         "On mount, dispatches groupMembers/fetch with the group contact ID",
@@ -263,7 +263,7 @@
     },
     {
       "id": "US-017",
-      "title": "Frontend — GroupContactInfo sync button",
+      "title": "Frontend \u2014 GroupContactInfo sync button",
       "description": "As an agent, I want a Sync button in GroupContactInfo to refresh the member list from the provider.",
       "acceptanceCriteria": [
         "GroupContactInfo has a Sync button (using NextButton component) with sync/refresh icon",
@@ -280,7 +280,7 @@
     },
     {
       "id": "US-018",
-      "title": "Frontend — integrate GroupContactInfo in ContactPanel",
+      "title": "Frontend \u2014 integrate GroupContactInfo in ContactPanel",
       "description": "As a system, I need ContactPanel to render GroupContactInfo instead of ContactInfo when the current conversation is a group conversation.",
       "acceptanceCriteria": [
         "ContactPanel.vue imports GroupContactInfo",
@@ -297,7 +297,7 @@
     },
     {
       "id": "US-019",
-      "title": "Frontend — group creation UI modal",
+      "title": "Frontend \u2014 group creation UI modal",
       "description": "As an agent, I want a modal to create a new WhatsApp group by selecting an inbox, entering a group name, and choosing initial participants.",
       "acceptanceCriteria": [
         "New component for group creation modal accessible from a relevant UI entry point",
@@ -317,7 +317,7 @@
     },
     {
       "id": "US-020",
-      "title": "Frontend — member management UI in GroupContactInfo",
+      "title": "Frontend \u2014 member management UI in GroupContactInfo",
       "description": "As an agent, I want to add/remove members and change roles directly from the GroupContactInfo sidebar.",
       "acceptanceCriteria": [
         "Add member button in GroupContactInfo opens a contact search/select input",
@@ -335,7 +335,7 @@
     },
     {
       "id": "US-021",
-      "title": "Frontend — group metadata editing UI",
+      "title": "Frontend \u2014 group metadata editing UI",
       "description": "As an agent, I want to edit the group name, description, and avatar inline from the GroupContactInfo sidebar.",
       "acceptanceCriteria": [
         "Group name is inline-editable: click to activate edit input, press Enter or blur to save",
@@ -353,7 +353,7 @@
     },
     {
       "id": "US-022",
-      "title": "Frontend — invite link management UI",
+      "title": "Frontend \u2014 invite link management UI",
       "description": "As an agent, I want to view, copy, and revoke the group invite link from the sidebar.",
       "acceptanceCriteria": [
         "Invite Link section in GroupContactInfo is always visible (not collapsed)",
@@ -371,7 +371,7 @@
     },
     {
       "id": "US-023",
-      "title": "Frontend — join request management UI",
+      "title": "Frontend \u2014 join request management UI",
       "description": "As an agent, I want to see and act on pending join requests in the sidebar when join approval is enabled.",
       "acceptanceCriteria": [
         "Pending Requests section in GroupContactInfo is only rendered when there are pending requests",
@@ -390,7 +390,7 @@
     },
     {
       "id": "US-024",
-      "title": "Frontend — group message bubbles: sender name with color",
+      "title": "Frontend \u2014 group message bubbles: sender name with color",
       "description": "As an agent, I want group message bubbles to show the sender's name above the text with a deterministic color per sender.",
       "acceptanceCriteria": [
         "In group conversations (group_type === 'group'), incoming message bubbles display the sender's name above the message content",
@@ -407,7 +407,7 @@
     },
     {
       "id": "US-025",
-      "title": "Frontend — group message bubbles: sender avatar",
+      "title": "Frontend \u2014 group message bubbles: sender avatar",
       "description": "As an agent, I want to see the sender's avatar next to group message bubbles to visually identify who sent each message.",
       "acceptanceCriteria": [
         "In group conversations, each incoming message shows the sender's avatar to the left of the bubble",
@@ -424,7 +424,7 @@
     },
     {
       "id": "US-026",
-      "title": "Frontend — @mention dropdown for group conversations",
+      "title": "Frontend \u2014 @mention dropdown for group conversations",
       "description": "As an agent, I want typing @ in a group conversation to show a dropdown of group members so I can mention them in messages.",
       "acceptanceCriteria": [
         "Typing @ in the message editor for a group conversation (group_type === 'group') triggers a mention suggestion dropdown",
@@ -442,7 +442,7 @@
     },
     {
       "id": "US-027",
-      "title": "Frontend — mention rendering in group message bubbles",
+      "title": "Frontend \u2014 mention rendering in group message bubbles",
       "description": "As an agent, I want @mention tags in group messages to be visually highlighted in the message bubble.",
       "acceptanceCriteria": [
         "mention://contact/ID/EncodedName URIs in message content are rendered as highlighted/styled mention chips in the bubble",
@@ -458,7 +458,7 @@
     },
     {
       "id": "US-028",
-      "title": "Frontend — ActionCable handler for contact.group_synced event",
+      "title": "Frontend \u2014 ActionCable handler for contact.group_synced event",
       "description": "As a system, when a contact.group_synced event arrives via ActionCable, the group member list should update reactively without a page refresh.",
       "acceptanceCriteria": [
         "ActionCable message handler listens for events with type contact.group_synced",

@@ -175,6 +175,7 @@ Rails.application.routes.draw do
               get :search
             end
           end
+          resources :groups, only: [:create]
           resources :contacts, only: [:index, :show, :update, :create, :destroy] do
             collection do
               get :active
@@ -192,7 +193,16 @@ Rails.application.routes.draw do
             scope module: :contacts do
               resources :conversations, only: [:index]
               resources :contact_inboxes, only: [:create]
-              resources :group_members, only: [:index]
+              resources :group_members, only: [:index, :create, :destroy] do
+                patch ':member_id', to: 'group_members#update', on: :collection
+              end
+              resource :group_metadata, only: [:update]
+              resource :group_invite, only: [:show] do
+                post :revoke, on: :member
+              end
+              resources :group_join_requests, only: [:index] do
+                post :handle, on: :collection
+              end
               resources :labels, only: [:create, :index]
               resources :notes
               post :call, on: :member, to: 'calls#create' if ChatwootApp.enterprise?

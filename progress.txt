@@ -1,3 +1,21 @@
+## 2026-02-27 - US-004
+- Added group_type to lib/filters/filter_keys.yml (attribute_type: standard, data_type: text, equal_to/not_equal_to)
+- Added conversation_group_type_values to FilterHelper (converts string 'individual'/'group' to integer enum values)
+- Hooked into FilterService#filter_values for group_type attribute_key
+---
+
+## 2026-02-27 - US-003
+- Added filter_by_group_type method to ConversationFinder, called from set_up
+- No filter applied when param absent or equals 'all'
+---
+
+## 2026-02-27 - US-002
+- Added group_type to conversation jbuilder partial (_conversation.json.jbuilder)
+- Added group_type to contact jbuilder model (_contact.json.jbuilder)
+- Both Contact and Conversation models already have group_type enum; output is 'individual' or 'group'
+- All controller specs pass with no regressions
+---
+
 ## 2026-02-27 - US-001
 - Renamed conversation_type column to group_type on conversations table
 - Created migration 20260227135739 with rename_column + execute(ALTER INDEX) instead of rename_index

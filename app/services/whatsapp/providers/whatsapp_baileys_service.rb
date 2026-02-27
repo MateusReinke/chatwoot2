@@ -82,6 +82,98 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
   def sync_templates; end
 
+  def create_group(subject, participants)
+    response = HTTParty.post(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-create",
+      headers: api_headers,
+      body: { subject: subject, participants: participants }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.deep_symbolize_keys
+  end
+
+  def update_group_subject(group_jid, subject)
+    response = HTTParty.patch(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-subject",
+      headers: api_headers,
+      body: { jid: group_jid, subject: subject }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+  end
+
+  def update_group_description(group_jid, description)
+    response = HTTParty.patch(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-description",
+      headers: api_headers,
+      body: { jid: group_jid, description: description }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+  end
+
+  def update_group_participants(group_jid, participants, action)
+    response = HTTParty.patch(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-participants",
+      headers: api_headers,
+      body: { jid: group_jid, participants: participants, action: action }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response
+  end
+
+  def group_invite_code(group_jid)
+    response = HTTParty.get(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-invite-code",
+      headers: api_headers,
+      query: { jid: group_jid },
+      format: :json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('data', 'code')
+  end
+
+  def revoke_group_invite(group_jid)
+    response = HTTParty.post(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-revoke-invite",
+      headers: api_headers,
+      body: { jid: group_jid }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('data', 'code')
+  end
+
+  def group_join_requests(group_jid)
+    response = HTTParty.get(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-join-requests",
+      headers: api_headers,
+      query: { jid: group_jid },
+      format: :json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+
+    response.parsed_response&.dig('data') || []
+  end
+
+  def handle_group_join_requests(group_jid, participants, action)
+    response = HTTParty.post(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-join-requests-handle",
+      headers: api_headers,
+      body: { jid: group_jid, participants: participants, action: action }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+  end
+
   def sync_group(conversation)
     group_contact = conversation.contact
     inbox = conversation.inbox
