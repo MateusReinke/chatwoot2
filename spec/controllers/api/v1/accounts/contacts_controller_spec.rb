@@ -798,6 +798,9 @@ RSpec.describe 'Contacts API', type: :request do
 
     context 'when it is an authenticated user' do
       it 'syncs the group and returns contact with group members' do
+        service = instance_double(Contacts::SyncGroupService, perform: contact)
+        allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact).and_return(service)
+
         post "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/sync_group",
              headers: agent.create_new_auth_token,
              as: :json
