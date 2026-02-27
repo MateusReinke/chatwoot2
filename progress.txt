@@ -1,3 +1,10 @@
+## 2026-02-27 - US-007
+- Created GroupMetadataController with update action
+- Calls update_group_subject when subject param present, updates contact.name
+- Calls update_group_description when description param present, updates additional_attributes.description
+- Route: resource :group_metadata, only: [:update] was already set up in US-005
+---
+
 ## 2026-02-27 - US-006
 - Added create, destroy, update actions to GroupMembersController
 - Added group management method delegates to Channel::Whatsapp (create_group, update_group_participants, etc.)
