@@ -161,13 +161,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/read-messages",
       headers: api_headers,
       body: {
-        keys: messages.map do |message|
-          {
-            id: message.source_id,
-            remoteJid: remote_jid,
-            fromMe: message.message_type == 'outgoing'
-          }
-        end
+        keys: messages.map { |message| message_key_for(message) }
       }.to_json
     )
 
@@ -176,7 +170,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     true
   end
 
-  def unread_message(recipient_id, message) # rubocop:disable Metrics/MethodLength
+  def unread_message(recipient_id, message)
     @recipient_id = recipient_id
 
     response = HTTParty.post(
@@ -187,11 +181,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
         mod: {
           markRead: false,
           lastMessages: [{
-            key: {
-              id: message.source_id,
-              remoteJid: remote_jid,
-              fromMe: message.message_type == 'outgoing'
-            },
+            key: message_key_for(message),
             messageTimestamp: message.content_attributes[:external_created_at]
           }]
         }
@@ -210,13 +200,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/send-receipts",
       headers: api_headers,
       body: {
-        keys: messages.map do |message|
-          {
-            id: message.source_id,
-            remoteJid: remote_jid,
-            fromMe: message.message_type == 'outgoing'
-          }
-        end
+        keys: messages.map { |message| message_key_for(message) }
       }.to_json
     )
 
@@ -275,11 +259,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
       headers: api_headers,
       body: {
         jid: remote_jid,
-        key: {
-          id: message.source_id,
-          remoteJid: remote_jid,
-          fromMe: message.message_type == 'outgoing'
-        }
+        key: message_key_for(message)
       }.to_json
     )
 
@@ -296,11 +276,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
       headers: api_headers,
       body: {
         jid: remote_jid,
-        key: {
-          id: message.source_id,
-          remoteJid: remote_jid,
-          fromMe: message.message_type == 'outgoing'
-        },
+        key: message_key_for(message),
         messageContent: { text: new_content }
       }.to_json
     )
@@ -324,12 +300,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     reply_to = Message.find(@message.in_reply_to)
     {
       react: {
-        key: {
-          id: reply_to.source_id,
-          remoteJid: remote_jid,
-          fromMe: reply_to.message_type == 'outgoing',
-          participant: participant_jid_for(reply_to)
-        }.compact,
+        key: message_key_for(reply_to),
         text: @message.outgoing_content
       }
     }
@@ -344,19 +315,23 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
     {
       quotedMessage: {
-        key: {
-          id: reply_to_external_id,
-          remoteJid: remote_jid,
-          fromMe: reply_to_message.message_type == 'outgoing',
-          participant: participant_jid_for(reply_to_message)
-        }.compact,
+        key: message_key_for(reply_to_message),
         message: quoted_message_content(reply_to_message)
       }
     }
   end
 
-  def participant_jid_for(message)
-    return unless @message.conversation.conversation_type_group?
+  def message_key_for(message)
+    {
+      id: message.source_id,
+      remoteJid: remote_jid,
+      fromMe: message.message_type == 'outgoing',
+      participant: group_participant_jid(message)
+    }.compact
+  end
+
+  def group_participant_jid(message)
+    return unless remote_jid.ends_with?('@g.us')
     return if message.message_type == 'outgoing'
 
     message.sender&.identifier
