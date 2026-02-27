@@ -1,0 +1,77 @@
+{
+  "GROUP": {
+    "SIDEBAR_TITLE": "Group",
+    "INFO": {
+      "HEADER": "Group Info",
+      "MEMBER_COUNT": "{count} members",
+      "MEMBER_LIST_TITLE": "Members",
+      "ADMIN_BADGE": "Admin",
+      "SYNC_BUTTON": "Sync",
+      "SYNC_SUCCESS": "Group members synced successfully.",
+      "SYNC_ERROR": "Failed to sync group members. Please try again.",
+      "EMPTY_STATE": "No members found."
+    },
+    "FILTER": {
+      "TYPE_LABEL": "Type",
+      "ALL": "All",
+      "INDIVIDUAL": "Individual",
+      "GROUP": "Group"
+    },
+    "CREATE": {
+      "TITLE": "Create New Group",
+      "INBOX_LABEL": "Inbox",
+      "INBOX_PLACEHOLDER": "Select a WhatsApp inbox",
+      "NAME_LABEL": "Group Name",
+      "NAME_PLACEHOLDER": "Enter group name",
+      "PARTICIPANTS_LABEL": "Participants",
+      "PARTICIPANTS_PLACEHOLDER": "Search contacts to add",
+      "SUBMIT_BUTTON": "Create Group",
+      "SUCCESS_MESSAGE": "Group created successfully.",
+      "ERROR_MESSAGE": "Failed to create group. Please try again."
+    },
+    "METADATA": {
+      "EDIT_NAME_LABEL": "Group Name",
+      "EDIT_NAME_PLACEHOLDER": "Enter group name",
+      "EDIT_DESCRIPTION_LABEL": "Description",
+      "EDIT_DESCRIPTION_PLACEHOLDER": "Enter group description",
+      "EDIT_AVATAR_LABEL": "Group Photo",
+      "SAVE_SUCCESS": "Group info updated successfully.",
+      "SAVE_ERROR": "Failed to update group info. Please try again."
+    },
+    "INVITE": {
+      "SECTION_TITLE": "Invite Link",
+      "COPY_BUTTON": "Copy Link",
+      "COPY_SUCCESS": "Invite link copied to clipboard.",
+      "REVOKE_BUTTON": "Revoke & Regenerate",
+      "REVOKE_SUCCESS": "Invite link revoked and regenerated.",
+      "REVOKE_ERROR": "Failed to revoke invite link. Please try again.",
+      "FETCH_ERROR": "Failed to load invite link."
+    },
+    "MEMBERS": {
+      "ADD_BUTTON": "Add Member",
+      "ADD_SUCCESS": "Member added successfully.",
+      "ADD_ERROR": "Failed to add member. Please try again.",
+      "REMOVE_BUTTON": "Remove",
+      "REMOVE_SUCCESS": "Member removed successfully.",
+      "REMOVE_ERROR": "Failed to remove member. Please try again.",
+      "PROMOTE_BUTTON": "Promote to Admin",
+      "PROMOTE_SUCCESS": "Member promoted to admin.",
+      "PROMOTE_ERROR": "Failed to promote member. Please try again.",
+      "DEMOTE_BUTTON": "Demote to Member",
+      "DEMOTE_SUCCESS": "Member demoted to member.",
+      "DEMOTE_ERROR": "Failed to demote member. Please try again."
+    },
+    "JOIN_REQUESTS": {
+      "SECTION_TITLE": "Pending Requests",
+      "PENDING_COUNT": "{count} pending",
+      "APPROVE_BUTTON": "Approve",
+      "REJECT_BUTTON": "Reject",
+      "APPROVE_SUCCESS": "Join request approved.",
+      "REJECT_SUCCESS": "Join request rejected.",
+      "ACTION_ERROR": "Failed to process join request. Please try again."
+    },
+    "MENTION": {
+      "DROPDOWN_HEADER": "Group Members"
+    }
+  }
+}
