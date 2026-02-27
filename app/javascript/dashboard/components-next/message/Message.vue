@@ -247,7 +247,21 @@ const flexOrientationClass = computed(() => {
   return map[orientation.value];
 });
 
+const isGroupIncoming = computed(() => {
+  return (
+    props.isGroupConversation && props.messageType === MESSAGE_TYPES.INCOMING
+  );
+});
+
+const showGroupSenderAvatar = computed(() => {
+  return isGroupIncoming.value && !props.groupWithPrevious;
+});
+
 const gridClass = computed(() => {
+  if (orientation.value === ORIENTATION.LEFT && isGroupIncoming.value) {
+    return 'grid grid-cols-[24px_1fr]';
+  }
+
   const map = {
     [ORIENTATION.LEFT]: 'grid grid-cols-1fr',
     [ORIENTATION.RIGHT]: 'grid grid-cols-[1fr_24px]',
@@ -257,6 +271,13 @@ const gridClass = computed(() => {
 });
 
 const gridTemplate = computed(() => {
+  if (orientation.value === ORIENTATION.LEFT && isGroupIncoming.value) {
+    return `
+      "avatar bubble"
+      "spacer meta"
+    `;
+  }
+
   const map = {
     [ORIENTATION.LEFT]: `
       "bubble"
@@ -585,6 +606,13 @@ provideMessageContext({
         gridTemplateAreas: gridTemplate,
       }"
     >
+      <div
+        v-if="showGroupSenderAvatar"
+        v-tooltip.right-end="avatarTooltip"
+        class="[grid-area:avatar] flex items-end"
+      >
+        <Avatar v-bind="avatarInfo" :size="24" />
+      </div>
       <div
         v-if="!shouldGroupWithNext && shouldShowAvatar"
         v-tooltip.left-end="avatarTooltip"

@@ -203,3 +203,95 @@
   - frontendURL + conversationUrl pattern creates /app/accounts/:id/conversations/:id URLs for navigation
   - Manual browser verification needed (no dev-browser skill available)
 ---
+
+## 2026-02-27 - US-020
+- Added member management UI to GroupContactInfo.vue
+- Add Member button opens a contact search input (same pattern as CreateGroupModal: debounced ContactsAPI.search, dropdown results, filters out existing members)
+- Each member row has a hover-visible three-dot menu (DropdownMenu component) with Promote to Admin / Demote to Member / Remove from group actions
+- Each action dispatches corresponding groupMembers store action (addMembers, removeMembers, updateMemberRole)
+- Per-member loading spinner (loadingMemberId ref) replaces menu during action execution
+- Success/error alerts via useAlert with GROUP.MEMBERS.* i18n keys (already existed)
+- Files changed: GroupContactInfo.vue
+- **Learnings for future iterations:**
+  - DropdownMenu from components-next/dropdown-menu/ uses menuItems array with { label, action, value, icon } structure; emits @action event
+  - v-on-clickaway directive is globally registered (no import needed); use on the wrapper div to close menus on outside click
+  - Use `group` class on parent + `opacity-0 group-hover:opacity-100` on child for hover-reveal patterns in Tailwind
+  - ContactsAPI.search response: { data: { payload: [...contacts] } } — same pattern reused from CreateGroupModal
+  - Manual browser verification needed (no dev-browser skill available)
+---
+
+## 2026-02-27 - US-021
+- Added inline editing for group name, description, and avatar upload to GroupContactInfo.vue
+- Group name: click to edit inline input, save on Enter/blur, Escape to cancel
+- Description: click to edit textarea, save on blur
+- Avatar: click opens file picker, uploads via contacts/update with isFormData
+- Loading spinners on each field during save; success/error alerts via useAlert
+- Added updateGroupMetadata action to groupMembers store module
+- Files changed: GroupContactInfo.vue, groupMembers.js (store)
+- **Learnings for future iterations:**
+  - contacts/update action accepts `isFormData: true` + `avatar: File` for avatar uploads; it uses `buildContactFormData` internally
+  - contacts/update also handles additional_attributes merging for description updates
+  - Use `group/avatar` named group for Tailwind hover scoping to avoid conflicting with member row `group` class
+  - Manual browser verification needed (no dev-browser skill available)
+---
+
+## 2026-02-27 - US-022
+- Added invite link management UI to GroupContactInfo.vue
+- Invite Link section always visible below Members section
+- On mount, fetches invite link via GroupMembersAPI.getInviteLink and displays URL
+- Copy button uses navigator.clipboard.writeText with success alert
+- Revoke & Regenerate button calls GroupMembersAPI.revokeInviteLink, shows loading spinner, updates URL on success
+- Error alerts for fetch/revoke failures using i18n keys GROUP.INVITE.*
+- All i18n keys (en + pt_BR) already existed from US-013
+- Files changed: GroupContactInfo.vue
+- **Learnings for future iterations:**
+  - GroupMembersAPI can be imported directly in components for one-off calls (invite link) instead of going through Vuex store actions
+  - navigator.clipboard.writeText is async and can fail in non-secure contexts; wrap in try/catch
+  - Manual browser verification needed (no dev-browser skill available)
+---
+
+## 2026-02-27 - US-023
+- Added join request management UI to GroupContactInfo.vue
+- Pending Requests section only rendered when pendingRequests.length > 0
+- On mount, fetches pending requests via GroupMembersAPI.getPendingRequests
+- Each request shows Avatar, name/jid, phone, with Approve and Reject buttons
+- Approve/Reject calls GroupMembersAPI.handleJoinRequest with action 'approve'/'reject' and request_action param
+- Handled requests removed from local array; section disappears when empty
+- Per-request loading spinner (loadingRequestJid) while action is processing
+- Success/error alerts via useAlert with GROUP.JOIN_REQUESTS.* i18n keys (already existed in en + pt_BR)
+- Files changed: GroupContactInfo.vue
+- **Learnings for future iterations:**
+  - GroupMembersAPI.handleJoinRequest uses `request_action` param (not `action`) because Rails reserves `action` for controller action name
+  - Pending requests from Baileys API return objects with `jid` field as unique identifier (not `id`)
+  - Manual browser verification needed (no dev-browser skill available)
+---
+
+## 2026-02-27 - US-024
+- Added sender name display above incoming message bubbles in group conversations
+- Deterministic color per sender using AVATAR_COLORS text palette (name.length % 6), with dark mode support via CSS variables
+- Sender name hidden for consecutive messages from the same sender via groupWithPrevious prop
+- Individual conversation bubbles unchanged
+- Files changed: Message.vue (sender name rendering, new props), MessageList.vue (isGroupConversation computed, groupWithPrevious prop)
+- **Learnings for future iterations:**
+  - MessageList computes `shouldGroupWithNext(index, messages)` — reuse `shouldGroupWithNext(index-1, messages)` for groupWithPrevious instead of duplicating logic
+  - AVATAR_COLORS in Avatar.vue are local constants, not exported — duplicate the text color arrays if needed elsewhere
+  - The `[grid-area:bubble]` div had `flex` class tightly coupled with the Component; restructured to an outer container div + inner flex div to allow sender name above
+  - Dark mode color pattern: use `--dark-sender-color` CSS variable + `dark:!text-[var(--dark-sender-color)]` Tailwind class (same pattern as Avatar.vue)
+  - Manual browser verification needed (no dev-browser skill available)
+---
+
+## 2026-02-27 - US-025
+- Added sender avatar display for incoming messages in group conversations in Message.vue (components-next)
+- Added isGroupIncoming and showGroupSenderAvatar computed properties
+- Modified gridClass to use grid-cols-[24px_1fr] for group incoming messages (LEFT orientation)
+- Modified gridTemplate to include "avatar bubble" / "spacer meta" grid areas for group incoming
+- Avatar rendered with v-if="showGroupSenderAvatar" — only on first message of a sender group (not when groupWithPrevious is true)
+- Grid column still allocates 24px for consecutive messages (maintains alignment) even without avatar rendered
+- Avatar uses existing avatarInfo computed (thumbnail or initials with AVATAR_COLORS name-length palette)
+- Individual conversation bubbles unchanged (shouldShowAvatar still returns false for LEFT orientation)
+- Files changed: Message.vue
+- **Learnings for future iterations:**
+  - Grid-based avatar layout: for LEFT orientation, use grid-cols-[24px_1fr] with template areas "avatar bubble" / "spacer meta"; the 24px column creates alignment even when avatar div is hidden
+  - showGroupSenderAvatar parallels showGroupSenderName — both gate on !groupWithPrevious, but avatar only needs isGroupIncoming (no name check)
+  - Manual browser verification needed (no dev-browser skill available)
+---
