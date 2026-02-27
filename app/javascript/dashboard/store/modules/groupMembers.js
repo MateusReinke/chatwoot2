@@ -7,6 +7,7 @@ export const state = {
     isFetching: false,
     isSyncing: false,
     isUpdating: false,
+    isCreating: false,
   },
 };
 
@@ -20,6 +21,18 @@ export const getters = {
 };
 
 export const actions = {
+  async createGroup({ commit }, params) {
+    commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isCreating: true });
+    try {
+      const { data } = await GroupMembersAPI.createGroup(params);
+      return data;
+    } catch (error) {
+      throw new Error(error);
+    } finally {
+      commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isCreating: false });
+    }
+  },
+
   async fetch({ commit }, { contactId }) {
     commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isFetching: true });
     try {

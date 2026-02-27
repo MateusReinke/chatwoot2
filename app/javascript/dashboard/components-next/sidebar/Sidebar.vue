@@ -23,6 +23,7 @@ import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
 import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
+import CreateGroupModal from 'dashboard/components-next/NewConversation/CreateGroupModal.vue';
 
 const props = defineProps({
   isMobileSidebarOpen: {
@@ -193,6 +194,11 @@ const onComposeOpen = toggleFn => {
 
 const onComposeClose = () => {
   emitter.emit(BUS_EVENTS.NEW_CONVERSATION_MODAL, false);
+};
+
+const createGroupModalRef = ref(null);
+const openCreateGroupModal = () => {
+  createGroupModalRef.value?.open();
 };
 
 const newReportRoutes = () => [
@@ -805,6 +811,20 @@ const menuItems = computed(() => {
             />
           </template>
         </ComposeConversation>
+        <Button
+          icon="i-lucide-users"
+          color="slate"
+          size="sm"
+          :title="t('GROUP.CREATE.TITLE')"
+          class="dark:hover:!bg-n-slate-9/30"
+          :class="[
+            isEffectivelyCollapsed
+              ? '!size-8 !outline-n-weak !text-n-slate-11'
+              : '!h-7 !outline-n-weak !text-n-slate-11',
+          ]"
+          @click="openCreateGroupModal"
+        />
+        <CreateGroupModal ref="createGroupModalRef" />
       </div>
     </section>
     <nav

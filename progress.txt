@@ -129,3 +129,77 @@
 - i18n: always add both en (app/javascript/dashboard/i18n/locale/en/) and pt_BR translations
 
 ---
+
+## 2026-02-27 - US-015
+- Added GROUP_TYPE to CONVERSATION_ATTRIBUTES constant in filterHelper.js
+- Added group_type filter definition in provider.js (components-next filter system) with multiSelect, individual/group options, equalityOperators
+- Added group_type to legacy advancedFilterItems/index.js (filterTypes array + filterAttributeGroups under Standard Filters)
+- Added group_type options to ChatList.vue setParamsForEditFolderModal
+- Added group_type to automationHelper.js conditionFilterMaps
+- Added group_type handling to customViewsHelper.js (getValuesForFilter switch + getValuesForGroupType helper)
+- Added GROUP_TYPE i18n key to en/advancedFilters.json ("Group type") and pt_BR/advancedFilters.json ("Tipo de conversa")
+- Files changed: filterHelper.js, provider.js, advancedFilterItems/index.js, ChatList.vue, automationHelper.js, customViewsHelper.js, en/advancedFilters.json, pt_BR/advancedFilters.json
+- **Learnings for future iterations:**
+  - Advanced filter system has TWO parallel implementations: components-next/filter/ (new, uses provider.js + operators.js composables) and widgets/conversation/advancedFilterItems/ (legacy, uses FilterOperatorTypes constants)
+  - Both must be updated for new filter attributes to work everywhere
+  - Legacy system also requires: ChatList.setParamsForEditFolderModal (for edit folder modal options), customViewsHelper.getValuesForFilter (for rendering saved filter values), automationHelper.getConditionOptions (for automation conditions)
+  - For simple static option lists (like group_type), options can be hardcoded in conditionFilterMaps without needing a new parameter to getConditionOptions
+---
+
+## 2026-02-27 - US-016
+- Created GroupContactInfo.vue at app/javascript/dashboard/routes/dashboard/conversation/contact/
+- Uses <script setup> + Composition API, Tailwind only
+- Displays group avatar (Avatar component), name, active member count via i18n GROUP.INFO.MEMBER_COUNT
+- Member list shows each active member (is_active filter) with Avatar, name, Admin badge (role === 'admin')
+- Skeleton loading (4 placeholder rows with animate-pulse) while isFetching is true
+- Empty state message when fetch completes with zero members
+- On mount, dispatches groupMembers/fetch with contact.id
+- Files changed: GroupContactInfo.vue (new)
+- **Learnings for future iterations:**
+  - useMapGetter from 'dashboard/composables/store' returns a ref; access via .value for getter functions like getGroupMembers(contactId)
+  - API returns members with { id, role, is_active, contact: { id, name, phone_number, thumbnail } }
+  - Manual browser verification needed (no dev-browser skill available)
+---
+
+## 2026-02-27 - US-017
+- Added Sync button to GroupContactInfo.vue using NextButton component with ghost variant and refresh icon
+- Button dispatches groupMembers/sync action, shows loading spinner while isSyncing
+- Success/error alerts via useAlert composable with i18n keys GROUP.INFO.SYNC_SUCCESS / SYNC_ERROR
+- Button disabled while sync in progress
+- Files changed: GroupContactInfo.vue
+- **Learnings for future iterations:**
+  - NextButton (from components-next/button/Button.vue) accepts isLoading prop for spinner, icon prop with i-lucide-* format
+  - useAlert is a simple function import from 'dashboard/composables' that emits toast notifications
+  - Manual browser verification needed (no dev-browser skill available)
+---
+
+## 2026-02-27 - US-018
+- Integrated GroupContactInfo in ContactPanel.vue
+- Imported GroupContactInfo component
+- Added isGroupConversation computed (checks currentChat.group_type === 'group')
+- Added sidebarTitle computed: 'GROUP.INFO.SIDEBAR_TITLE' for groups, 'CONVERSATION.SIDEBAR.CONTACT' for individual
+- Template: v-if/v-else to render GroupContactInfo vs ContactInfo based on group_type
+- contact_notes and contact_attributes accordion sections remain untouched (always visible)
+- Files changed: ContactPanel.vue
+- **Learnings for future iterations:**
+  - currentChat (getSelectedChat getter) directly exposes group_type field from API serialization
+  - i18n dynamic key warning (@intlify/vue-i18n/no-dynamic-keys) is expected when using computed i18n keys — it's a warning, not an error
+  - Manual browser verification needed (no dev-browser skill available)
+---
+
+## 2026-02-27 - US-019
+- Created CreateGroupModal.vue at app/javascript/dashboard/components-next/NewConversation/
+- Uses Dialog component from components-next/dialog/ with form fields for inbox selection, group name, and participant search
+- Inbox selector filters to WhatsApp inboxes only (INBOX_TYPES.WHATSAPP)
+- Participant search uses ContactsAPI.search with debounced input, filters to contacts with phone_number
+- Added createGroup action to groupMembers store module with isCreating UI flag
+- Added group creation button (i-lucide-users icon) to Sidebar.vue next to compose conversation button
+- On success: navigates to new group conversation URL and shows success alert
+- Files changed: CreateGroupModal.vue (new), Sidebar.vue, groupMembers.js (store)
+- **Learnings for future iterations:**
+  - Dialog.vue from components-next uses native HTML dialog element with dialogRef.value.showModal()/close(); parent opens via defineExpose({ open }) pattern
+  - Dialog accepts show-confirm-button and show-cancel-button props to hide default buttons; use #footer slot for custom buttons
+  - ContactsAPI.search returns { data: { payload: [...contacts] } } structure
+  - frontendURL + conversationUrl pattern creates /app/accounts/:id/conversations/:id URLs for navigation
+  - Manual browser verification needed (no dev-browser skill available)
+---
