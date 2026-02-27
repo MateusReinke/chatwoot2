@@ -81,6 +81,17 @@ export const actions = {
     }
   },
 
+  async updateGroupMetadata({ commit }, { contactId, params }) {
+    commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isUpdating: true });
+    try {
+      await GroupMembersAPI.updateGroupMetadata(contactId, params);
+    } catch (error) {
+      throw new Error(error);
+    } finally {
+      commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isUpdating: false });
+    }
+  },
+
   async updateMemberRole({ commit, dispatch }, { contactId, memberId, role }) {
     commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isUpdating: true });
     try {

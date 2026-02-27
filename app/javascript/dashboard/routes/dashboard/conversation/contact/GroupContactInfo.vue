@@ -31,6 +31,113 @@ const memberCount = computed(() => members.value.length);
 const isFetching = computed(() => uiFlags.value.isFetching);
 const isSyncing = computed(() => uiFlags.value.isSyncing);
 
+// Inline edit state
+const isEditingName = ref(false);
+const editNameValue = ref('');
+const isSavingName = ref(false);
+const isEditingDescription = ref(false);
+const editDescriptionValue = ref('');
+const isSavingDescription = ref(false);
+const isSavingAvatar = ref(false);
+const avatarFileInput = ref(null);
+
+const contactDescription = computed(
+  () => props.contact.additional_attributes?.description || ''
+);
+
+const startEditName = () => {
+  editNameValue.value = props.contact.name || '';
+  isEditingName.value = true;
+};
+
+const saveName = async () => {
+  const newName = editNameValue.value.trim();
+  if (!newName || newName === props.contact.name) {
+    isEditingName.value = false;
+    return;
+  }
+  isSavingName.value = true;
+  try {
+    await store.dispatch('groupMembers/updateGroupMetadata', {
+      contactId: props.contact.id,
+      params: { subject: newName },
+    });
+    await store.dispatch('contacts/update', {
+      id: props.contact.id,
+      name: newName,
+    });
+    useAlert(t('GROUP.METADATA.SAVE_SUCCESS'));
+  } catch {
+    useAlert(t('GROUP.METADATA.SAVE_ERROR'));
+  } finally {
+    isSavingName.value = false;
+    isEditingName.value = false;
+  }
+};
+
+const onNameKeydown = event => {
+  if (event.key === 'Enter') saveName();
+  if (event.key === 'Escape') {
+    isEditingName.value = false;
+  }
+};
+
+const startEditDescription = () => {
+  editDescriptionValue.value = contactDescription.value;
+  isEditingDescription.value = true;
+};
+
+const saveDescription = async () => {
+  const newDesc = editDescriptionValue.value.trim();
+  if (newDesc === contactDescription.value) {
+    isEditingDescription.value = false;
+    return;
+  }
+  isSavingDescription.value = true;
+  try {
+    await store.dispatch('groupMembers/updateGroupMetadata', {
+      contactId: props.contact.id,
+      params: { description: newDesc },
+    });
+    await store.dispatch('contacts/update', {
+      id: props.contact.id,
+      additional_attributes: {
+        ...props.contact.additional_attributes,
+        description: newDesc,
+      },
+    });
+    useAlert(t('GROUP.METADATA.SAVE_SUCCESS'));
+  } catch {
+    useAlert(t('GROUP.METADATA.SAVE_ERROR'));
+  } finally {
+    isSavingDescription.value = false;
+    isEditingDescription.value = false;
+  }
+};
+
+const onAvatarClick = () => {
+  avatarFileInput.value?.click();
+};
+
+const onAvatarSelected = async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  isSavingAvatar.value = true;
+  try {
+    await store.dispatch('contacts/update', {
+      id: props.contact.id,
+      avatar: file,
+      isFormData: true,
+    });
+    useAlert(t('GROUP.METADATA.SAVE_SUCCESS'));
+  } catch {
+    useAlert(t('GROUP.METADATA.SAVE_ERROR'));
+  } finally {
+    isSavingAvatar.value = false;
+    if (avatarFileInput.value) avatarFileInput.value.value = '';
+  }
+};
+
 // Add member state
 const showAddMember = ref(false);
 const addMemberInput = ref('');
@@ -194,17 +301,56 @@ onMounted(() => {
 <template>
   <div class="relative items-center w-full p-4">
     <div class="flex flex-col w-full gap-2 text-left rtl:text-right">
-      <!-- Group header: avatar, name, member count -->
+      <!-- Group header: avatar, name, member count, description -->
       <div class="flex flex-row items-start gap-3">
-        <Avatar
-          :src="contact.thumbnail"
-          :name="contact.name"
-          :size="48"
-          rounded-full
-        />
-        <div class="flex flex-col min-w-0">
+        <!-- Clickable avatar for upload -->
+        <div
+          class="relative cursor-pointer group/avatar shrink-0"
+          @click="onAvatarClick"
+        >
+          <Avatar
+            :src="contact.thumbnail"
+            :name="contact.name"
+            :size="48"
+            rounded-full
+          />
+          <div
+            class="absolute inset-0 flex items-center justify-center transition-opacity rounded-full opacity-0 bg-n-alpha-black2 group-hover/avatar:opacity-100"
+          >
+            <span
+              v-if="isSavingAvatar"
+              class="i-lucide-loader-2 animate-spin size-4 text-n-alpha-white1"
+            />
+            <span v-else class="i-lucide-camera size-4 text-n-alpha-white1" />
+          </div>
+          <input
+            ref="avatarFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="onAvatarSelected"
+          />
+        </div>
+        <div class="flex flex-col min-w-0 flex-1">
+          <!-- Inline-editable name -->
+          <div v-if="isEditingName" class="flex items-center gap-1">
+            <input
+              v-model="editNameValue"
+              type="text"
+              class="w-full px-2 py-1 text-base font-medium border rounded bg-n-alpha-black2 border-n-weak text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand"
+              :placeholder="t('GROUP.METADATA.EDIT_NAME_PLACEHOLDER')"
+              @keydown="onNameKeydown"
+              @blur="saveName"
+            />
+            <span
+              v-if="isSavingName"
+              class="i-lucide-loader-2 animate-spin size-4 text-n-slate-10 shrink-0"
+            />
+          </div>
           <h3
-            class="my-0 text-base font-medium capitalize break-words text-n-slate-12"
+            v-else
+            class="my-0 text-base font-medium capitalize break-words cursor-pointer text-n-slate-12 hover:text-n-brand"
+            @click="startEditName"
           >
             {{ contact.name }}
           </h3>
@@ -212,6 +358,36 @@ onMounted(() => {
             {{ t('GROUP.INFO.MEMBER_COUNT', { count: memberCount }) }}
           </span>
         </div>
+      </div>
+
+      <!-- Inline-editable description -->
+      <div class="mt-2">
+        <label class="text-xs font-semibold text-n-slate-11">
+          {{ t('GROUP.METADATA.EDIT_DESCRIPTION_LABEL') }}
+        </label>
+        <div v-if="isEditingDescription" class="relative mt-1">
+          <textarea
+            v-model="editDescriptionValue"
+            rows="2"
+            class="w-full px-2 py-1 text-sm border rounded bg-n-alpha-black2 border-n-weak text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand resize-none"
+            :placeholder="t('GROUP.METADATA.EDIT_DESCRIPTION_PLACEHOLDER')"
+            @blur="saveDescription"
+          />
+          <span
+            v-if="isSavingDescription"
+            class="absolute i-lucide-loader-2 animate-spin size-4 text-n-slate-10 right-2 top-2"
+          />
+        </div>
+        <p
+          v-else
+          class="mt-1 text-sm break-words cursor-pointer text-n-slate-12 hover:text-n-brand"
+          @click="startEditDescription"
+        >
+          {{
+            contactDescription ||
+            t('GROUP.METADATA.EDIT_DESCRIPTION_PLACEHOLDER')
+          }}
+        </p>
       </div>
 
       <!-- Members section -->
