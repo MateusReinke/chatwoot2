@@ -1,3 +1,13 @@
+## 2026-02-28 - Bug Fixes (post-review)
+- Fixed sender click not working in group message bubbles: Contact.push_event_data returns type 'contact' (lowercase) but navigateToGroupSender compared against SENDER_TYPES.CONTACT ('Contact' PascalCase). Changed to case-insensitive comparison.
+- Fixed ConversationBasicFilter dropdown spacing: three child divs used `last:mt-4` which only applied margin to the 3rd item. Replaced with `flex flex-col gap-4` on the container for consistent spacing.
+- Committed 4 prior bug fixes from manual testing review (i18n key, syncGroup HTTP method, SyncGroupService removal, filterHelpers group_type case)
+- Files changed: Message.vue, ConversationBasicFilter.vue, ContactPanel.vue, groupMembers.js (API), group_members_controller.rb, filterHelpers.js, group_members_controller_spec.rb
+- **Learnings for future iterations:**
+  - Contact.push_event_data returns `type: 'contact'` (lowercase) but SENDER_TYPES.CONTACT constant is `'Contact'` (PascalCase) — always use case-insensitive comparison when checking sender types against backend data
+  - Tailwind `last:mt-4` only applies to the `:last-child`; for consistent spacing between N children, use `flex flex-col gap-N` on the parent instead
+---
+
 ## 2026-02-27 - US-014
 - ConversationBasicFilter.vue already had the Type section with group_type filter implemented
 - ChatList.vue already handled group_type in conversationFilters and setFiltersFromUISettings
@@ -128,6 +138,8 @@
 - ActionCable events flow through a message handler that dispatches to Vuex; group_synced payload includes all member data — no re-fetch needed
 - i18n: always add both en (app/javascript/dashboard/i18n/locale/en/) and pt_BR translations
 - Editor.vue @ mention: `suggestionsPlugin` isAllowed gates dropdown trigger; TagAgents for private (agents/teams), TagGroupMembers for group non-private (contacts); both use `insertSpecialContent('mention', content)` with content.type determining mentionType in serialization
+- Sender type comparison: Contact.push_event_data returns `type: 'contact'` (lowercase) but SENDER_TYPES.CONTACT is `'Contact'` (PascalCase) — always use case-insensitive comparison
+- Tailwind spacing: `last:mt-N` only applies to :last-child; for consistent spacing between N children use `flex flex-col gap-N` on parent
 
 ---
 
