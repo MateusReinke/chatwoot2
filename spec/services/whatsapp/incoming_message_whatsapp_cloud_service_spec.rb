@@ -108,7 +108,6 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
     end
 
     context 'when dispatching provider events' do
-      let(:dispatcher) { instance_double(EventDispatcher) }
       let(:message_params) do
         {
           phone_number: whatsapp_channel.phone_number,
