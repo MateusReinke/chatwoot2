@@ -82,6 +82,10 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
   def sync_templates; end
 
+  def allow_group_creation?
+    true
+  end
+
   def create_group(subject, participants)
     response = HTTParty.post(
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-create",
@@ -95,7 +99,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
   end
 
   def update_group_subject(group_jid, subject)
-    response = HTTParty.patch(
+    response = HTTParty.post(
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-subject",
       headers: api_headers,
       body: { jid: group_jid, subject: subject }.to_json
@@ -105,7 +109,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
   end
 
   def update_group_description(group_jid, description)
-    response = HTTParty.patch(
+    response = HTTParty.post(
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-description",
       headers: api_headers,
       body: { jid: group_jid, description: description }.to_json

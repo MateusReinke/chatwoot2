@@ -19,12 +19,14 @@
     },
     "CREATE": {
       "TITLE": "Criar Novo Grupo",
-      "INBOX_LABEL": "Caixa de entrada",
-      "INBOX_PLACEHOLDER": "Selecione uma caixa de entrada do WhatsApp",
-      "NAME_LABEL": "Nome do Grupo",
+      "INBOX_LABEL": "Caixa de entrada:",
+      "INBOX_PLACEHOLDER": "Selecione uma caixa de entrada",
+      "NAME_LABEL": "Nome do Grupo:",
       "NAME_PLACEHOLDER": "Digite o nome do grupo",
-      "PARTICIPANTS_LABEL": "Participantes",
+      "PARTICIPANTS_LABEL": "Participantes:",
       "PARTICIPANTS_PLACEHOLDER": "Pesquisar contatos para adicionar",
+      "NAME_REQUIRED": "O nome do grupo é obrigatório",
+      "PARTICIPANTS_REQUIRED": "Adicione pelo menos um participante",
       "SUBMIT_BUTTON": "Criar Grupo",
       "SUCCESS_MESSAGE": "Grupo criado com sucesso.",
       "ERROR_MESSAGE": "Falha ao criar grupo. Por favor, tente novamente."

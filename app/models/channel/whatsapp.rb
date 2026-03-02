@@ -165,6 +165,10 @@ class Channel::Whatsapp < ApplicationRecord
     provider_service.sync_group(conversation)
   end
 
+  def allow_group_creation?
+    provider_service.respond_to?(:allow_group_creation?) && provider_service.allow_group_creation?
+  end
+
   delegate :setup_channel_provider, to: :provider_service
   delegate :send_message, to: :provider_service
   delegate :send_template, to: :provider_service
