@@ -43,6 +43,7 @@
     "INVITE": {
       "SECTION_TITLE": "Link de Convite",
       "COPY_BUTTON": "Copiar Link",
+      "COPY_INVITE_LINK": "Copiar Link de Convite",
       "COPY_SUCCESS": "Link de convite copiado para a área de transferência.",
       "REVOKE_BUTTON": "Revogar e Regenerar",
       "REVOKE_SUCCESS": "Link de convite revogado e regenerado.",

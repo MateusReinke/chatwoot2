@@ -1,9 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { debounce } from '@chatwoot/utils';
+import { dynamicTime } from 'shared/helpers/timeHelper';
+import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import ContactsAPI from 'dashboard/api/contacts';
 import GroupMembersAPI from 'dashboard/api/groupMembers';
 import Avatar from 'next/avatar/Avatar.vue';
@@ -18,7 +21,12 @@ const props = defineProps({
 });
 
 const store = useStore();
+const route = useRoute();
 const { t } = useI18n();
+
+const contactProfileLink = computed(
+  () => `/app/accounts/${route.params.accountId}/contacts/${props.contact.id}`
+);
 const uiFlags = useMapGetter('groupMembers/getUIFlags');
 const getGroupMembers = useMapGetter('groupMembers/getGroupMembers');
 
@@ -317,8 +325,13 @@ const fetchInviteLink = async () => {
 
 const copyInviteLink = async () => {
   try {
-    await navigator.clipboard.writeText(inviteUrl.value);
-    useAlert(t('GROUP.INVITE.COPY_SUCCESS'));
+    if (!inviteUrl.value) {
+      await fetchInviteLink();
+    }
+    if (inviteUrl.value) {
+      await copyTextToClipboard(inviteUrl.value);
+      useAlert(t('GROUP.INVITE.COPY_SUCCESS'));
+    }
   } catch {
     useAlert(t('GROUP.INVITE.FETCH_ERROR'));
   }
@@ -375,7 +388,6 @@ const handleJoinRequest = async (request, action) => {
 onMounted(() => {
   if (props.contact.id) {
     store.dispatch('groupMembers/fetch', { contactId: props.contact.id });
-    fetchInviteLink();
     fetchPendingRequests();
   }
 });
@@ -430,13 +442,33 @@ onMounted(() => {
               class="i-lucide-loader-2 animate-spin size-4 text-n-slate-10 shrink-0"
             />
           </div>
-          <h3
-            v-else
-            class="my-0 text-base font-medium capitalize break-words cursor-pointer text-n-slate-12 hover:text-n-brand"
-            @click="startEditName"
-          >
-            {{ contact.name }}
-          </h3>
+          <div v-else class="flex items-center gap-2 min-w-0">
+            <h3
+              class="my-0 text-base font-medium capitalize break-words cursor-pointer text-n-slate-12 hover:text-n-brand"
+              @click="startEditName"
+            >
+              {{ contact.name }}
+            </h3>
+            <div class="flex flex-row items-center gap-2 shrink-0">
+              <span
+                v-if="contact.created_at"
+                v-tooltip.left="
+                  `${t('CONTACT_PANEL.CREATED_AT_LABEL')} ${dynamicTime(
+                    contact.created_at
+                  )}`
+                "
+                class="i-lucide-info text-sm text-n-slate-10"
+              />
+              <a
+                :href="contactProfileLink"
+                target="_blank"
+                rel="noopener nofollow noreferrer"
+                class="leading-3"
+              >
+                <span class="i-lucide-external-link text-sm text-n-slate-10" />
+              </a>
+            </div>
+          </div>
           <span class="text-sm text-n-slate-11">
             {{ t('GROUP.INFO.MEMBER_COUNT', { count: memberCount }) }}
           </span>
@@ -559,16 +591,28 @@ onMounted(() => {
             :key="member.id"
             class="flex items-center gap-3 py-1 group"
           >
-            <Avatar
-              :src="member.contact.thumbnail"
-              :name="member.contact.name"
-              :size="32"
-              rounded-full
-            />
+            <a
+              :href="`/app/accounts/${route.params.accountId}/contacts/${member.contact.id}`"
+              target="_blank"
+              rel="noopener nofollow noreferrer"
+              class="shrink-0"
+            >
+              <Avatar
+                :src="member.contact.thumbnail"
+                :name="member.contact.name"
+                :size="32"
+                rounded-full
+              />
+            </a>
             <div class="flex items-center flex-1 min-w-0 gap-2">
-              <span class="text-sm truncate text-n-slate-12">
+              <a
+                :href="`/app/accounts/${route.params.accountId}/contacts/${member.contact.id}`"
+                target="_blank"
+                rel="noopener nofollow noreferrer"
+                class="text-sm truncate text-n-slate-12 hover:text-n-brand"
+              >
                 {{ member.contact.name }}
-              </span>
+              </a>
               <span
                 v-if="member.role === 'admin'"
                 class="px-1.5 py-0.5 text-xs font-medium rounded bg-n-amber-3 text-n-amber-11"
@@ -610,34 +654,25 @@ onMounted(() => {
         <h4 class="mb-2 text-sm font-semibold text-n-slate-11">
           {{ t('GROUP.INVITE.SECTION_TITLE') }}
         </h4>
-        <div
-          v-if="isFetchingInvite"
-          class="w-full h-8 rounded bg-n-slate-3 animate-pulse"
-        />
-        <div v-else-if="inviteUrl" class="flex flex-col gap-2">
-          <div
-            class="px-3 py-2 text-sm break-all border rounded-lg bg-n-alpha-black2 border-n-weak text-n-slate-12"
-          >
-            {{ inviteUrl }}
-          </div>
-          <div class="flex items-center gap-2">
-            <NextButton
-              :label="t('GROUP.INVITE.COPY_BUTTON')"
-              icon="i-lucide-copy"
-              variant="ghost"
-              size="xs"
-              @click="copyInviteLink"
-            />
-            <NextButton
-              :label="t('GROUP.INVITE.REVOKE_BUTTON')"
-              icon="i-lucide-refresh-cw"
-              variant="ghost"
-              size="xs"
-              :is-loading="isRevokingInvite"
-              :disabled="isRevokingInvite"
-              @click="revokeInviteLink"
-            />
-          </div>
+        <div class="flex items-center gap-2">
+          <NextButton
+            :label="t('GROUP.INVITE.COPY_INVITE_LINK')"
+            icon="i-lucide-link"
+            variant="ghost"
+            size="xs"
+            :is-loading="isFetchingInvite"
+            :disabled="isFetchingInvite"
+            @click="copyInviteLink"
+          />
+          <NextButton
+            :label="t('GROUP.INVITE.REVOKE_BUTTON')"
+            icon="i-lucide-refresh-cw"
+            variant="ghost"
+            size="xs"
+            :is-loading="isRevokingInvite"
+            :disabled="isRevokingInvite"
+            @click="revokeInviteLink"
+          />
         </div>
       </div>
 
