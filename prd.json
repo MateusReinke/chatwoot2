@@ -704,6 +704,243 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 41,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-050",
+      "title": "Create GroupMember model and migration",
+      "description": "As a developer, I need a new group_members table to store the relationship between a group contact and individual contacts, replacing ConversationGroupMember as the source of truth.",
+      "acceptanceCriteria": [
+        "Create migration for group_members table with columns: group_contact_id (bigint, not null, FK to contacts), contact_id (bigint, not null, FK to contacts), role (integer, default 0/member, not null), is_active (boolean, default true, not null), timestamps",
+        "Add unique index on (group_contact_id, contact_id)",
+        "Add index on (group_contact_id, is_active)",
+        "Add index on contact_id",
+        "Add index on group_contact_id",
+        "Create GroupMember model with: belongs_to :group_contact (class_name: Contact), belongs_to :contact, enum role (member: 0, admin: 1), validates uniqueness of group_contact_id scoped to contact_id, scopes active and inactive",
+        "Add has_many :group_memberships (class_name: GroupMember, foreign_key: :group_contact_id, dependent: :destroy_async) to Contact model for group contacts",
+        "Add has_many :group_member_contacts (through: :group_memberships, source: :contact) to Contact model for group contacts",
+        "Add has_many :group_participations (class_name: GroupMember, dependent: :destroy_async) to Contact model for individual contacts",
+        "Migration runs successfully",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-064",
+      "title": "Helper method to find channel from group contact",
+      "description": "As a developer, I need a reliable way to find the channel/inbox for a group contact without depending on conversations, since multiple controllers need this.",
+      "acceptanceCriteria": [
+        "Add a method (e.g. channel_for_group_contact or on the Contact model) that finds the inbox/channel through contact_inboxes for a group contact",
+        "Use this helper in GroupMembersController, GroupSettingsController, and any other controller that needs to send commands to the provider",
+        "The helper handles the case where the group contact has multiple contact_inboxes (selects the appropriate one for the current inbox context)",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-052",
+      "title": "Update GroupConversationHandler to use GroupMember",
+      "description": "As a developer, I need the shared concern GroupConversationHandler to create/update/remove GroupMember records instead of ConversationGroupMember records.",
+      "acceptanceCriteria": [
+        "add_group_member now operates on GroupMember using group_contact instead of conversation",
+        "remove_group_member now operates on GroupMember using group_contact",
+        "update_group_member_role now operates on GroupMember using group_contact",
+        "sync_group_members now operates on GroupMember using group_contact; syncs against group_contact.group_memberships instead of conversation.group_members",
+        "All callers of these methods (baileys handlers, baileys service) are updated to pass the group contact instead of conversation",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 44,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-053",
+      "title": "Update WhatsappBaileysService sync_group to use GroupMember",
+      "description": "As a developer, I need the sync_group method and its helper sync_group_members in WhatsappBaileysService to write to GroupMember instead of ConversationGroupMember.",
+      "acceptanceCriteria": [
+        "sync_group fetches the group contact (or receives it from the conversation) and passes it to sync_group_members",
+        "sync_group_members creates/updates GroupMember records by group_contact + contact instead of conversation + contact",
+        "Deactivated members are marked is_active: false on the GroupMember record",
+        "Roles (admin/member) are correctly persisted on GroupMember",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-063",
+      "title": "Update GroupContactMessageHandler concern",
+      "description": "As a developer, I need the GroupContactMessageHandler concern to use GroupMember for member operations when processing incoming group messages.",
+      "acceptanceCriteria": [
+        "The concern's method for adding the sender as a group member calls add_group_member(group_contact, sender_contact) using the group contact, not the conversation",
+        "Any method that looked up members via conversation now looks up via group contact",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 46,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-054",
+      "title": "Update GroupParticipantsUpdate handler",
+      "description": "As a developer, I need the GroupParticipantsUpdate baileys handler to add/remove/promote/demote members via GroupMember instead of ConversationGroupMember.",
+      "acceptanceCriteria": [
+        "process_group_participants_update resolves the group contact from the group JID",
+        "apply_participant_action calls add_group_member(group_contact, contact), remove_group_member(group_contact, contact), etc. using the updated GroupConversationHandler methods",
+        "Activity messages are still created on the conversation",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 47,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-055",
+      "title": "Update GroupsUpdate handler to use GroupMember",
+      "description": "As a developer, I need the GroupsUpdate baileys handler to use the new GroupMember model when relevant (e.g., group sync operations triggered by update events).",
+      "acceptanceCriteria": [
+        "Any member-related operations in group update events use GroupMember",
+        "Settings updates still persist in contact.additional_attributes (no change to this part)",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 48,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-056",
+      "title": "Update MessagesUpsert handler for group member ops",
+      "description": "As a developer, I need the MessagesUpsert handler to use GroupMember when adding senders as group members on incoming group messages.",
+      "acceptanceCriteria": [
+        "When a message arrives from a group, the sender is added/confirmed as a GroupMember of the group contact (not the conversation)",
+        "The GroupContactMessageHandler concern is updated to use the new add_group_member(group_contact, contact) signature",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 49,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-057",
+      "title": "Update GroupMembersController to query GroupMember",
+      "description": "As a developer, I need Api::V1::Accounts::Contacts::GroupMembersController to query GroupMember instead of ConversationGroupMember.",
+      "acceptanceCriteria": [
+        "index action queries GroupMember.active.where(group_contact: @contact).includes(:contact) instead of searching through conversations",
+        "create action creates GroupMember records after calling the provider",
+        "update action (role change) updates the GroupMember record",
+        "destroy action sets is_active: false on the GroupMember record",
+        "The channel/provider is resolved from the group contact's contact_inbox/inbox (using the helper from US-064)",
+        "API response format stays the same (jbuilder view updated to read from GroupMember but returns the same JSON structure)",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 50,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-058",
+      "title": "Update GroupSettingsController to not depend on conversations",
+      "description": "As a developer, I need Api::V1::Accounts::Contacts::GroupSettingsController to find the channel/inbox from the group contact's contact_inbox instead of querying for open/pending conversations.",
+      "acceptanceCriteria": [
+        "channel helper finds inbox through @contact.contact_inboxes instead of searching conversations",
+        "leave action resolves all open/pending conversations for the group and resolves them",
+        "update and toggle_join_approval work without depending on conversation lookup",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 51,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-060",
+      "title": "Update group_members jbuilder views",
+      "description": "As a developer, I need to update the jbuilder views to render GroupMember records instead of ConversationGroupMember.",
+      "acceptanceCriteria": [
+        "app/views/api/v1/accounts/contacts/group_members/index.json.jbuilder renders GroupMember records",
+        "Response still includes id, role, is_active, and nested contact object with id, name, phone_number, identifier, thumbnail",
+        "Remove conversation_id from the response (no longer relevant)",
+        "app/views/api/v1/accounts/contacts/sync_group.json.jbuilder renders GroupMember records if it exists",
+        "bundle exec rubocop -a passes"
+      ],
+      "priority": 52,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-061",
+      "title": "Update sync_group action on conversations controller",
+      "description": "As a developer, I need the sync_group action in ConversationsController and ContactsController to use the new GroupMember model.",
+      "acceptanceCriteria": [
+        "sync_group calls conversation.inbox.channel.sync_group(conversation) which internally writes to GroupMember",
+        "The response still returns updated contact and group members data",
+        "Also update/add the sync_group on the contacts controller (contacts/:id/sync_group) to work with GroupMember",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 53,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-059",
+      "title": "Remove group_members association from Conversation model",
+      "description": "As a developer, I need to remove the group_members and group_contacts associations from the Conversation model since membership is now stored at the contact level.",
+      "acceptanceCriteria": [
+        "Remove has_many :group_members (class_name: ConversationGroupMember, dependent: :destroy_async) from Conversation",
+        "Remove has_many :group_contacts (through: :group_members, source: :contact) from Conversation",
+        "Any code that accessed conversation.group_members or conversation.group_contacts is updated to use conversation.contact.group_memberships",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 54,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-051",
+      "title": "Remove ConversationGroupMember model and table",
+      "description": "As a developer, I need to remove the old ConversationGroupMember model and drop the conversation_group_members table since membership is now stored in group_members.",
+      "acceptanceCriteria": [
+        "Create migration to drop conversation_group_members table",
+        "Remove app/models/conversation_group_member.rb",
+        "Remove has_many :conversation_group_memberships and has_many :group_conversations associations from Contact model",
+        "No remaining references to ConversationGroupMember in Ruby backend code",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 55,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-062",
+      "title": "Update frontend groupMembers store for new response",
+      "description": "As a developer, I need to ensure the frontend groupMembers Vuex store and API client work correctly after the backend removes conversation_id from the response.",
+      "acceptanceCriteria": [
+        "GroupMembersAPI endpoints remain the same (no URL changes needed)",
+        "groupMembers store mutations and getters work without conversation_id in the payload",
+        "GroupContactInfo.vue renders members correctly from the updated response",
+        "TagGroupMembers.vue (mention dropdown) works correctly",
+        "Editor mention integration works correctly for group conversations",
+        "Typecheck passes"
+      ],
+      "priority": 56,
       "passes": false,
       "notes": ""
     }

@@ -460,3 +460,11 @@
 - Success/error alerts via GROUP.SETTINGS i18n keys
 - Manual browser verification needed
 ---
+
+## 2026-03-03 - US-040
+- Leave Group button and confirmation dialog already implemented in GroupContactInfo.vue
+- Button styled as destructive (ruby color) with log-out icon
+- Confirmation shows LEAVE_CONFIRM text with confirm/cancel buttons
+- Calls GroupMembersAPI.leaveGroup, shows success/error alerts
+- Manual browser verification needed
+---
