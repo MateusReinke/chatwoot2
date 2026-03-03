@@ -393,3 +393,10 @@
 - **Learnings for future iterations:**
   - Baileys API wraps responses in { data: ... } envelope; always use dig('data') before accessing response payload
 ---
+
+## 2026-03-03 - US-031
+- All three methods (group_leave, group_setting_update, group_join_approval_mode) already existed in WhatsappBaileysService
+- Delegates already present in Channel::Whatsapp
+- Methods already in with_error_handling list
+- 85 specs pass, no code changes needed
+---
