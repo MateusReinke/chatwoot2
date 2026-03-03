@@ -35,6 +35,19 @@ const selectedIndex = ref(0);
 const items = computed(() => {
   const search = props.searchKey?.trim().toLowerCase() || '';
 
+  const everyoneItem = {
+    id: 0,
+    type: 'contact',
+    displayName: t('GROUP.MENTION.EVERYONE'),
+    displayInfo: t('GROUP.MENTION.EVERYONE_DESCRIPTION'),
+    thumbnail: '',
+    name: 'all',
+  };
+
+  const allKeywords = ['all', 'todos', 'everyone'];
+  const showEveryone =
+    !search || allKeywords.some(keyword => keyword.includes(search));
+
   const memberItems = groupMembers.value
     .filter(member => member.is_active)
     .filter(member => member.contact?.phone_number !== props.excludePhoneNumber)
@@ -53,7 +66,9 @@ const items = computed(() => {
         : true
     );
 
-  if (!memberItems.length) return [];
+  const allItems = [...(showEveryone ? [everyoneItem] : []), ...memberItems];
+
+  if (!allItems.length) return [];
 
   return [
     {
@@ -61,7 +76,7 @@ const items = computed(() => {
       title: t('GROUP.MENTION.DROPDOWN_HEADER'),
       id: 'group-members-header',
     },
-    ...memberItems,
+    ...allItems,
   ];
 });
 

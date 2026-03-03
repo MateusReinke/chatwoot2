@@ -72,7 +72,9 @@
       "ACTION_ERROR": "Failed to process join request. Please try again."
     },
     "MENTION": {
-      "DROPDOWN_HEADER": "Group Members"
+      "DROPDOWN_HEADER": "Group Members",
+      "EVERYONE": "Everyone",
+      "EVERYONE_DESCRIPTION": "Notify all members"
     },
     "SETTINGS": {
       "SECTION_TITLE": "Group Settings",

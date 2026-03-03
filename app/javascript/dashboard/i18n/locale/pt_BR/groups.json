@@ -72,7 +72,9 @@
       "ACTION_ERROR": "Falha ao processar solicitação de entrada. Por favor, tente novamente."
     },
     "MENTION": {
-      "DROPDOWN_HEADER": "Membros do Grupo"
+      "DROPDOWN_HEADER": "Membros do Grupo",
+      "EVERYONE": "Todos",
+      "EVERYONE_DESCRIPTION": "Notificar todos os membros"
     },
     "SETTINGS": {
       "SECTION_TITLE": "Configurações do Grupo",
