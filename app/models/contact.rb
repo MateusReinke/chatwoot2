@@ -156,6 +156,10 @@ class Contact < ApplicationRecord # rubocop:disable Metrics/ClassLength
     contact_inboxes.find_by!(inbox_id: inbox_id).source_id
   end
 
+  def group_channel
+    contact_inboxes.first&.inbox&.channel
+  end
+
   def push_event_data
     {
       additional_attributes: additional_attributes,

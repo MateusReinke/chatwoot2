@@ -56,7 +56,7 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
   end
 
   def channel
-    group_conversation.inbox.channel
+    @contact.group_channel
   end
 
   def format_participants(phone_numbers)
@@ -68,7 +68,7 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
   end
 
   def add_group_members(phone_numbers)
-    inbox = group_conversation.inbox
+    inbox = @contact.contact_inboxes.first&.inbox
     Array(phone_numbers).each do |phone|
       normalized = phone.start_with?('+') ? phone : "+#{phone}"
       contact_inbox = ::ContactInboxWithContactBuilder.new(

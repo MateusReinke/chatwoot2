@@ -29,7 +29,7 @@ class Api::V1::Accounts::Contacts::GroupSettingsController < Api::V1::Accounts::
   private
 
   def channel
-    @channel ||= group_conversation.inbox.channel
+    @channel ||= @contact.group_channel
   end
 
   def group_conversation

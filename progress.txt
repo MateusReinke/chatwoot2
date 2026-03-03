@@ -479,3 +479,13 @@
   - GroupMember uses group_contact_id (FK to contacts) instead of conversation_id — this is the key design change from ConversationGroupMember
   - inverse_of required on has_many with custom foreign_key to avoid N+1 queries
 ---
+
+## 2026-03-03 - US-064
+- Added Contact#group_channel method: finds channel via contact_inboxes.first.inbox.channel
+- Updated GroupMembersController and GroupSettingsController to use @contact.group_channel instead of group_conversation.inbox.channel
+- Updated add_group_members to get inbox from @contact.contact_inboxes.first.inbox
+- Rubocop and specs pass (15 examples, 0 failures)
+- Files changed: contact.rb, group_members_controller.rb, group_settings_controller.rb
+- **Learnings for future iterations:**
+  - Contact#group_channel decouples channel lookup from conversations — use this for group-related controllers
+---
