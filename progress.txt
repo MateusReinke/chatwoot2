@@ -412,3 +412,9 @@
   - Group avatar uses get_profile_pic with group JID (xxx@g.us) directly, unlike participant avatars that use phone@s.whatsapp.net
   - sync_group spec before block needs stubs for all external calls: group-invite-code AND profile-picture-url
 ---
+
+## 2026-03-03 - US-033
+- GroupSettingsController already existed with leave, update, toggle_join_approval actions
+- Routes already configured under contacts scope
+- Rubocop passes, no changes needed
+---
