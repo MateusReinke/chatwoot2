@@ -443,3 +443,12 @@
 - Uses GROUP.INFO.YOU_BADGE i18n key
 - Manual browser verification needed (no dev-browser skill available)
 ---
+
+## 2026-03-03 - US-038
+- Inline edit for group name and description already implemented in GroupContactInfo.vue
+- isInboxAdmin already normalizes phone numbers (strip + prefix)
+- Name edit: input with Enter/blur save, Escape cancel
+- Description edit: textarea with blur save
+- Non-admins see read-only text
+- Manual browser verification needed
+---
