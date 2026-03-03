@@ -4,8 +4,13 @@ class Contacts::SyncGroupService
   def perform
     validate_group_contact!
 
-    synced = sync_conversations
-    raise ActionController::BadRequest, I18n.t('contacts.sync_group.no_supported_inbox') unless synced
+    channel = contact.group_channel
+    raise ActionController::BadRequest, I18n.t('contacts.sync_group.no_supported_inbox') if channel.blank? || !channel.respond_to?(:sync_group)
+
+    conversation = find_or_create_sync_conversation
+    raise ActionController::BadRequest, I18n.t('contacts.sync_group.no_supported_inbox') if conversation.blank?
+
+    channel.sync_group(conversation)
 
     contact.reload
     dispatch_group_synced_event
@@ -14,12 +19,23 @@ class Contacts::SyncGroupService
 
   private
 
-  def sync_conversations
-    synced = false
-    contact.conversations.where(status: %i[open pending]).find_each do |conversation|
-      synced = true if conversation.sync_group
-    end
-    synced
+  def find_or_create_sync_conversation
+    contact_inbox = contact.contact_inboxes.first
+    return nil if contact_inbox.blank?
+
+    contact_inbox.conversations.where(status: %i[open pending]).last ||
+      contact_inbox.conversations.order(created_at: :desc).first ||
+      create_group_conversation(contact_inbox)
+  end
+
+  def create_group_conversation(contact_inbox)
+    Conversation.create!(
+      account_id: contact_inbox.inbox.account_id,
+      inbox_id: contact_inbox.inbox_id,
+      contact_id: contact.id,
+      contact_inbox_id: contact_inbox.id,
+      group_type: :group
+    )
   end
 
   def validate_group_contact!

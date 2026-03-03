@@ -12,21 +12,13 @@ class Api::V1::Accounts::Contacts::GroupMetadataController < Api::V1::Accounts::
 
   def update_subject
     channel.update_group_subject(@contact.identifier, params[:subject])
-    @contact.update!(name: params[:subject])
   end
 
   def update_description
     channel.update_group_description(@contact.identifier, params[:description])
-    @contact.update!(additional_attributes: @contact.additional_attributes.merge('description' => params[:description]))
   end
 
   def channel
-    @channel ||= group_conversation.inbox.channel
-  end
-
-  def group_conversation
-    @group_conversation ||= Current.account.conversations
-                                   .where(contact_id: @contact.id, group_type: :group, status: %i[open pending])
-                                   .first
+    @channel ||= @contact.group_channel
   end
 end
