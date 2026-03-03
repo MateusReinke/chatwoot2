@@ -56,20 +56,28 @@ const hasMoreMembers = computed(() => {
   return meta.page * meta.per_page < meta.total_count;
 });
 
+// Compare phone numbers flexibly to handle format differences
+// (e.g. Brazilian 9th digit: +5587988465072 vs +558788465072)
+const phonesMatch = (phoneA, phoneB) => {
+  const a = phoneA?.replace(/\D/g, '');
+  const b = phoneB?.replace(/\D/g, '');
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return a.length >= 8 && b.length >= 8 && a.slice(-8) === b.slice(-8);
+};
+
 const isInboxAdmin = computed(() => {
   if (!inboxPhone.value) return false;
-  const normalized = inboxPhone.value.replace(/^\+/, '');
-  return members.value.some(m => {
-    const memberPhone = m.contact?.phone_number?.replace(/^\+/, '');
-    return memberPhone === normalized && m.role === 'admin';
-  });
+  return members.value.some(
+    m =>
+      phonesMatch(inboxPhone.value, m.contact?.phone_number) &&
+      m.role === 'admin'
+  );
 });
 
 const isOwnMember = member => {
   if (!inboxPhone.value) return false;
-  const normalized = inboxPhone.value.replace(/^\+/, '');
-  const memberPhone = member.contact?.phone_number?.replace(/^\+/, '');
-  return memberPhone === normalized;
+  return phonesMatch(inboxPhone.value, member.contact?.phone_number);
 };
 
 const isFetching = computed(() => uiFlags.value.isFetching);
