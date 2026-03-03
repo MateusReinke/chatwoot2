@@ -2,12 +2,9 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
   def index
     authorize @contact, :show?
 
-    conversations = Current.account.conversations
-                           .where(contact_id: @contact.id, group_type: :group, status: %i[open pending])
-
-    @group_members = ConversationGroupMember.active
-                                            .where(conversation: conversations)
-                                            .includes(:contact)
+    @group_members = GroupMember.active
+                                .where(group_contact: @contact)
+                                .includes(:contact)
   end
 
   def create
@@ -23,7 +20,7 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
   def update
     authorize @contact, :update?
 
-    member = group_conversation_members.find(params[:member_id])
+    member = group_members.find(params[:member_id])
     action = params[:role] == 'admin' ? 'promote' : 'demote'
     channel.update_group_participants(@contact.identifier, [jid_for_member(member)], action)
     member.update!(role: params[:role])
@@ -35,7 +32,7 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
   def destroy
     authorize @contact, :update?
 
-    member = group_conversation_members.find(params[:id])
+    member = group_members.find(params[:id])
     channel.update_group_participants(@contact.identifier, [jid_for_member(member)], 'remove')
     member.update!(is_active: false)
     head :ok
@@ -45,14 +42,8 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
 
   private
 
-  def group_conversation
-    @group_conversation ||= Current.account.conversations
-                                   .where(contact_id: @contact.id, group_type: :group, status: %i[open pending])
-                                   .first
-  end
-
-  def group_conversation_members
-    ConversationGroupMember.where(conversation: group_conversation)
+  def group_members
+    GroupMember.where(group_contact: @contact)
   end
 
   def channel
@@ -78,7 +69,7 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
       ).perform
       next if contact_inbox.blank?
 
-      member = ConversationGroupMember.find_or_initialize_by(conversation: group_conversation, contact: contact_inbox.contact)
+      member = GroupMember.find_or_initialize_by(group_contact: @contact, contact: contact_inbox.contact)
       member.update!(role: :member, is_active: true) unless member.persisted? && member.is_active?
     end
   end

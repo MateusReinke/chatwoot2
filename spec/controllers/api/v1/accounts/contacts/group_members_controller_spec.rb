@@ -18,9 +18,8 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
     context 'when user is logged in' do
       it 'returns active group members' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        conversation = create(:conversation, account: account, contact: contact, group_type: :group)
-        create(:conversation_group_member, conversation: conversation, contact: contact)
-        create(:conversation_group_member, conversation: conversation, contact: create(:contact, account: account))
+        create(:group_member, group_contact: contact, contact: contact)
+        create(:group_member, group_contact: contact, contact: create(:contact, account: account))
 
         get "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/group_members",
             headers: admin.create_new_auth_token
@@ -31,9 +30,8 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
 
       it 'does not return inactive group members' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        conversation = create(:conversation, account: account, contact: contact, group_type: :group)
-        create(:conversation_group_member, conversation: conversation, contact: contact)
-        create(:conversation_group_member, :inactive, conversation: conversation, contact: create(:contact, account: account))
+        create(:group_member, group_contact: contact, contact: contact)
+        create(:group_member, :inactive, group_contact: contact, contact: create(:contact, account: account))
 
         get "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/group_members",
             headers: admin.create_new_auth_token
@@ -44,12 +42,10 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
 
       it 'does not return group members from another account' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        conversation = create(:conversation, account: account, contact: contact, group_type: :group)
-        create(:conversation_group_member, conversation: conversation, contact: contact)
+        create(:group_member, group_contact: contact, contact: contact)
         other_account = create(:account)
-        other_conversation = create(:conversation, account: other_account, contact: create(:contact, account: other_account),
-                                                   group_type: :group)
-        create(:conversation_group_member, conversation: other_conversation, contact: create(:contact, account: other_account))
+        other_group_contact = create(:contact, account: other_account, group_type: :group, identifier: 'other@g.us')
+        create(:group_member, group_contact: other_group_contact, contact: create(:contact, account: other_account))
 
         get "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/group_members",
             headers: admin.create_new_auth_token
@@ -60,37 +56,19 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
 
       it 'returns expected attributes in the response' do
         contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        conversation = create(:conversation, account: account, contact: contact, group_type: :group)
-        create(:conversation_group_member, conversation: conversation, contact: contact)
+        create(:group_member, group_contact: contact, contact: contact)
 
         get "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/group_members",
             headers: admin.create_new_auth_token
 
         expect(response).to have_http_status(:success)
         member = response.parsed_body['payload'].first
-        source_member = ConversationGroupMember.find(member['id'])
+        source_member = GroupMember.find(member['id'])
         expect(member['id']).to eq(source_member.id)
         expect(member['role']).to eq(source_member.role)
         expect(member['is_active']).to eq(source_member.is_active)
-        expect(member['conversation_id']).to eq(conversation.id)
+        expect(member['group_contact_id']).to eq(contact.id)
         expect(member['contact']['id']).to eq(source_member.contact.id)
-      end
-
-      it 'only returns members from open and pending conversations' do
-        contact = create(:contact, account: account, group_type: :group, identifier: 'group@g.us')
-        open_conversation = create(:conversation, account: account, contact: contact, group_type: :group, status: :open)
-        pending_conversation = create(:conversation, account: account, contact: contact, group_type: :group, status: :pending)
-        resolved_conversation = create(:conversation, account: account, contact: contact, group_type: :group, status: :resolved)
-        create(:conversation_group_member, conversation: open_conversation, contact: contact)
-        create(:conversation_group_member, conversation: pending_conversation, contact: create(:contact, account: account))
-        create(:conversation_group_member, conversation: resolved_conversation, contact: create(:contact, account: account))
-
-        get "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/group_members",
-            headers: admin.create_new_auth_token
-
-        expect(response).to have_http_status(:success)
-        conversation_ids = response.parsed_body['payload'].map { |m| m['conversation_id'] }.uniq
-        expect(conversation_ids).to contain_exactly(open_conversation.id, pending_conversation.id)
       end
 
       it 'returns empty payload when contact is not a group' do
@@ -111,11 +89,10 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
     end
     let(:inbox) { whatsapp_channel.inbox }
     let(:group_contact) { create(:contact, account: account, group_type: :group, identifier: 'group@g.us') }
-    let(:conversation) { create(:conversation, account: account, contact: group_contact, inbox: inbox, group_type: :group) }
     let(:baileys_service) { instance_double(Whatsapp::Providers::WhatsappBaileysService) }
 
     before do
-      conversation
+      create(:contact_inbox, inbox: inbox, contact: group_contact)
       allow(Whatsapp::Providers::WhatsappBaileysService).to receive(:new).and_return(baileys_service)
       allow(baileys_service).to receive(:update_group_participants).and_return(true)
     end
@@ -159,12 +136,12 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
     end
     let(:inbox) { whatsapp_channel.inbox }
     let(:group_contact) { create(:contact, account: account, group_type: :group, identifier: 'group@g.us') }
-    let(:conversation) { create(:conversation, account: account, contact: group_contact, inbox: inbox, group_type: :group) }
     let(:member_contact) { create(:contact, account: account, phone_number: '+5511999990002') }
-    let!(:member) { create(:conversation_group_member, conversation: conversation, contact: member_contact) }
+    let!(:member) { create(:group_member, group_contact: group_contact, contact: member_contact) }
     let(:baileys_service) { instance_double(Whatsapp::Providers::WhatsappBaileysService) }
 
     before do
+      create(:contact_inbox, inbox: inbox, contact: group_contact)
       allow(Whatsapp::Providers::WhatsappBaileysService).to receive(:new).and_return(baileys_service)
       allow(baileys_service).to receive(:update_group_participants).and_return(true)
     end
@@ -196,12 +173,12 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/group_members', type:
     end
     let(:inbox) { whatsapp_channel.inbox }
     let(:group_contact) { create(:contact, account: account, group_type: :group, identifier: 'group@g.us') }
-    let(:conversation) { create(:conversation, account: account, contact: group_contact, inbox: inbox, group_type: :group) }
     let(:member_contact) { create(:contact, account: account, phone_number: '+5511999990003') }
-    let!(:member) { create(:conversation_group_member, conversation: conversation, contact: member_contact, role: :member) }
+    let!(:member) { create(:group_member, group_contact: group_contact, contact: member_contact, role: :member) }
     let(:baileys_service) { instance_double(Whatsapp::Providers::WhatsappBaileysService) }
 
     before do
+      create(:contact_inbox, inbox: inbox, contact: group_contact)
       allow(Whatsapp::Providers::WhatsappBaileysService).to receive(:new).and_return(baileys_service)
       allow(baileys_service).to receive(:update_group_participants).and_return(true)
     end

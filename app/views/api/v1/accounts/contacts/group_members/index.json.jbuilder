@@ -3,7 +3,7 @@ json.payload do
     json.id member.id
     json.role member.role
     json.is_active member.is_active
-    json.conversation_id member.conversation_id
+    json.group_contact_id member.group_contact_id
     json.contact do
       json.id member.contact.id
       json.name member.contact.name
