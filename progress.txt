@@ -140,6 +140,11 @@
 - Editor.vue @ mention: `suggestionsPlugin` isAllowed gates dropdown trigger; TagAgents for private (agents/teams), TagGroupMembers for group non-private (contacts); both use `insertSpecialContent('mention', content)` with content.type determining mentionType in serialization
 - Sender type comparison: Contact.push_event_data returns `type: 'contact'` (lowercase) but SENDER_TYPES.CONTACT is `'Contact'` (PascalCase) — always use case-insensitive comparison
 - Tailwind spacing: `last:mt-N` only applies to :last-child; for consistent spacing between N children use `flex flex-col gap-N` on parent
+- Group settings persisted in contact.additional_attributes: announce (bool), restrict (bool), joinApprovalMode (bool), memberAddMode, invite_code (string)
+- GroupContactInfo.vue has `inboxPhone` computed that returns inbox phone_number; use for self-identification (You badge) and admin check
+- Channel::Whatsapp delegates group methods to provider_service; new service methods need `delegate :method_name, to: :provider_service` in channel model
+- Phone number normalization: inbox.phone_number may have `+` prefix while contact.phone_number may not — strip `+` before comparison
+- Baileys API routes: check ROUTES_SUMMARY.md for correct endpoints; some routes differ from initial assumptions (e.g. group-request-participants-list, not group-join-requests)
 
 ---
 
@@ -355,4 +360,15 @@
   - Frontend ActionCable handler pattern: register event string in constructor this.events, add handler method that dispatches to Vuex store
   - group_members_data query mirrors the controller index query: ConversationGroupMember.active.where(conversation: group_conversations).includes(:contact)
   - Manual browser verification not needed for this story (no UI changes)
+---
+
+## 2026-03-03 - US-041
+- Fixed GroupConversationHandler to enforce group_type: :group on existing contacts and conversations
+- update_group_contact_info now builds update_params hash, includes group_type: :group if contact is not already group_type_group?
+- find_or_create_group_conversation now updates existing conversation's group_type to :group if it is currently :individual
+- Root cause: ContactInboxWithContactBuilder returns early for existing contact_inboxes, skipping group_type assignment; fix enforces it in the handler
+- Files changed: app/models/concerns/group_conversation_handler.rb
+- **Learnings for future iterations:**
+  - Contact and Conversation group_type enums use `_prefix: true`, so predicate methods are `group_type_group?` not `group?`
+  - When builder classes return early for existing records, ensure downstream handlers enforce required attributes
 ---

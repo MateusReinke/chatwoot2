@@ -1,7 +1,7 @@
 {
   "project": "chatwoot",
   "branchName": "ralph/group-conversations-full-feature",
-  "description": "Full group conversations feature \u2014 backend refactor, serialization, filtering, GroupContactInfo sidebar, group management (create/members/metadata/invite/join requests), group message bubbles, @mention system, real-time updates.",
+  "description": "Full group conversations feature \u2014 backend refactor, serialization, filtering, GroupContactInfo sidebar, group management (create/members/metadata/invite/join requests), group message bubbles, @mention system, real-time updates, group settings refinements (You badge, inbox_contact_id removal, admin settings toggles, leave group, inline edit fix).",
   "userStories": [
     {
       "id": "US-001",
@@ -470,6 +470,241 @@
       ],
       "priority": 28,
       "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Backend \u2014 ensure group_type is set on existing contacts and conversations",
+      "description": "As a developer, I need the group message handler to enforce group_type: :group on contact and conversation records even when they already exist, because some groups incorrectly render as individual contacts in the frontend.",
+      "acceptanceCriteria": [
+        "GroupConversationHandler#update_group_contact_info now also ensures contact.group_type = :group if it is not already (adds group_type: :group to the update_params)",
+        "GroupConversationHandler#find_or_create_group_conversation updates the existing conversation's group_type to :group if it is currently :individual before returning it",
+        "Existing group conversations that were incorrectly typed as individual are corrected upon the next incoming group message",
+        "Frontend renders GroupContactInfo (not ContactInfo) for these corrected conversations",
+        "Group message bubbles show sender name and avatar after the fix",
+        "bundle exec rspec passes (no regressions)",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": true,
+      "notes": "Root cause: ContactInboxWithContactBuilder returns early when source_id matches an existing contact_inbox (line 17-18), never reaching create_contact where group_type is assigned. Fix must be in GroupConversationHandler (update_group_contact_info and find_or_create_group_conversation), not in the shared builder."
+    },
+    {
+      "id": "US-029",
+      "title": "i18n \u2014 add keys for You badge and group settings (en + pt-BR)",
+      "description": "As a developer, I need i18n keys for the new UI features so no bare strings appear.",
+      "acceptanceCriteria": [
+        "Add GROUP.INFO.YOU_BADGE with value 'You' (en) / 'Voc\u00ea' (pt-BR)",
+        "Add GROUP.SETTINGS.SECTION_TITLE \u2014 'Group Settings' / 'Configura\u00e7\u00f5es do Grupo'",
+        "Add GROUP.SETTINGS.ANNOUNCEMENT_MODE \u2014 'Announcement Mode' / 'Modo An\u00fancio'",
+        "Add GROUP.SETTINGS.ANNOUNCEMENT_MODE_DESC \u2014 'Only admins can send messages' / 'Apenas admins podem enviar mensagens'",
+        "Add GROUP.SETTINGS.LOCKED_MODE \u2014 'Edit Restricted' / 'Edi\u00e7\u00e3o Restrita'",
+        "Add GROUP.SETTINGS.LOCKED_MODE_DESC \u2014 'Only admins can edit group info' / 'Apenas admins podem editar informa\u00e7\u00f5es do grupo'",
+        "Add GROUP.SETTINGS.JOIN_APPROVAL \u2014 'Admin Approval to Join' / 'Aprova\u00e7\u00e3o do Admin para Entrar'",
+        "Add GROUP.SETTINGS.JOIN_APPROVAL_DESC \u2014 'New members need admin approval' / 'Novos membros precisam de aprova\u00e7\u00e3o do admin'",
+        "Add GROUP.SETTINGS.LEAVE_GROUP \u2014 'Leave Group' / 'Sair do Grupo'",
+        "Add GROUP.SETTINGS.LEAVE_CONFIRM \u2014 'Are you sure you want to leave this group? The conversation will be resolved.' / 'Tem certeza que deseja sair deste grupo? A conversa ser\u00e1 resolvida.'",
+        "Add GROUP.SETTINGS.LEAVE_SUCCESS \u2014 'You have left the group.' / 'Voc\u00ea saiu do grupo.'",
+        "Add GROUP.SETTINGS.LEAVE_ERROR \u2014 'Failed to leave group.' / 'Falha ao sair do grupo.'",
+        "Add GROUP.SETTINGS.UPDATE_SUCCESS \u2014 'Group setting updated.' / 'Configura\u00e7\u00e3o do grupo atualizada.'",
+        "Add GROUP.SETTINGS.UPDATE_ERROR \u2014 'Failed to update group setting.' / 'Falha ao atualizar configura\u00e7\u00e3o do grupo.'",
+        "Remove INBOX_MGMT.TABS.INBOX_CONTACT and INBOX_MGMT.SETTINGS_POPUP.INBOX_CONTACT.* from en/inboxMgmt.json and pt_BR/inboxMgmt.json",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Backend \u2014 fix Baileys API route/method mismatches",
+      "description": "As a developer, I need the WhatsappBaileysService methods to match the actual Baileys REST API endpoints documented in ROUTES_SUMMARY.md.",
+      "acceptanceCriteria": [
+        "update_group_participants: HTTP method changed from PATCH to POST; body sends singular 'participant' key; iterates Array(participants) making one POST per participant",
+        "group_invite_code: response dig changed from dig('data', 'code') to dig('data', 'inviteCode')",
+        "revoke_group_invite: response dig changed from dig('data', 'code') to dig('data', 'inviteCode')",
+        "group_join_requests: route changed from 'group-join-requests' to 'group-request-participants-list'",
+        "handle_group_join_requests: route changed from 'group-join-requests-handle' to 'group-request-participants-update'",
+        "on_whatsapp: response parsing changed from response.parsed_response&.first to response.parsed_response&.dig('data')&.first; spec stubs updated to wrap response in { data: [...] }",
+        "bundle exec rspec spec/services/whatsapp/providers/whatsapp_baileys_service_spec.rb passes",
+        "bundle exec rubocop app/services/whatsapp/providers/whatsapp_baileys_service.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Backend \u2014 add group_leave, group_setting_update, group_join_approval_mode methods",
+      "description": "As a developer, I need new methods in WhatsappBaileysService to call the Baileys API for leaving groups and managing group settings.",
+      "acceptanceCriteria": [
+        "group_leave(group_jid) added: POST /connections/{phone}/group-leave with body { jid: group_jid }",
+        "group_setting_update(group_jid, setting) added: POST /connections/{phone}/group-setting-update with body { jid: group_jid, setting: setting } (setting is one of: announcement, not_announcement, locked, unlocked)",
+        "group_join_approval_mode(group_jid, mode) added: POST /connections/{phone}/group-join-approval-mode with body { jid: group_jid, mode: mode } (mode is 'on' or 'off')",
+        "All three methods raise ProviderUnavailableError on non-2xx responses",
+        "All three methods added to with_error_handling list",
+        "Delegates added in Channel::Whatsapp for the three new methods",
+        "bundle exec rspec spec/services/whatsapp/providers/whatsapp_baileys_service_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Backend \u2014 persist group settings, invite code, and profile picture during sync",
+      "description": "As a developer, I need sync_group and groups_update webhook handler to persist group settings, invite code, and group profile picture in contact.additional_attributes and avatar.",
+      "acceptanceCriteria": [
+        "update_group_contact_info in whatsapp_baileys_service.rb now also persists announce, restrict, joinApprovalMode, memberAddMode from group_metadata response into contact.additional_attributes",
+        "sync_group calls group_invite_code and persists the result as invite_code in contact.additional_attributes",
+        "sync_group calls get_profile_pic(group_contact.identifier) to fetch the group profile picture URL and enqueues Avatar::AvatarFromUrlJob to attach it to the group contact (same pattern as try_update_participant_avatar for individual contacts)",
+        "groups_update.rb process_group_settings_changes now persists setting values (boolean) into contact.additional_attributes alongside creating activity messages",
+        "groups_update.rb process_single_group_update persists inviteCode value into contact.additional_attributes['invite_code'] when present",
+        "bundle exec rspec spec/services/whatsapp/providers/whatsapp_baileys_service_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Backend \u2014 GroupSettingsController with leave, update, toggle",
+      "description": "As an agent, I need API endpoints to leave a group, toggle group settings, and toggle join approval mode.",
+      "acceptanceCriteria": [
+        "New controller Api::V1::Accounts::Contacts::GroupSettingsController at app/controllers/api/v1/accounts/contacts/group_settings_controller.rb",
+        "POST .../group_settings/leave action: calls channel.group_leave(@contact.identifier), then resolves the conversation (sets status to :resolved). Returns 200. Returns 422 on ProviderUnavailableError.",
+        "PATCH .../group_settings action: accepts { setting: 'announcement|not_announcement|locked|unlocked' }, calls channel.group_setting_update. Updates contact.additional_attributes accordingly. Returns 200. Returns 422 on error.",
+        "POST .../group_settings/toggle_join_approval action: accepts { mode: 'on|off' }, calls channel.group_join_approval_mode. Updates contact.additional_attributes['joinApprovalMode']. Returns 200. Returns 422 on error.",
+        "Routes added in config/routes.rb under the contacts scope: resource :group_settings, only: [:update] do; post :leave, on: :member; post :toggle_join_approval, on: :member; end",
+        "bundle exec rubocop passes for the new controller",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Backend \u2014 remove inbox_contact_id from provider_config and jbuilder",
+      "description": "As a developer, I need to remove the inbox_contact_id concept from the backend: the link_inbox_contact method, the jbuilder serialization, and the call in sync_group.",
+      "acceptanceCriteria": [
+        "link_inbox_contact private method removed from whatsapp_baileys_service.rb",
+        "Call to link_inbox_contact(inbox, participant_contacts) removed from sync_group method",
+        "json.inbox_contact_id line removed from app/views/api/v1/models/_inbox.json.jbuilder",
+        "No remaining references to inbox_contact_id in Ruby backend code (except possible migration cleanup \u2014 not needed)",
+        "bundle exec rspec passes (any specs referencing inbox_contact_id are updated or removed)",
+        "Typecheck passes"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Frontend \u2014 refactor TagGroupMembers to phone_number matching",
+      "description": "As a developer, I need to replace excludeContactId prop with excludePhoneNumber in TagGroupMembers so it no longer depends on inbox_contact_id.",
+      "acceptanceCriteria": [
+        "TagGroupMembers.vue: prop renamed from excludeContactId (Number|String) to excludePhoneNumber (String)",
+        "Filter changed from member.contact?.id !== props.excludeContactId to member.contact?.phone_number !== props.excludePhoneNumber",
+        "Editor.vue: prop renamed from inboxContactId to inboxPhoneNumber; passes it to TagGroupMembers as exclude-phone-number",
+        "ReplyBox.vue: computed inboxContactId renamed to inboxPhoneNumber, returns this.inbox?.phone_number instead of this.inbox?.inbox_contact_id",
+        "@mention self-exclusion still works: the inbox's own phone is excluded from the mentions dropdown",
+        "Typecheck passes"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Frontend \u2014 remove InboxContact.vue and settings tab",
+      "description": "As a developer, I need to remove the InboxContact component and its tab in inbox settings since inbox_contact_id is being removed.",
+      "acceptanceCriteria": [
+        "app/javascript/dashboard/routes/dashboard/settings/inbox/components/InboxContact.vue file deleted",
+        "Settings.vue: import of InboxContact removed, component registration removed, tab entry { key: 'inbox-contact', ... } removed from visibleToAllChannelTabs for Baileys/Zapi channels, template <InboxContact :inbox='inbox' /> block removed",
+        "i18n keys INBOX_MGMT.TABS.INBOX_CONTACT and INBOX_MGMT.SETTINGS_POPUP.INBOX_CONTACT.* already removed in US-029",
+        "No remaining imports or references to InboxContact in the frontend",
+        "Typecheck passes"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Frontend \u2014 add You badge in GroupContactInfo member list",
+      "description": "As an agent, I want to see a 'You' badge next to my own contact in the group member list so I can identify myself.",
+      "acceptanceCriteria": [
+        "In the member list loop in GroupContactInfo.vue, a new badge is displayed next to a member when member.contact?.phone_number === inboxPhone (the inboxPhone computed already exists)",
+        "Badge styled similarly to the Admin badge: px-1.5 py-0.5 text-xs font-medium rounded with distinct color (e.g. bg-n-blue-3 text-n-blue-11)",
+        "Badge text uses i18n key GROUP.INFO.YOU_BADGE",
+        "Badge appears alongside Admin badge when the inbox contact is also an admin (both badges shown)",
+        "Tailwind only, no custom CSS",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Frontend \u2014 fix inline edit for group name and description",
+      "description": "As an admin agent, I want inline editing of group name and description to work again in the GroupContactInfo sidebar.",
+      "acceptanceCriteria": [
+        "The isInboxAdmin computed in GroupContactInfo.vue normalizes phone numbers before comparison (strip + prefix from both sides) to handle format mismatches between inbox.phone_number and member.contact.phone_number",
+        "Clicking the group name activates the inline edit input when user is admin",
+        "Clicking the description activates the inline edit textarea when user is admin",
+        "Saving name calls updateGroupMetadata with subject param and updates the contact name locally",
+        "Saving description calls updateGroupMetadata with description param and updates contact.additional_attributes.description locally",
+        "Non-admin users see name and description as read-only text",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Frontend \u2014 group settings section UI with toggles",
+      "description": "As an admin agent, I want to see and toggle group settings (announcement mode, locked mode, join approval) from the GroupContactInfo sidebar.",
+      "acceptanceCriteria": [
+        "New 'Group Settings' section added in GroupContactInfo below the join requests section, visible only to inbox admins",
+        "Section shows three toggle switches reading from contact.additional_attributes: announce (boolean), restrict (boolean), joinApprovalMode (boolean)",
+        "Each toggle displays its label and a short description from i18n (GROUP.SETTINGS.ANNOUNCEMENT_MODE, etc.)",
+        "Toggling announcement calls API PATCH .../group_settings with setting: 'announcement'/'not_announcement'",
+        "Toggling locked calls API with setting: 'locked'/'unlocked'",
+        "Toggling join approval calls API POST .../group_settings/toggle_join_approval with mode: 'on'/'off'",
+        "On success: update contact.additional_attributes locally and show success alert",
+        "On error: revert toggle and show error alert",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Frontend \u2014 leave group UI with confirmation and auto-resolve",
+      "description": "As an agent, I want a 'Leave Group' button in the GroupContactInfo sidebar that leaves the WhatsApp group and resolves the conversation.",
+      "acceptanceCriteria": [
+        "'Leave Group' button at the bottom of GroupContactInfo, always visible (not admin-only), styled as a destructive action (red/ruby color)",
+        "Clicking shows a confirmation dialog with the text from GROUP.SETTINGS.LEAVE_CONFIRM",
+        "Confirming calls POST .../group_settings/leave API",
+        "On success: shows success alert, conversation is resolved (status updates reactively via existing store), navigates to conversation list",
+        "On error: shows error alert",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 41,
+      "passes": false,
       "notes": ""
     }
   ]
