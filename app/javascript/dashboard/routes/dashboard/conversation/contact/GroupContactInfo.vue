@@ -37,13 +37,24 @@ const contactProfileLink = computed(
 );
 const uiFlags = useMapGetter('groupMembers/getUIFlags');
 const getGroupMembers = useMapGetter('groupMembers/getGroupMembers');
+const getGroupMembersMeta = useMapGetter('groupMembers/getGroupMembersMeta');
 
 const members = computed(() => {
   const allMembers = getGroupMembers.value(props.contact.id) || [];
   return allMembers.filter(m => m.is_active);
 });
 
-const memberCount = computed(() => members.value.length);
+const membersMeta = computed(
+  () => getGroupMembersMeta.value(props.contact.id) || {}
+);
+const memberCount = computed(
+  () => membersMeta.value.total_count ?? members.value.length
+);
+const hasMoreMembers = computed(() => {
+  const meta = membersMeta.value;
+  if (!meta.total_count || !meta.page || !meta.per_page) return false;
+  return meta.page * meta.per_page < meta.total_count;
+});
 
 const isInboxAdmin = computed(() => {
   if (!inboxPhone.value) return false;
@@ -62,7 +73,25 @@ const isOwnMember = member => {
 };
 
 const isFetching = computed(() => uiFlags.value.isFetching);
+const isFetchingMore = computed(() => uiFlags.value.isFetchingMore);
 const isSyncing = computed(() => uiFlags.value.isSyncing);
+const memberListRef = ref(null);
+
+const loadMoreMembers = async () => {
+  if (isFetchingMore.value || !hasMoreMembers.value) return;
+  const nextPage = (membersMeta.value.page || 1) + 1;
+  await store.dispatch('groupMembers/fetch', {
+    contactId: props.contact.id,
+    page: nextPage,
+  });
+};
+
+const onMemberListScroll = event => {
+  const el = event.target;
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
+    loadMoreMembers();
+  }
+};
 
 // Inline edit state
 const isEditingName = ref(false);
@@ -94,10 +123,6 @@ const saveName = async () => {
     await store.dispatch('groupMembers/updateGroupMetadata', {
       contactId: props.contact.id,
       params: { subject: newName },
-    });
-    await store.dispatch('contacts/update', {
-      id: props.contact.id,
-      name: newName,
     });
     useAlert(t('GROUP.METADATA.SAVE_SUCCESS'));
   } catch {
@@ -131,13 +156,6 @@ const saveDescription = async () => {
     await store.dispatch('groupMembers/updateGroupMetadata', {
       contactId: props.contact.id,
       params: { description: newDesc },
-    });
-    await store.dispatch('contacts/update', {
-      id: props.contact.id,
-      additional_attributes: {
-        ...props.contact.additional_attributes,
-        description: newDesc,
-      },
     });
     useAlert(t('GROUP.METADATA.SAVE_SUCCESS'));
   } catch {
@@ -531,10 +549,7 @@ onMounted(() => {
         </div>
         <div class="flex flex-col min-w-0 flex-1">
           <!-- Inline-editable name (only when admin) -->
-          <div
-            v-if="isInboxAdmin && isEditingName"
-            class="flex items-center gap-1"
-          >
+          <div v-if="isEditingName" class="flex items-center gap-1">
             <input
               v-model="editNameValue"
               type="text"
@@ -550,9 +565,8 @@ onMounted(() => {
           </div>
           <div v-else class="flex items-center gap-2 min-w-0">
             <h3
-              class="my-0 text-base font-medium capitalize break-words text-n-slate-12"
-              :class="{ 'cursor-pointer hover:text-n-brand': isInboxAdmin }"
-              @click="isInboxAdmin ? startEditName() : undefined"
+              class="my-0 text-base font-medium capitalize break-words text-n-slate-12 cursor-pointer hover:text-n-brand"
+              @click="startEditName"
             >
               {{ contact.name }}
             </h3>
@@ -587,7 +601,7 @@ onMounted(() => {
         <label class="text-xs font-semibold text-n-slate-11">
           {{ t('GROUP.METADATA.EDIT_DESCRIPTION_LABEL') }}
         </label>
-        <div v-if="isInboxAdmin && isEditingDescription" class="relative mt-1">
+        <div v-if="isEditingDescription" class="relative mt-1">
           <textarea
             v-model="editDescriptionValue"
             rows="2"
@@ -602,9 +616,8 @@ onMounted(() => {
         </div>
         <p
           v-else
-          class="mt-1 text-sm break-words text-n-slate-12"
-          :class="{ 'cursor-pointer hover:text-n-brand': isInboxAdmin }"
-          @click="isInboxAdmin ? startEditDescription() : undefined"
+          class="mt-1 text-sm break-words text-n-slate-12 cursor-pointer hover:text-n-brand"
+          @click="startEditDescription"
         >
           {{
             contactDescription ||
@@ -694,7 +707,12 @@ onMounted(() => {
         </p>
 
         <!-- Member list -->
-        <div v-else class="flex flex-col gap-2">
+        <div
+          v-else
+          ref="memberListRef"
+          class="flex flex-col gap-2 overflow-y-auto max-h-80"
+          @scroll="onMemberListScroll"
+        >
           <div
             v-for="member in members"
             :key="member.id"
@@ -759,6 +777,19 @@ onMounted(() => {
                 class="ltr:right-0 rtl:left-0 mt-1 w-48 top-full"
                 @action="handleMemberAction(member, $event)"
               />
+            </div>
+          </div>
+          <!-- Loading more skeleton -->
+          <div v-if="isFetchingMore" class="flex flex-col gap-3 pt-1">
+            <div
+              v-for="i in 3"
+              :key="`more-${i}`"
+              class="flex items-center gap-3"
+            >
+              <div class="rounded-full size-8 bg-n-slate-3 animate-pulse" />
+              <div class="flex flex-col flex-1 gap-1">
+                <div class="w-2/5 h-4 rounded bg-n-slate-3 animate-pulse" />
+              </div>
             </div>
           </div>
         </div>
@@ -944,6 +975,7 @@ onMounted(() => {
             variant="ghost"
             color="ruby"
             size="xs"
+            class="w-full"
             @click="showLeaveConfirm = true"
           />
         </div>

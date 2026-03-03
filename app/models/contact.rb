@@ -163,6 +163,7 @@ class Contact < ApplicationRecord # rubocop:disable Metrics/ClassLength
       additional_attributes: additional_attributes,
       custom_attributes: custom_attributes,
       email: email,
+      group_type: group_type,
       id: id,
       identifier: identifier,
       name: name,

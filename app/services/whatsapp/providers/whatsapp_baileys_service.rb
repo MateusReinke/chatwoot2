@@ -222,6 +222,8 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
     participant_contacts = build_participant_contacts(metadata[:participants], inbox)
     sync_group_members(group_contact, participant_contacts)
+
+    true
   end
 
   def media_url(media_id)
@@ -615,8 +617,12 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     Rails.logger.error "Failed to fetch invite code for group #{group_contact.identifier}: #{e.message}"
   end
 
-  def try_update_group_avatar(group_contact)
-    return if group_contact.avatar.attached?
+  def try_update_group_avatar(group_contact, force: false)
+    if force
+      group_contact.avatar.purge if group_contact.avatar.attached?
+    elsif group_contact.avatar.attached?
+      return
+    end
 
     response = get_profile_pic(group_contact.identifier)
     profile_pic_url = response&.dig('data', 'profilePictureUrl')

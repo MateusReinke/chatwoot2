@@ -31,6 +31,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler
       conversation = find_or_create_group_conversation(group_contact_inbox)
       author_name = resolve_author_name(participant_jid)
       create_group_activity(conversation, 'icon_changed', author_name: author_name)
+      update_group_avatar(group_contact_inbox.contact)
     end
   end
 
@@ -40,7 +41,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler
 
     with_contact_lock(group_jid) do
       group_contact_inbox = ::ContactInboxWithContactBuilder.new(
-        source_id: group_jid,
+        source_id: group_jid.split('@').first,
         inbox: inbox,
         contact_attributes: {
           name: group_name || group_jid,
@@ -52,6 +53,13 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler
       conversation = find_or_create_group_conversation(group_contact_inbox)
       sync_newly_created_group(conversation)
     end
+  end
+
+  def update_group_avatar(group_contact)
+    provider_service = group_contact.group_channel
+    provider_service.try_update_group_avatar(group_contact, force: true)
+  rescue StandardError => e
+    Rails.logger.error "[GROUP_ICON] Failed to update avatar for #{group_contact.identifier}: #{e.message}"
   end
 
   def sync_newly_created_group(conversation)
