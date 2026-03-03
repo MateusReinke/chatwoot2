@@ -85,8 +85,7 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
   def sync_group
     authorize @contact, :sync_group?
     @contact = Contacts::SyncGroupService.new(contact: @contact).perform
-    group_conversation = @contact.conversations.where(group_type: :group, status: %i[open pending]).order(created_at: :desc).first
-    @group_members = group_conversation ? ConversationGroupMember.active.where(conversation: group_conversation).includes(:contact) : []
+    @group_members = GroupMember.active.where(group_contact: @contact).includes(:contact)
   rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
     render_internal_server_error(e.message)
   end
