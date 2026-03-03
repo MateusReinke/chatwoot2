@@ -739,7 +739,11 @@ onMounted(async () => {
         </p>
 
         <!-- Member list -->
-        <div v-else class="flex flex-col gap-2">
+        <div
+          v-else
+          v-on-clickaway="closeMemberMenu"
+          class="flex flex-col gap-2"
+        >
           <div
             v-for="member in members"
             :key="member.id"
@@ -788,7 +792,6 @@ onMounted(async () => {
             <!-- Action menu toggle (admin only, not for self) -->
             <div
               v-else-if="isInboxAdmin && !isOwnMember(member)"
-              v-on-clickaway="closeMemberMenu"
               class="relative"
               :class="{
                 'opacity-0 group-hover:opacity-100':
