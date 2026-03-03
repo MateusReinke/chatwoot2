@@ -18,4 +18,5 @@ json.meta do
   json.total_count @total_count
   json.page @page
   json.per_page @per_page
+  json.inbox_phone_number @inbox_phone_number
 end

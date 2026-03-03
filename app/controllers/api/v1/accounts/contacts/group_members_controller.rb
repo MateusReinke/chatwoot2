@@ -11,10 +11,13 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
     @total_count = base_query.count
     @page = (params[:page] || 1).to_i
     @per_page = (params[:per_page] || DEFAULT_PER_PAGE).to_i
+    @inbox_phone_number = inbox_phone_number
 
-    @group_members = base_query.order(role: :desc, id: :asc)
-                               .offset((@page - 1) * @per_page)
-                               .limit(@per_page)
+    paginated = base_query.order(role: :desc, id: :asc)
+                          .offset((@page - 1) * @per_page)
+                          .limit(@per_page)
+
+    @group_members = pin_own_member_on_first_page(paginated)
   end
 
   def create
@@ -57,7 +60,33 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
   end
 
   def channel
-    @contact.group_channel
+    @channel ||= @contact.group_channel
+  end
+
+  def inbox_phone_number
+    channel&.phone_number
+  end
+
+  def pin_own_member_on_first_page(paginated)
+    return paginated unless @page == 1 && @inbox_phone_number.present?
+
+    ids = paginated.pluck(:id)
+    own = find_own_member
+    return paginated if own.blank? || ids.include?(own.id)
+
+    # Prepend own member; drop the last one so total per-page stays consistent
+    [own] + paginated.where.not(id: own.id).limit(@per_page - 1).to_a
+  end
+
+  def find_own_member
+    clean = @inbox_phone_number.delete('+')
+    GroupMember.active
+               .where(group_contact: @contact)
+               .joins(:contact)
+               .where('REPLACE(contacts.phone_number, \'+\', \'\') = ? OR RIGHT(REPLACE(contacts.phone_number, \'+\', \'\'), 8) = RIGHT(?, 8)',
+                      clean, clean)
+               .includes(:contact)
+               .first
   end
 
   def format_participants(phone_numbers)

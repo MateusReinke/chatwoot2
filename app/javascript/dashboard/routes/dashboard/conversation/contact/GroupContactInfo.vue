@@ -24,13 +24,11 @@ const store = useStore();
 const route = useRoute();
 const { t } = useI18n();
 
-// Inbox admin check: determine if the inbox's phone number is an admin in this group
 const currentChat = useMapGetter('getSelectedChat');
 const inboxGetter = useMapGetter('inboxes/getInboxById');
 const inbox = computed(
   () => inboxGetter.value(currentChat.value?.inbox_id) || {}
 );
-const inboxPhone = computed(() => inbox.value?.phone_number);
 
 const contactProfileLink = computed(
   () => `/app/accounts/${route.params.accountId}/contacts/${props.contact.id}`
@@ -47,6 +45,13 @@ const members = computed(() => {
 const membersMeta = computed(
   () => getGroupMembersMeta.value(props.contact.id) || {}
 );
+
+// Prefer inbox_phone_number from the group members meta (always available on
+// the first fetch response) and fall back to the inbox store lookup.
+const inboxPhone = computed(
+  () => membersMeta.value.inbox_phone_number || inbox.value?.phone_number
+);
+
 const memberCount = computed(
   () => membersMeta.value.total_count ?? members.value.length
 );
