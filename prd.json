@@ -849,7 +849,7 @@
         "bundle exec rspec passes"
       ],
       "priority": 50,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

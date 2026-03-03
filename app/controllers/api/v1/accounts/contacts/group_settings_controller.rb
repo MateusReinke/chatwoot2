@@ -2,7 +2,7 @@ class Api::V1::Accounts::Contacts::GroupSettingsController < Api::V1::Accounts::
   def leave
     authorize @contact, :update?
     channel.group_leave(@contact.identifier)
-    resolve_group_conversation
+    resolve_group_conversations
     head :ok
   rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
     render json: { error: e.message }, status: :unprocessable_entity
@@ -32,16 +32,10 @@ class Api::V1::Accounts::Contacts::GroupSettingsController < Api::V1::Accounts::
     @channel ||= @contact.group_channel
   end
 
-  def group_conversation
-    @group_conversation ||= Current.account.conversations
-                                   .where(contact_id: @contact.id, group_type: :group, status: %i[open pending])
-                                   .first
-  end
-
-  def resolve_group_conversation
-    return unless group_conversation
-
-    group_conversation.update!(status: :resolved)
+  def resolve_group_conversations
+    Current.account.conversations
+           .where(contact_id: @contact.id, group_type: :group, status: %i[open pending])
+           .find_each { |c| c.update!(status: :resolved) }
   end
 
   def update_contact_setting(setting)
