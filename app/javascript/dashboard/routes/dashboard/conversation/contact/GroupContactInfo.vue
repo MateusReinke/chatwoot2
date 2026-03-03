@@ -12,6 +12,7 @@ import GroupMembersAPI from 'dashboard/api/groupMembers';
 import Avatar from 'next/avatar/Avatar.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
+import Switch from 'dashboard/components-next/switch/Switch.vue';
 
 const props = defineProps({
   contact: {
@@ -922,24 +923,17 @@ onMounted(async () => {
                 {{ t('GROUP.SETTINGS.ANNOUNCEMENT_MODE_DESCRIPTION') }}
               </span>
             </div>
-            <button
-              class="relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none"
-              :class="isAnnouncementMode ? 'bg-n-brand' : 'bg-n-slate-5'"
-              :disabled="isTogglingAnnouncement"
-              @click="toggleAnnouncementMode"
-            >
+            <div class="flex items-center gap-1.5">
               <span
                 v-if="isTogglingAnnouncement"
-                class="i-lucide-loader-2 animate-spin size-3 absolute left-1/2 -translate-x-1/2 text-n-alpha-white1"
+                class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
               />
-              <span
-                v-else
-                class="inline-block size-4 rounded-full bg-white transition-transform"
-                :class="
-                  isAnnouncementMode ? 'translate-x-4' : 'translate-x-0.5'
-                "
+              <Switch
+                :model-value="isAnnouncementMode"
+                :disabled="isTogglingAnnouncement"
+                @change="toggleAnnouncementMode"
               />
-            </button>
+            </div>
           </div>
 
           <!-- Locked Mode -->
@@ -952,22 +946,17 @@ onMounted(async () => {
                 {{ t('GROUP.SETTINGS.LOCKED_MODE_DESCRIPTION') }}
               </span>
             </div>
-            <button
-              class="relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none"
-              :class="isLockedMode ? 'bg-n-brand' : 'bg-n-slate-5'"
-              :disabled="isTogglingLocked"
-              @click="toggleLockedMode"
-            >
+            <div class="flex items-center gap-1.5">
               <span
                 v-if="isTogglingLocked"
-                class="i-lucide-loader-2 animate-spin size-3 absolute left-1/2 -translate-x-1/2 text-n-alpha-white1"
+                class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
               />
-              <span
-                v-else
-                class="inline-block size-4 rounded-full bg-white transition-transform"
-                :class="isLockedMode ? 'translate-x-4' : 'translate-x-0.5'"
+              <Switch
+                :model-value="isLockedMode"
+                :disabled="isTogglingLocked"
+                @change="toggleLockedMode"
               />
-            </button>
+            </div>
           </div>
 
           <!-- Join Approval -->
@@ -980,24 +969,17 @@ onMounted(async () => {
                 {{ t('GROUP.SETTINGS.JOIN_APPROVAL_DESCRIPTION') }}
               </span>
             </div>
-            <button
-              class="relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none"
-              :class="isJoinApprovalEnabled ? 'bg-n-brand' : 'bg-n-slate-5'"
-              :disabled="isTogglingJoinApproval"
-              @click="toggleJoinApproval"
-            >
+            <div class="flex items-center gap-1.5">
               <span
                 v-if="isTogglingJoinApproval"
-                class="i-lucide-loader-2 animate-spin size-3 absolute left-1/2 -translate-x-1/2 text-n-alpha-white1"
+                class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
               />
-              <span
-                v-else
-                class="inline-block size-4 rounded-full bg-white transition-transform"
-                :class="
-                  isJoinApprovalEnabled ? 'translate-x-4' : 'translate-x-0.5'
-                "
+              <Switch
+                :model-value="isJoinApprovalEnabled"
+                :disabled="isTogglingJoinApproval"
+                @change="toggleJoinApproval"
               />
-            </button>
+            </div>
           </div>
         </div>
       </div>
