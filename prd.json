@@ -1,7 +1,7 @@
 {
   "project": "chatwoot",
   "branchName": "ralph/group-conversations-full-feature",
-  "description": "Full group conversations feature \u2014 backend refactor, serialization, filtering, GroupContactInfo sidebar, group management (create/members/metadata/invite/join requests), group message bubbles, @mention system, real-time updates, group settings refinements (You badge, inbox_contact_id removal, admin settings toggles, leave group, inline edit fix).",
+  "description": "Full group conversations feature \u2014 backend refactor, serialization, filtering, GroupContactInfo sidebar, group management (create/members/metadata/invite/join requests), group message bubbles, @mention system, real-time updates, group settings refinements (You badge, inbox_contact_id removal, admin settings toggles, leave group, inline edit fix). Phase 2: GroupMember restructure \u2014 migrate membership from ConversationGroupMember (conversation-level) to GroupMember (contact-level) as single source of truth.",
   "userStories": [
     {
       "id": "US-001",
@@ -686,7 +686,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

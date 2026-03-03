@@ -452,3 +452,11 @@
 - Non-admins see read-only text
 - Manual browser verification needed
 ---
+
+## 2026-03-03 - US-039
+- Group settings section already implemented in GroupContactInfo.vue
+- Three toggles: announcement mode, locked mode, join approval - all reading from contact.additional_attributes
+- Toggle handlers call GroupMembersAPI.updateGroupSetting / toggleJoinApproval and update local state
+- Success/error alerts via GROUP.SETTINGS i18n keys
+- Manual browser verification needed
+---
