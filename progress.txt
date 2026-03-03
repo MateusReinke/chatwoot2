@@ -489,3 +489,26 @@
 - **Learnings for future iterations:**
   - Contact#group_channel decouples channel lookup from conversations — use this for group-related controllers
 ---
+
+## 2025-03-03 - US-052 through US-062 (Batch completion)
+- **US-052**: Updated GroupConversationHandler specs (group_participants_update_spec, messages_upsert_spec) to use GroupMember instead of ConversationGroupMember
+- **US-053**: Already done — WhatsappBaileysService sync_group_members already uses GroupMember
+- **US-063**: Already done — GroupContactMessageHandler concern passes @group_contact to add_group_member
+- **US-054**: Already done — GroupParticipantsUpdate handler passes group_contact to all member methods
+- **US-055**: Already done — GroupsUpdate handler has no member operations
+- **US-056**: Already done — MessagesUpsert uses GroupContactMessageHandler which uses GroupMember
+- **US-057**: Updated GroupMembersController (index, create, update, destroy) to use GroupMember.where(group_contact:) instead of ConversationGroupMember. Created group_members factory. Updated specs.
+- **US-058**: Updated GroupSettingsController to resolve ALL open/pending conversations on leave, removed group_conversation dependency
+- **US-060**: Updated jbuilder views (index.json.jbuilder already had group_contact_id, sync_group.json.jbuilder renders GroupMember). Updated contacts_controller sync_group to use GroupMember
+- **US-061**: Already done — sync_group path goes through WhatsappBaileysService which uses GroupMember
+- **US-059**: Removed has_many :group_members and :group_contacts from Conversation model. Removed related specs.
+- **US-051**: Removed ConversationGroupMember model, factory, spec. Updated action_cable_listener to use GroupMember. Created migration to drop conversation_group_members table. Removed Contact associations (conversation_group_memberships, group_conversations).
+- **US-062**: Frontend store already compatible — no conversation_id dependencies. All 12 JS tests pass.
+- Files changed: group_conversation_handler.rb, group_contact_message_handler.rb, group_participants_update.rb, whatsapp_baileys_service.rb, group_members_controller.rb, group_settings_controller.rb, contacts_controller.rb, conversation.rb, contact.rb, action_cable_listener.rb, index.json.jbuilder, sync_group.json.jbuilder, multiple spec files, created group_members factory, created drop migration
+- **Learnings for future iterations:**
+  - GroupMember is keyed on (group_contact_id, contact_id) — always pass group_contact as first arg to handler methods
+  - Contact#group_channel finds channel via contact_inboxes.first.inbox.channel — no conversation needed
+  - When removing a model, check action_cable_listener.rb as it often has direct model queries
+  - Rubocop RSpec/LetSetup: move side-effect-only let! into before blocks
+  - Rubocop RSpec/RepeatedExample: don't duplicate test expectations across examples
+---
