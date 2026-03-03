@@ -551,7 +551,7 @@ const senderNameStyle = computed(() => {
   };
 });
 
-const navigateToGroupSender = () => {
+const navigateToGroupSender = event => {
   if (
     !isGroupIncoming.value ||
     !props.sender?.id ||
@@ -559,7 +559,12 @@ const navigateToGroupSender = () => {
   )
     return;
   const accountId = route.params.accountId;
-  router.push(`/app/accounts/${accountId}/contacts/${props.sender.id}`);
+  const url = `/app/accounts/${accountId}/contacts/${props.sender.id}`;
+  if (event?.ctrlKey || event?.metaKey) {
+    window.open(url, '_blank');
+  } else {
+    router.push(url);
+  }
 };
 
 const setupHighlightTimer = () => {
@@ -622,7 +627,7 @@ provideMessageContext({
         v-if="showGroupSenderAvatar"
         v-tooltip.right-end="avatarTooltip"
         class="[grid-area:avatar] flex items-end cursor-pointer"
-        @click="navigateToGroupSender"
+        @click="navigateToGroupSender($event)"
       >
         <Avatar v-bind="avatarInfo" :size="24" />
       </div>
@@ -638,7 +643,7 @@ provideMessageContext({
           v-if="showGroupSenderName"
           class="text-xs font-medium mb-0.5 block ltr:mr-8 rtl:ml-8 cursor-pointer hover:underline dark:!text-[var(--dark-sender-color)]"
           :style="senderNameStyle"
-          @click="navigateToGroupSender"
+          @click="navigateToGroupSender($event)"
         >
           {{ sender?.name }}
         </span>
