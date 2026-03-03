@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
@@ -88,7 +88,8 @@ const isOwnMember = member => {
 const isFetching = computed(() => uiFlags.value.isFetching);
 const isFetchingMore = computed(() => uiFlags.value.isFetchingMore);
 const isSyncing = computed(() => uiFlags.value.isSyncing);
-const memberListRef = ref(null);
+const sentinelRef = ref(null);
+let observer = null;
 
 const loadMoreMembers = async () => {
   if (isFetchingMore.value || !hasMoreMembers.value) return;
@@ -99,12 +100,23 @@ const loadMoreMembers = async () => {
   });
 };
 
-const onMemberListScroll = event => {
-  const el = event.target;
-  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
-    loadMoreMembers();
-  }
+const setupObserver = () => {
+  if (observer) observer.disconnect();
+  if (!sentinelRef.value) return;
+  observer = new IntersectionObserver(
+    entries => {
+      if (entries[0]?.isIntersecting) loadMoreMembers();
+    },
+    { rootMargin: '100px' }
+  );
+  observer.observe(sentinelRef.value);
 };
+
+watch(sentinelRef, setupObserver);
+
+onBeforeUnmount(() => {
+  if (observer) observer.disconnect();
+});
 
 // Inline edit state
 const isEditingName = ref(false);
@@ -727,12 +739,7 @@ onMounted(async () => {
         </p>
 
         <!-- Member list -->
-        <div
-          v-else
-          ref="memberListRef"
-          class="flex flex-col gap-2 overflow-y-auto max-h-80"
-          @scroll="onMemberListScroll"
-        >
+        <div v-else class="flex flex-col gap-2">
           <div
             v-for="member in members"
             :key="member.id"
@@ -799,6 +806,8 @@ onMounted(async () => {
               />
             </div>
           </div>
+          <!-- Sentinel for IntersectionObserver-based infinite scroll -->
+          <div v-if="hasMoreMembers" ref="sentinelRef" class="h-px" />
           <!-- Loading more skeleton -->
           <div v-if="isFetchingMore" class="flex flex-col gap-3 pt-1">
             <div
