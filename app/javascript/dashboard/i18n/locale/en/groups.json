@@ -83,7 +83,7 @@
       "JOIN_APPROVAL": "Admin Approval to Join",
       "JOIN_APPROVAL_DESCRIPTION": "Admins must approve new members",
       "LEAVE_GROUP": "Leave Group",
-      "LEAVE_CONFIRM": "Are you sure you want to leave this group? The conversation will be resolved.",
+      "LEAVE_CONFIRM": "Are you sure you want to leave this group?",
       "LEAVE_CONFIRM_YES": "Leave",
       "LEAVE_CONFIRM_NO": "Cancel",
       "LEAVE_SUCCESS": "You have left the group.",
