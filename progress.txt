@@ -431,3 +431,8 @@
 - ReplyBox.vue already computes inboxPhoneNumber from inbox.phone_number
 - No changes needed
 ---
+
+## 2026-03-03 - US-036
+- InboxContact.vue already deleted, no references remain in frontend
+- No changes needed
+---
