@@ -13,6 +13,7 @@ import Avatar from 'next/avatar/Avatar.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
+import Accordion from 'dashboard/components-next/Accordion/Accordion.vue';
 
 const props = defineProps({
   contact: {
@@ -928,122 +929,129 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Group Settings section (admin only) -->
-      <div v-if="!isGroupLeft && isInboxAdmin" class="mt-4">
-        <h4 class="mb-2 text-sm font-semibold text-n-slate-11">
-          {{ t('GROUP.SETTINGS.SECTION_TITLE') }}
-        </h4>
-        <div class="flex flex-col gap-2">
-          <!-- Announcement Mode -->
-          <div class="flex items-center justify-between py-1">
-            <div class="flex flex-col">
-              <span class="text-sm text-n-slate-12">
-                {{ t('GROUP.SETTINGS.ANNOUNCEMENT_MODE') }}
-              </span>
-              <span class="text-xs text-n-slate-10">
-                {{ t('GROUP.SETTINGS.ANNOUNCEMENT_MODE_DESCRIPTION') }}
-              </span>
+      <!-- Advanced Options (Settings + Leave) -->
+      <Accordion
+        v-if="!isGroupLeft"
+        :title="t('GROUP.SETTINGS.ADVANCED_OPTIONS')"
+        class="mt-4"
+      >
+        <!-- Group Settings section (admin only) -->
+        <div v-if="isInboxAdmin">
+          <h4 class="mb-2 text-sm font-semibold text-n-slate-11">
+            {{ t('GROUP.SETTINGS.SECTION_TITLE') }}
+          </h4>
+          <div class="flex flex-col gap-2">
+            <!-- Announcement Mode -->
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col">
+                <span class="text-sm text-n-slate-12">
+                  {{ t('GROUP.SETTINGS.ANNOUNCEMENT_MODE') }}
+                </span>
+                <span class="text-xs text-n-slate-10">
+                  {{ t('GROUP.SETTINGS.ANNOUNCEMENT_MODE_DESCRIPTION') }}
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span
+                  v-if="isTogglingAnnouncement"
+                  class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
+                />
+                <Switch
+                  :model-value="isAnnouncementMode"
+                  :disabled="isTogglingAnnouncement"
+                  @change="toggleAnnouncementMode"
+                />
+              </div>
             </div>
-            <div class="flex items-center gap-1.5">
-              <span
-                v-if="isTogglingAnnouncement"
-                class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
-              />
-              <Switch
-                :model-value="isAnnouncementMode"
-                :disabled="isTogglingAnnouncement"
-                @change="toggleAnnouncementMode"
-              />
-            </div>
-          </div>
 
-          <!-- Locked Mode -->
-          <div class="flex items-center justify-between py-1">
-            <div class="flex flex-col">
-              <span class="text-sm text-n-slate-12">
-                {{ t('GROUP.SETTINGS.LOCKED_MODE') }}
-              </span>
-              <span class="text-xs text-n-slate-10">
-                {{ t('GROUP.SETTINGS.LOCKED_MODE_DESCRIPTION') }}
-              </span>
+            <!-- Locked Mode -->
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col">
+                <span class="text-sm text-n-slate-12">
+                  {{ t('GROUP.SETTINGS.LOCKED_MODE') }}
+                </span>
+                <span class="text-xs text-n-slate-10">
+                  {{ t('GROUP.SETTINGS.LOCKED_MODE_DESCRIPTION') }}
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span
+                  v-if="isTogglingLocked"
+                  class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
+                />
+                <Switch
+                  :model-value="isLockedMode"
+                  :disabled="isTogglingLocked"
+                  @change="toggleLockedMode"
+                />
+              </div>
             </div>
-            <div class="flex items-center gap-1.5">
-              <span
-                v-if="isTogglingLocked"
-                class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
-              />
-              <Switch
-                :model-value="isLockedMode"
-                :disabled="isTogglingLocked"
-                @change="toggleLockedMode"
-              />
-            </div>
-          </div>
 
-          <!-- Join Approval -->
-          <div class="flex items-center justify-between py-1">
-            <div class="flex flex-col">
-              <span class="text-sm text-n-slate-12">
-                {{ t('GROUP.SETTINGS.JOIN_APPROVAL') }}
-              </span>
-              <span class="text-xs text-n-slate-10">
-                {{ t('GROUP.SETTINGS.JOIN_APPROVAL_DESCRIPTION') }}
-              </span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span
-                v-if="isTogglingJoinApproval"
-                class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
-              />
-              <Switch
-                :model-value="isJoinApprovalEnabled"
-                :disabled="isTogglingJoinApproval"
-                @change="toggleJoinApproval"
-              />
+            <!-- Join Approval -->
+            <div class="flex items-center justify-between py-1">
+              <div class="flex flex-col">
+                <span class="text-sm text-n-slate-12">
+                  {{ t('GROUP.SETTINGS.JOIN_APPROVAL') }}
+                </span>
+                <span class="text-xs text-n-slate-10">
+                  {{ t('GROUP.SETTINGS.JOIN_APPROVAL_DESCRIPTION') }}
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span
+                  v-if="isTogglingJoinApproval"
+                  class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
+                />
+                <Switch
+                  :model-value="isJoinApprovalEnabled"
+                  :disabled="isTogglingJoinApproval"
+                  @change="toggleJoinApproval"
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Leave Group section -->
-      <div v-if="!isGroupLeft" class="mt-4">
-        <div v-if="!showLeaveConfirm">
-          <NextButton
-            :label="t('GROUP.SETTINGS.LEAVE_GROUP')"
-            icon="i-lucide-log-out"
-            variant="ghost"
-            color="ruby"
-            size="xs"
-            class="w-full"
-            @click="showLeaveConfirm = true"
-          />
-        </div>
-        <div
-          v-else
-          class="flex flex-col gap-2 p-3 border rounded-lg border-n-weak"
-        >
-          <p class="text-sm text-n-slate-12">
-            {{ t('GROUP.SETTINGS.LEAVE_CONFIRM') }}
-          </p>
-          <div class="flex items-center gap-2">
+        <!-- Leave Group section -->
+        <div class="mt-3">
+          <div v-if="!showLeaveConfirm">
             <NextButton
-              :label="t('GROUP.SETTINGS.LEAVE_CONFIRM_YES')"
+              :label="t('GROUP.SETTINGS.LEAVE_GROUP')"
+              icon="i-lucide-log-out"
+              variant="ghost"
               color="ruby"
               size="xs"
-              :is-loading="isLeavingGroup"
-              :disabled="isLeavingGroup"
-              @click="leaveGroup"
-            />
-            <NextButton
-              :label="t('GROUP.SETTINGS.LEAVE_CONFIRM_NO')"
-              variant="ghost"
-              size="xs"
-              :disabled="isLeavingGroup"
-              @click="showLeaveConfirm = false"
+              class="w-full"
+              @click="showLeaveConfirm = true"
             />
           </div>
+          <div
+            v-else
+            class="flex flex-col gap-2 p-3 border rounded-lg border-n-weak"
+          >
+            <p class="text-sm text-n-slate-12">
+              {{ t('GROUP.SETTINGS.LEAVE_CONFIRM') }}
+            </p>
+            <div class="flex items-center gap-2">
+              <NextButton
+                :label="t('GROUP.SETTINGS.LEAVE_CONFIRM_YES')"
+                color="ruby"
+                size="xs"
+                :is-loading="isLeavingGroup"
+                :disabled="isLeavingGroup"
+                @click="leaveGroup"
+              />
+              <NextButton
+                :label="t('GROUP.SETTINGS.LEAVE_CONFIRM_NO')"
+                variant="ghost"
+                size="xs"
+                :disabled="isLeavingGroup"
+                @click="showLeaveConfirm = false"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </Accordion>
     </div>
   </div>
 </template>

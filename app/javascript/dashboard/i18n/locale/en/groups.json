@@ -84,6 +84,7 @@
       "LOCKED_MODE_DESCRIPTION": "Only admins can edit group info",
       "JOIN_APPROVAL": "Admin Approval to Join",
       "JOIN_APPROVAL_DESCRIPTION": "Admins must approve new members",
+      "ADVANCED_OPTIONS": "Advanced Options",
       "GROUP_LEFT_BANNER": "You are no longer a member of this group",
       "LEAVE_GROUP": "Leave Group",
       "LEAVE_CONFIRM": "Are you sure you want to leave this group?",
