@@ -91,6 +91,7 @@ const isFetching = computed(() => uiFlags.value.isFetching);
 const isFetchingMore = computed(() => uiFlags.value.isFetchingMore);
 const isSyncing = computed(() => uiFlags.value.isSyncing);
 const sentinelRef = ref(null);
+const membersScrollRef = ref(null);
 let observer = null;
 
 const loadMoreMembers = async () => {
@@ -109,12 +110,13 @@ const setupObserver = () => {
     entries => {
       if (entries[0]?.isIntersecting) loadMoreMembers();
     },
-    { rootMargin: '100px' }
+    { root: membersScrollRef.value, rootMargin: '100px' }
   );
   observer.observe(sentinelRef.value);
 };
 
 watch(sentinelRef, setupObserver);
+watch(membersScrollRef, setupObserver);
 
 onBeforeUnmount(() => {
   if (observer) observer.disconnect();
@@ -779,8 +781,9 @@ onMounted(() => {
         <!-- Member list -->
         <div
           v-else
+          ref="membersScrollRef"
           v-on-clickaway="closeMemberMenu"
-          class="flex flex-col gap-2"
+          class="flex flex-col gap-2 max-h-[240px] overflow-y-auto"
         >
           <div
             v-for="member in members"
