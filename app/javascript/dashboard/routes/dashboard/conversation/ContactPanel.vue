@@ -111,9 +111,16 @@ const getContactDetails = () => {
   }
 };
 
+const triggerGroupSync = () => {
+  if (isGroupConversation.value && contactId.value) {
+    store.dispatch('groupMembers/sync', { contactId: contactId.value });
+  }
+};
+
 watch(contactId, (newContactId, prevContactId) => {
   if (newContactId && newContactId !== prevContactId) {
     getContactDetails();
+    triggerGroupSync();
   }
 });
 
@@ -134,6 +141,7 @@ const closeContactPanel = () => {
 onMounted(() => {
   conversationSidebarItems.value = conversationSidebarItemsOrder.value;
   getContactDetails();
+  triggerGroupSync();
   store.dispatch('attributes/get', 0);
   // Load integrations to ensure linear integration state is available
   store.dispatch('integrations/get', 'linear');

@@ -84,10 +84,11 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
 
   def sync_group
     authorize @contact, :sync_group?
-    @contact = Contacts::SyncGroupService.new(contact: @contact).perform
-    @group_members = GroupMember.active.where(group_contact: @contact).includes(:contact)
-  rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
-    render_internal_server_error(e.message)
+    raise ActionController::BadRequest, I18n.t('contacts.sync_group.not_a_group') if @contact.group_type_individual?
+    raise ActionController::BadRequest, I18n.t('contacts.sync_group.no_identifier') if @contact.identifier.blank?
+
+    Contacts::SyncGroupJob.perform_later(@contact)
+    head :accepted
   end
 
   def create

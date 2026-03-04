@@ -89,7 +89,6 @@ const isOwnMember = member => {
 
 const isFetching = computed(() => uiFlags.value.isFetching);
 const isFetchingMore = computed(() => uiFlags.value.isFetchingMore);
-const isSyncing = computed(() => uiFlags.value.isSyncing);
 const sentinelRef = ref(null);
 const membersScrollRef = ref(null);
 let observer = null;
@@ -258,17 +257,6 @@ const showLeaveConfirm = ref(false);
 const isGroupLeft = computed(
   () => props.contact.additional_attributes?.group_left === true
 );
-
-const onSync = async () => {
-  try {
-    await store.dispatch('groupMembers/sync', {
-      contactId: props.contact.id,
-    });
-    useAlert(t('GROUP.INFO.SYNC_SUCCESS'));
-  } catch {
-    useAlert(t('GROUP.INFO.SYNC_ERROR'));
-  }
-};
 
 // Add member search
 const searchContacts = debounce(
@@ -703,15 +691,6 @@ onMounted(() => {
               variant="ghost"
               size="xs"
               @click="toggleAddMember"
-            />
-            <NextButton
-              :label="t('GROUP.INFO.SYNC_BUTTON')"
-              icon="i-lucide-refresh-cw"
-              variant="ghost"
-              size="xs"
-              :is-loading="isSyncing"
-              :disabled="isSyncing"
-              @click="onSync"
             />
           </div>
         </div>

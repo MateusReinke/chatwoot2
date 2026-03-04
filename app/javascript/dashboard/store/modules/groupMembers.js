@@ -78,13 +78,12 @@ export const actions = {
     }
   },
 
-  async sync({ commit, dispatch }, { contactId }) {
+  async sync({ commit }, { contactId }) {
     commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isSyncing: true });
     try {
       await GroupMembersAPI.syncGroup(contactId);
-      await dispatch('fetch', { contactId });
     } catch (error) {
-      throw new Error(error);
+      // fire-and-forget: sync runs in background, results arrive via ActionCable
     } finally {
       commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isSyncing: false });
     }

@@ -83,8 +83,9 @@ describe('groupMembers store', () => {
 
     describe('fetch', () => {
       it('commits SET_GROUP_MEMBERS on success', async () => {
+        const meta = { total_count: 2, page: 1, per_page: 15 };
         GroupMembersAPI.getGroupMembers.mockResolvedValue({
-          data: { payload: sampleMembers },
+          data: { payload: sampleMembers, meta },
         });
         await actions.fetch({ commit }, { contactId: 42 });
         expect(commit.mock.calls).toEqual([
@@ -93,6 +94,7 @@ describe('groupMembers store', () => {
             types.default.SET_GROUP_MEMBERS,
             { contactId: 42, members: sampleMembers },
           ],
+          [types.default.SET_GROUP_MEMBERS_META, { contactId: 42, meta }],
           [types.default.SET_GROUP_MEMBERS_UI_FLAG, { isFetching: false }],
         ]);
       });
@@ -106,11 +108,11 @@ describe('groupMembers store', () => {
     });
 
     describe('sync', () => {
-      it('calls syncGroup and then re-fetches on success', async () => {
+      it('calls syncGroup without re-fetching (fire-and-forget)', async () => {
         GroupMembersAPI.syncGroup.mockResolvedValue({});
-        dispatch.mockResolvedValue();
-        await actions.sync({ commit, dispatch }, { contactId: 42 });
-        expect(dispatch).toHaveBeenCalledWith('fetch', { contactId: 42 });
+        await actions.sync({ commit }, { contactId: 42 });
+        expect(GroupMembersAPI.syncGroup).toHaveBeenCalledWith(42);
+        expect(dispatch).not.toHaveBeenCalled();
       });
     });
 

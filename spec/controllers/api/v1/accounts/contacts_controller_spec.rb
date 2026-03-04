@@ -797,16 +797,13 @@ RSpec.describe 'Contacts API', type: :request do
     end
 
     context 'when it is an authenticated user' do
-      it 'syncs the group and returns contact with group members' do
-        service = instance_double(Contacts::SyncGroupService, perform: contact)
-        allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact).and_return(service)
-
+      it 'enqueues SyncGroupJob and returns accepted' do
         post "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/sync_group",
              headers: agent.create_new_auth_token,
              as: :json
 
-        expect(response).to have_http_status(:success)
-        expect(response.parsed_body['payload']['id']).to eq(contact.id)
+        expect(response).to have_http_status(:accepted)
+        expect(Contacts::SyncGroupJob).to have_been_enqueued.with(contact)
       end
 
       it 'returns bad request when contact is not a group' do
@@ -827,19 +824,6 @@ RSpec.describe 'Contacts API', type: :request do
              as: :json
 
         expect(response).to have_http_status(:bad_request)
-      end
-
-      it 'returns internal server error when provider is unavailable' do
-        allow(Contacts::SyncGroupService).to receive(:new).and_raise(
-          Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError, 'Provider offline'
-        )
-
-        post "/api/v1/accounts/#{account.id}/contacts/#{contact.id}/sync_group",
-             headers: agent.create_new_auth_token,
-             as: :json
-
-        expect(response).to have_http_status(:internal_server_error)
-        expect(response.parsed_body['error']).to eq('Provider offline')
       end
     end
   end
