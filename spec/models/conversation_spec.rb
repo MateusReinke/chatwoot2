@@ -907,24 +907,6 @@ RSpec.describe Conversation do
     end
   end
 
-  describe '#sync_group' do
-    it 'delegates to channel.sync_group when channel supports it' do
-      channel = create(:channel_whatsapp, provider: 'baileys', validate_provider_config: false)
-      conversation = create(:conversation, inbox: channel.inbox, account: channel.account)
-      allow(channel).to receive(:sync_group)
-
-      conversation.sync_group
-
-      expect(channel).to have_received(:sync_group).with(conversation)
-    end
-
-    it 'does nothing when channel does not support sync_group' do
-      conversation = create(:conversation)
-
-      expect(conversation.sync_group).to be_nil
-    end
-  end
-
   describe 'reply time calculation flows' do
     include ActiveJob::TestHelper
 

@@ -140,16 +140,6 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     @conversation.save!
   end
 
-  def sync_group
-    authorize @conversation, :sync_group?
-    raise ActionController::BadRequest, I18n.t('contacts.sync_group.not_a_group') if @conversation.contact.group_type_individual?
-
-    @conversation.sync_group
-    head :ok
-  rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
-    render_internal_server_error(e.message)
-  end
-
   def destroy
     authorize @conversation, :destroy?
     ::DeleteObjectJob.perform_later(@conversation, Current.user, request.ip)
