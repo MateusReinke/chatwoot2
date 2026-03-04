@@ -560,6 +560,11 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
     mention_data = Whatsapp::MentionConverterService.extract_mentions_for_whatsapp(@message.content, whatsapp_channel.account)
     @message_content.merge!(mention_data) if mention_data.present?
+
+    # Replace @DisplayName with @lid/@phone in text so Baileys can match mentions
+    @message_content[:text] = Whatsapp::MentionConverterService.replace_mentions_in_outgoing_text(
+      @message.content, @message_content[:text], whatsapp_channel.account
+    )
   end
 
   def remote_jid
