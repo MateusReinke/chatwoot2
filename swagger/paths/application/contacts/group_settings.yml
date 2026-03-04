@@ -1,0 +1,41 @@
+parameters:
+  - $ref: '#/components/parameters/account_id'
+  - name: contact_id
+    in: path
+    required: true
+    schema:
+      type: number
+    description: ID of the group contact
+
+patch:
+  tags:
+    - Groups
+  operationId: contact-group-settings-update
+  summary: Update Group Settings
+  description: Updates a WhatsApp group setting. "announcement" makes the group announce-only (only admins can send messages). "locked" restricts group info editing to admins only.
+  security:
+    - userApiKey: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - setting
+          properties:
+            setting:
+              type: string
+              enum: ['announcement', 'not_announcement', 'locked', 'unlocked']
+              description: The setting to apply
+  responses:
+    '200':
+      description: Setting updated successfully
+    '401':
+      description: Unauthorized
+    '422':
+      description: Provider unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/bad_request_error'
