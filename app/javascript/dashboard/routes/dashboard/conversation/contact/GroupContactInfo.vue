@@ -252,6 +252,10 @@ const isTogglingJoinApproval = ref(false);
 const isLeavingGroup = ref(false);
 const showLeaveConfirm = ref(false);
 
+const isGroupLeft = computed(
+  () => props.contact.additional_attributes?.group_left === true
+);
+
 const onSync = async () => {
   try {
     await store.dispatch('groupMembers/sync', {
@@ -659,8 +663,17 @@ onMounted(async () => {
         </p>
       </div>
 
+      <!-- Group left banner -->
+      <div
+        v-if="isGroupLeft"
+        class="flex items-center gap-2 p-3 mt-3 text-sm font-medium border rounded-lg border-n-ruby-7 bg-n-ruby-3 text-n-ruby-11"
+      >
+        <span class="i-lucide-log-out size-4 shrink-0" />
+        {{ t('GROUP.SETTINGS.GROUP_LEFT_BANNER') }}
+      </div>
+
       <!-- Members section -->
-      <div class="mt-3">
+      <div v-if="!isGroupLeft" class="mt-3">
         <div class="flex items-center justify-between mb-2">
           <h4 class="text-sm font-semibold text-n-slate-11">
             {{ t('GROUP.INFO.MEMBER_LIST_TITLE') }}
@@ -833,7 +846,7 @@ onMounted(async () => {
       </div>
 
       <!-- Invite Link section (admin only, when link exists) -->
-      <div v-if="isInboxAdmin && hasInviteLink" class="mt-4">
+      <div v-if="!isGroupLeft && isInboxAdmin && hasInviteLink" class="mt-4">
         <h4 class="mb-2 text-sm font-semibold text-n-slate-11">
           {{ t('GROUP.INVITE.SECTION_TITLE') }}
         </h4>
@@ -849,7 +862,10 @@ onMounted(async () => {
       </div>
 
       <!-- Pending Join Requests section (admin only) -->
-      <div v-if="isInboxAdmin && pendingRequests.length > 0" class="mt-4">
+      <div
+        v-if="!isGroupLeft && isInboxAdmin && pendingRequests.length > 0"
+        class="mt-4"
+      >
         <h4 class="mb-2 text-sm font-semibold text-n-slate-11">
           {{ t('GROUP.JOIN_REQUESTS.SECTION_TITLE') }}
           <span class="ml-1 text-xs font-normal text-n-slate-10">
@@ -908,7 +924,7 @@ onMounted(async () => {
       </div>
 
       <!-- Group Settings section (admin only) -->
-      <div v-if="isInboxAdmin" class="mt-4">
+      <div v-if="!isGroupLeft && isInboxAdmin" class="mt-4">
         <h4 class="mb-2 text-sm font-semibold text-n-slate-11">
           {{ t('GROUP.SETTINGS.SECTION_TITLE') }}
         </h4>
@@ -985,7 +1001,7 @@ onMounted(async () => {
       </div>
 
       <!-- Leave Group section -->
-      <div class="mt-4">
+      <div v-if="!isGroupLeft" class="mt-4">
         <div v-if="!showLeaveConfirm">
           <NextButton
             :label="t('GROUP.SETTINGS.LEAVE_GROUP')"

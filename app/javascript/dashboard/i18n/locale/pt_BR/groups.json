@@ -84,6 +84,7 @@
       "LOCKED_MODE_DESCRIPTION": "Apenas admins podem editar informações do grupo",
       "JOIN_APPROVAL": "Aprovação do Admin para Entrar",
       "JOIN_APPROVAL_DESCRIPTION": "Admins devem aprovar novos membros",
+      "GROUP_LEFT_BANNER": "Você não é mais membro deste grupo",
       "LEAVE_GROUP": "Sair do Grupo",
       "LEAVE_CONFIRM": "Tem certeza de que deseja sair deste grupo?",
       "LEAVE_CONFIRM_YES": "Sair",
