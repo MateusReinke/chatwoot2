@@ -22,6 +22,7 @@ module Whatsapp::BaileysHandlers::GroupParticipantsUpdate
 
       contacts.each { |contact| apply_participant_action(action, group_contact, contact) }
       create_participant_activity(conversation, action, contacts, author)
+      dispatch_group_synced_event(group_contact)
 
       resolve_conversations_if_inbox_left(action, author, contacts, group_contact_inbox)
     end

@@ -208,6 +208,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       members: data.group_members,
       inboxPhoneNumber: data.inbox_phone_number,
     });
+    this.app.$store.dispatch('contacts/updateContact', data);
   };
 
   onNotificationCreated = data => {

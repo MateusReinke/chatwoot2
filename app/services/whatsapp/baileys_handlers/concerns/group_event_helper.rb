@@ -37,4 +37,13 @@ module Whatsapp::BaileysHandlers::Concerns::GroupEventHelper
 
     resolved_contact&.name.presence || resolved_contact&.phone_number || lid
   end
+
+  def dispatch_group_synced_event(group_contact)
+    group_contact.reload
+    Rails.configuration.dispatcher.dispatch(
+      Events::Types::CONTACT_GROUP_SYNCED,
+      Time.zone.now,
+      contact: group_contact
+    )
+  end
 end

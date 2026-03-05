@@ -29,6 +29,8 @@ module Whatsapp::BaileysHandlers::GroupsUpdate
       create_group_activity(conversation, 'invite_link_reset', author_name: author_name) if update.key?(:inviteCode)
       persist_settings_changes(conversation, update)
       process_group_settings_changes(conversation, update, author_name)
+
+      dispatch_group_synced_event(group_contact_inbox.contact)
     end
   end
 
