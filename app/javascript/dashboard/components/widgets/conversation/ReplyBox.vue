@@ -3,6 +3,7 @@ import { defineAsyncComponent, useTemplateRef } from 'vue';
 import { mapGetters } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useInboxSignatures } from 'dashboard/composables/useInboxSignatures';
 import { useTrack } from 'dashboard/composables';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
 import keyboardEventListenerMixins from 'shared/mixins/keyboardEventListenerMixins';
@@ -97,6 +98,14 @@ export default {
       fetchQuotedReplyFlagFromUISettings,
     } = useUISettings();
 
+    const {
+      fetchInboxSignatures,
+      getSignatureForInbox,
+      getSignatureSettingsForInbox,
+    } = useInboxSignatures();
+
+    fetchInboxSignatures();
+
     const { formatMessage } = useMessageFormatter();
 
     const replyEditor = useTemplateRef('replyEditor');
@@ -109,6 +118,8 @@ export default {
       fetchSignatureFlagFromUISettings,
       setQuotedReplyFlagForInbox,
       fetchQuotedReplyFlagFromUISettings,
+      getSignatureForInbox,
+      getSignatureSettingsForInbox,
       replyEditor,
       copilot,
       shortcutKey,
@@ -147,7 +158,6 @@ export default {
   computed: {
     ...mapGetters({
       currentChat: 'getSelectedChat',
-      messageSignature: 'getMessageSignature',
       currentUser: 'getCurrentUser',
       lastEmail: 'getLastEmailInSelectedChat',
       globalConfig: 'globalConfig/get',
@@ -353,6 +363,9 @@ export default {
     isSignatureEnabledForInbox() {
       return !this.isPrivate && this.sendWithSignature;
     },
+    messageSignature() {
+      return this.getSignatureForInbox(this.inboxId);
+    },
     isSignatureAvailable() {
       return !!this.messageSignature;
     },
@@ -369,6 +382,9 @@ export default {
       return `draft-${this.conversationIdByRoute}-${this.replyType}`;
     },
     audioRecordFormat() {
+      if (this.isAWhatsAppCloudChannel) {
+        return AUDIO_FORMATS.OGG;
+      }
       if (this.isAWhatsAppChannel || this.isATelegramChannel) {
         return AUDIO_FORMATS.MP3;
       }
@@ -455,10 +471,10 @@ export default {
       );
     },
     signaturePosition() {
-      return this.currentUser?.ui_settings?.signature_position || 'top';
+      return this.getSignatureSettingsForInbox(this.inboxId).position;
     },
     signatureSeparator() {
-      return this.currentUser?.ui_settings?.signature_separator || 'blank';
+      return this.getSignatureSettingsForInbox(this.inboxId).separator;
     },
     formattedSignature() {
       if (!this.messageSignature) return '';
@@ -709,11 +725,9 @@ export default {
       if (!this.sendWithSignature || !this.messageSignature) {
         return message;
       }
-      const { signature_position, signature_separator } =
-        this.currentUser?.ui_settings || {};
       const signatureSettings = {
-        position: signature_position || 'top',
-        separator: signature_separator || 'blank',
+        position: this.signaturePosition,
+        separator: this.signatureSeparator,
       };
       return appendSignature(message, this.messageSignature, signatureSettings);
     },
@@ -1036,6 +1050,10 @@ export default {
       };
       return file && this.onFileUpload(autoRecordedFile);
     },
+    onRecordError() {
+      this.toggleAudioRecorder();
+      useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'));
+    },
     toggleTyping(status) {
       const conversationId = this.currentChat.id;
       const isPrivate = this.isPrivate;
@@ -1103,6 +1121,13 @@ export default {
             sender: this.sender,
           };
 
+          if (attachment.isRecordedAudio) {
+            attachmentPayload.isRecordedAudio = this.globalConfig
+              .directUploadsEnabled
+              ? true
+              : [attachment.resource.file.name];
+          }
+
           attachmentPayload = this.setReplyToInPayload(attachmentPayload);
           multipleMessagePayload.push(attachmentPayload);
           // For WhatsApp, only the first attachment gets a caption
@@ -1151,6 +1176,9 @@ export default {
         this.attachedFiles.forEach(attachment => {
           if (this.globalConfig.directUploadsEnabled) {
             messagePayload.files.push(attachment.blobSignedId);
+            if (attachment.isRecordedAudio) {
+              messagePayload.isRecordedAudio = true;
+            }
           } else {
             messagePayload.files.push(attachment.resource.file);
             if (attachment.isRecordedAudio) {
@@ -1313,6 +1341,7 @@ export default {
           :audio-record-format="audioRecordFormat"
           @recorder-progress-changed="onRecordProgressChanged"
           @finish-record="onFinishRecorder"
+          @record-error="onRecordError"
           @play="recordingAudioState = 'playing'"
           @pause="recordingAudioState = 'paused'"
         />
@@ -1345,6 +1374,8 @@ export default {
           :variables="messageVariables"
           :signature="messageSignature"
           allow-signature
+          :signature-position-override="signaturePosition"
+          :signature-separator-override="signatureSeparator"
           :channel-type="channelType"
           :medium="inbox.medium"
           :is-group-conversation="isGroupConversation"
