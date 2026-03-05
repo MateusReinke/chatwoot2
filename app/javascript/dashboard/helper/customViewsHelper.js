@@ -88,7 +88,7 @@ export const getValuesForFilter = (filter, params) => {
     campaigns,
     labels,
     priority,
-    group_type: groupType,
+    group_type: groupType = [],
   } = params;
   switch (attribute_key) {
     case 'status':

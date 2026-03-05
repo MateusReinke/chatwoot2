@@ -1,6 +1,8 @@
 class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::Contacts::BaseController
   DEFAULT_PER_PAGE = 10
 
+  before_action :ensure_group_contact, only: %i[create update destroy]
+
   def index
     authorize @contact, :show?
 
@@ -58,6 +60,12 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
   end
 
   private
+
+  def ensure_group_contact
+    return if @contact.group_type_group? && @contact.identifier.present?
+
+    render json: { error: 'Contact is not a valid group' }, status: :unprocessable_entity
+  end
 
   def group_members
     GroupMember.where(group_contact: @contact)

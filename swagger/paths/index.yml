@@ -278,23 +278,23 @@
   $ref: ./application/contacts/sync_group.yml
 /api/v1/accounts/{account_id}/contacts/{id}/group_members:
   $ref: ./application/contacts/group_members.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_members/{member_id}:
+/api/v1/accounts/{account_id}/contacts/{id}/group_members/{member_id}:
   $ref: ./application/contacts/group_members_member.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_metadata:
+/api/v1/accounts/{account_id}/contacts/{id}/group_metadata:
   $ref: ./application/contacts/group_metadata.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_invite:
+/api/v1/accounts/{account_id}/contacts/{id}/group_invite:
   $ref: ./application/contacts/group_invite.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_invite/revoke:
+/api/v1/accounts/{account_id}/contacts/{id}/group_invite/revoke:
   $ref: ./application/contacts/group_invite_revoke.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_join_requests:
+/api/v1/accounts/{account_id}/contacts/{id}/group_join_requests:
   $ref: ./application/contacts/group_join_requests.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_join_requests/handle:
+/api/v1/accounts/{account_id}/contacts/{id}/group_join_requests/handle:
   $ref: ./application/contacts/group_join_requests_handle.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_settings:
+/api/v1/accounts/{account_id}/contacts/{id}/group_settings:
   $ref: ./application/contacts/group_settings.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_settings/leave:
+/api/v1/accounts/{account_id}/contacts/{id}/group_settings/leave:
   $ref: ./application/contacts/group_settings_leave.yml
-/api/v1/accounts/{account_id}/contacts/{contact_id}/group_settings/toggle_join_approval:
+/api/v1/accounts/{account_id}/contacts/{id}/group_settings/toggle_join_approval:
   $ref: ./application/contacts/group_settings_toggle_join_approval.yml
 
 # Groups

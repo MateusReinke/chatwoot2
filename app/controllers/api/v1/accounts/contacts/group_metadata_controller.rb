@@ -12,10 +12,13 @@ class Api::V1::Accounts::Contacts::GroupMetadataController < Api::V1::Accounts::
 
   def update_subject
     channel.update_group_subject(@contact.identifier, params[:subject])
+    @contact.update!(name: params[:subject])
   end
 
   def update_description
     channel.update_group_description(@contact.identifier, params[:description])
+    attrs = @contact.additional_attributes.merge('description' => params[:description])
+    @contact.update!(additional_attributes: attrs)
   end
 
   def channel

@@ -12,6 +12,11 @@ RSpec.describe '/api/v1/accounts/{account.id}/groups', type: :request do
     create(:inbox_member, inbox: inbox, user: agent)
     allow(Groups::CreateService).to receive(:new).and_return(create_service)
     allow(create_service).to receive(:perform)
+    Channel::WebWidget.define_method(:allow_group_creation?) { true }
+  end
+
+  after do
+    Channel::WebWidget.remove_method(:allow_group_creation?) if Channel::WebWidget.method_defined?(:allow_group_creation?)
   end
 
   describe 'POST /api/v1/accounts/{account.id}/groups' do

@@ -1,7 +1,7 @@
 class Whatsapp::MentionConverterService
   MENTION_REGEX = %r{\[@([^\]]+)\]\(mention://contact/(\d+)/([^)]+)\)}
   ALL_MENTION_REGEX = %r{\[@[^\]]*\]\(mention://contact/0/all\)}
-  INCOMING_ALL_PATTERNS = /@(all|todos|everyone)/i
+  INCOMING_ALL_PATTERNS = /@(all|todos|everyone)\b/i
 
   class << self
     def extract_mentions_for_whatsapp(content, account)

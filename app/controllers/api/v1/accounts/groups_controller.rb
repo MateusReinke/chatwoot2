@@ -17,6 +17,6 @@ class Api::V1::Accounts::GroupsController < Api::V1::Accounts::BaseController
   private
 
   def inbox_accessible?(inbox)
-    inbox.present? && Current.user.assigned_inboxes.exists?(id: inbox.id)
+    inbox.present? && Current.user.assigned_inboxes.exists?(id: inbox.id) && inbox.channel.try(:allow_group_creation?)
   end
 end

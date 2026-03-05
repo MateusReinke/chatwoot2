@@ -44,8 +44,6 @@ export const actions = {
     try {
       const { data } = await GroupMembersAPI.createGroup(params);
       return data;
-    } catch (error) {
-      throw new Error(error);
     } finally {
       commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isCreating: false });
     }
@@ -68,8 +66,6 @@ export const actions = {
         });
       }
       commit(types.SET_GROUP_MEMBERS_META, { contactId, meta: data.meta });
-    } catch (error) {
-      throw new Error(error);
     } finally {
       commit(
         types.SET_GROUP_MEMBERS_UI_FLAG,
@@ -94,8 +90,6 @@ export const actions = {
     try {
       await GroupMembersAPI.addMembers(contactId, participants);
       await dispatch('fetch', { contactId });
-    } catch (error) {
-      throw new Error(error);
     } finally {
       commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isUpdating: false });
     }
@@ -115,8 +109,6 @@ export const actions = {
     commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isUpdating: true });
     try {
       await GroupMembersAPI.updateGroupMetadata(contactId, params);
-    } catch (error) {
-      throw new Error(error);
     } finally {
       commit(types.SET_GROUP_MEMBERS_UI_FLAG, { isUpdating: false });
     }

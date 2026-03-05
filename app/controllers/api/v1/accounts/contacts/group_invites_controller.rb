@@ -18,13 +18,7 @@ class Api::V1::Accounts::Contacts::GroupInvitesController < Api::V1::Accounts::C
   private
 
   def channel
-    @channel ||= group_conversation.inbox.channel
-  end
-
-  def group_conversation
-    @group_conversation ||= Current.account.conversations
-                                   .where(contact_id: @contact.id, group_type: :group, status: %i[open pending])
-                                   .first
+    @channel ||= @contact.group_channel
   end
 
   def invite_response(code)
