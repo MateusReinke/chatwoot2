@@ -678,14 +678,14 @@ onMounted(() => {
       </div>
 
       <!-- Members section -->
-      <div v-if="!isGroupLeft" class="mt-3">
+      <div class="mt-3">
         <div class="flex items-center justify-between mb-2">
           <h4 class="text-sm font-semibold text-n-slate-11">
             {{ t('GROUP.INFO.MEMBER_LIST_TITLE') }}
           </h4>
           <div class="flex items-center gap-1">
             <NextButton
-              v-if="isInboxAdmin"
+              v-if="isInboxAdmin && !isGroupLeft"
               :label="t('GROUP.MEMBERS.ADD_BUTTON')"
               icon="i-lucide-user-plus"
               variant="ghost"
@@ -696,7 +696,7 @@ onMounted(() => {
         </div>
 
         <!-- Add member search input -->
-        <div v-if="showAddMember" class="relative mb-3">
+        <div v-if="showAddMember && !isGroupLeft" class="relative mb-3">
           <input
             :value="addMemberInput"
             type="text"
@@ -806,12 +806,14 @@ onMounted(() => {
             </div>
             <!-- Loading spinner for this member -->
             <span
-              v-if="isInboxAdmin && loadingMemberId === member.id"
+              v-if="
+                isInboxAdmin && !isGroupLeft && loadingMemberId === member.id
+              "
               class="i-lucide-loader-2 animate-spin size-4 text-n-slate-10"
             />
             <!-- Action menu toggle (admin only, not for self) -->
             <div
-              v-else-if="isInboxAdmin && !isOwnMember(member)"
+              v-else-if="isInboxAdmin && !isGroupLeft && !isOwnMember(member)"
               class="relative"
               :class="{
                 'opacity-0 group-hover:opacity-100':
