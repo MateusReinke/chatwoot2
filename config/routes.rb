@@ -202,7 +202,7 @@ Rails.application.routes.draw do
               resources :group_join_requests, only: [:index] do
                 post :handle, on: :collection
               end
-              resource :group_settings, only: [:update] do
+              resource :group_admin, only: [:update], controller: 'group_admin' do
                 post :leave, on: :member
                 post :toggle_join_approval, on: :member
               end

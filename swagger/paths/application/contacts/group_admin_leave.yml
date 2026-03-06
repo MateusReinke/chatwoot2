@@ -10,7 +10,7 @@ parameters:
 post:
   tags:
     - Groups
-  operationId: contact-group-settings-leave
+  operationId: contact-group-admin-leave
   summary: Leave Group
   description: Leaves the WhatsApp group and resolves all open/pending conversations associated with this group contact.
   security:

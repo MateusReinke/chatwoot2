@@ -290,12 +290,12 @@
   $ref: ./application/contacts/group_join_requests.yml
 /api/v1/accounts/{account_id}/contacts/{id}/group_join_requests/handle:
   $ref: ./application/contacts/group_join_requests_handle.yml
-/api/v1/accounts/{account_id}/contacts/{id}/group_settings:
-  $ref: ./application/contacts/group_settings.yml
-/api/v1/accounts/{account_id}/contacts/{id}/group_settings/leave:
-  $ref: ./application/contacts/group_settings_leave.yml
-/api/v1/accounts/{account_id}/contacts/{id}/group_settings/toggle_join_approval:
-  $ref: ./application/contacts/group_settings_toggle_join_approval.yml
+/api/v1/accounts/{account_id}/contacts/{id}/group_admin:
+  $ref: ./application/contacts/group_admin.yml
+/api/v1/accounts/{account_id}/contacts/{id}/group_admin/leave:
+  $ref: ./application/contacts/group_admin_leave.yml
+/api/v1/accounts/{account_id}/contacts/{id}/group_admin/toggle_join_approval:
+  $ref: ./application/contacts/group_admin_toggle_join_approval.yml
 
 # Groups
 /api/v1/accounts/{account_id}/groups:
