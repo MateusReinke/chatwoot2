@@ -159,7 +159,7 @@
           "CONDITION_TWO": "Enviar alertas a cada 30 segundos até que todas as conversas atribuídas sejam lidas"
         },
         "SOUND_PERMISSION_ERROR": "A reprodução automática está desativada no seu navegador. Para ouvir alertas automaticamente, habilite a permissão de som nas configurações do seu navegador ou interaja com a página.",
-        "READ_MORE": "Saiba mais"
+        "READ_MORE": "Ler mais"
       },
       "EMAIL_NOTIFICATIONS_SECTION": {
         "TITLE": "Notificações por e-mail",

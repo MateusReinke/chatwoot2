@@ -14,6 +14,7 @@ import { useI18n } from 'vue-i18n';
 import { useEventListener } from '@vueuse/core';
 import { debounce } from '@chatwoot/utils';
 import { dynamicTime } from 'shared/helpers/timeHelper';
+import { useExpandableContent } from 'shared/composables/useExpandableContent';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import ContactsAPI from 'dashboard/api/contacts';
 import GroupMembersAPI from 'dashboard/api/groupMembers';
@@ -144,6 +145,14 @@ const contactDescription = computed(
   () => props.contact.additional_attributes?.description || ''
 );
 
+const {
+  contentElement: descriptionContentRef,
+  showReadMore: showDescReadMore,
+  showReadLess: showDescReadLess,
+  toggleExpanded: toggleDescExpanded,
+  checkOverflow: checkDescOverflow,
+} = useExpandableContent({ maxLines: 3, useResizeObserverForCheck: true });
+
 const isGroupLeft = computed(
   () => props.contact.additional_attributes?.group_left === true
 );
@@ -178,7 +187,10 @@ const saveName = async () => {
 };
 
 const onNameKeydown = event => {
-  if (event.key === 'Enter') saveName();
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    saveName();
+  }
   if (event.key === 'Escape') {
     isEditingName.value = false;
   }
@@ -207,6 +219,18 @@ const saveDescription = async () => {
     useAlert(t('GROUP.METADATA.SAVE_ERROR'));
   } finally {
     isSavingDescription.value = false;
+    isEditingDescription.value = false;
+    toggleDescExpanded(false);
+    nextTick(checkDescOverflow);
+  }
+};
+
+const onDescriptionKeydown = event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    saveDescription();
+  }
+  if (event.key === 'Escape') {
     isEditingDescription.value = false;
   }
 };
@@ -363,7 +387,7 @@ const getMemberMenuItems = member => {
 const computeMenuPosition = triggerEl => {
   if (!triggerEl) return;
   const rect = triggerEl.getBoundingClientRect();
-  const MENU_WIDTH = 192;
+  const MENU_WIDTH = 240;
   const MENU_HEIGHT_ESTIMATE = 96;
   const PADDING = 8;
   let top = rect.bottom + 4;
@@ -406,6 +430,7 @@ const handleMemberAction = async (member, { action }) => {
     promote: 'GROUP.MEMBERS.PROMOTING',
     demote: 'GROUP.MEMBERS.DEMOTING',
   };
+  // eslint-disable-next-line @intlify/vue-i18n/no-dynamic-keys
   const dismiss = usePendingAlert(t(pendingKeyMap[action]));
   try {
     if (action === 'remove') {
@@ -731,8 +756,9 @@ useEventListener(sidebarScrollRef, 'scroll', closeMemberMenu);
           <textarea
             v-model="editDescriptionValue"
             rows="2"
-            class="w-full px-2 py-1 text-sm border rounded bg-n-alpha-black2 border-n-weak text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand resize-none"
+            class="w-full px-2 py-1 text-sm border rounded bg-n-alpha-black2 border-n-weak text-n-slate-12 focus:outline-none focus:ring-2 focus:ring-n-brand resize-y max-h-40"
             :placeholder="t('GROUP.METADATA.EDIT_DESCRIPTION_PLACEHOLDER')"
+            @keydown="onDescriptionKeydown"
             @blur="saveDescription"
           />
           <span
@@ -740,17 +766,36 @@ useEventListener(sidebarScrollRef, 'scroll', closeMemberMenu);
             class="absolute i-lucide-loader-2 animate-spin size-4 text-n-slate-10 right-2 top-2"
           />
         </div>
-        <p
-          v-else
-          class="mt-1 text-sm break-words text-n-slate-12"
-          :class="{ 'cursor-pointer hover:text-n-brand': !isGroupLeft }"
-          @click="startEditDescription"
-        >
-          {{
-            contactDescription ||
-            t('GROUP.METADATA.EDIT_DESCRIPTION_PLACEHOLDER')
-          }}
-        </p>
+        <div v-else class="mt-1">
+          <p
+            ref="descriptionContentRef"
+            class="text-sm break-words whitespace-pre-wrap text-n-slate-12"
+            :class="[
+              { 'cursor-pointer hover:text-n-brand': !isGroupLeft },
+              showDescReadMore ? 'line-clamp-3' : '',
+            ]"
+            @click="startEditDescription"
+          >
+            {{
+              contactDescription ||
+              t('GROUP.METADATA.EDIT_DESCRIPTION_PLACEHOLDER')
+            }}
+          </p>
+          <button
+            v-if="showDescReadMore"
+            class="mt-1 text-xs font-medium underline cursor-pointer bg-transparent border-0 p-0 text-n-slate-11 hover:text-n-slate-12"
+            @click.stop="toggleDescExpanded(true)"
+          >
+            {{ t('SEARCH.READ_MORE') }}
+          </button>
+          <button
+            v-if="showDescReadLess"
+            class="mt-1 text-xs font-medium underline cursor-pointer bg-transparent border-0 p-0 text-n-slate-11 hover:text-n-slate-12"
+            @click.stop="toggleDescExpanded(false)"
+          >
+            {{ t('SEARCH.READ_LESS') }}
+          </button>
+        </div>
       </div>
 
       <!-- Group left banner -->
@@ -1137,7 +1182,7 @@ useEventListener(sidebarScrollRef, 'scroll', closeMemberMenu);
     >
       <DropdownMenu
         :menu-items="getMemberMenuItems(activeMember)"
-        class="w-48"
+        class="w-60"
         @action="handleMemberAction(activeMember, $event)"
       />
     </div>
