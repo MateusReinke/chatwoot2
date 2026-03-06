@@ -9,7 +9,7 @@ import {
 } from 'vue';
 import { useRoute } from 'vue-router';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
-import { useAlert } from 'dashboard/composables';
+import { useAlert, usePendingAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import { useEventListener } from '@vueuse/core';
 import { debounce } from '@chatwoot/utils';
@@ -309,14 +309,17 @@ const addMember = async contact => {
   showSearchDropdown.value = false;
   addMemberInput.value = '';
   searchResults.value = [];
+  const dismiss = usePendingAlert(t('GROUP.MEMBERS.ADDING'));
   try {
     await store.dispatch('groupMembers/addMembers', {
       contactId: props.contact.id,
       participants: [contact.phone_number],
     });
+    dismiss();
     useAlert(t('GROUP.MEMBERS.ADD_SUCCESS'));
     showAddMember.value = false;
   } catch {
+    dismiss();
     useAlert(t('GROUP.MEMBERS.ADD_ERROR'));
   }
 };
@@ -398,12 +401,19 @@ const activeMember = computed(() =>
 const handleMemberAction = async (member, { action }) => {
   activeMenuMemberId.value = null;
   loadingMemberId.value = member.id;
+  const pendingKeyMap = {
+    remove: 'GROUP.MEMBERS.REMOVING',
+    promote: 'GROUP.MEMBERS.PROMOTING',
+    demote: 'GROUP.MEMBERS.DEMOTING',
+  };
+  const dismiss = usePendingAlert(t(pendingKeyMap[action]));
   try {
     if (action === 'remove') {
       await store.dispatch('groupMembers/removeMembers', {
         contactId: props.contact.id,
         memberId: member.id,
       });
+      dismiss();
       useAlert(t('GROUP.MEMBERS.REMOVE_SUCCESS'));
     } else if (action === 'promote') {
       await store.dispatch('groupMembers/updateMemberRole', {
@@ -411,6 +421,7 @@ const handleMemberAction = async (member, { action }) => {
         memberId: member.id,
         role: 'admin',
       });
+      dismiss();
       useAlert(t('GROUP.MEMBERS.PROMOTE_SUCCESS'));
     } else if (action === 'demote') {
       await store.dispatch('groupMembers/updateMemberRole', {
@@ -418,9 +429,11 @@ const handleMemberAction = async (member, { action }) => {
         memberId: member.id,
         role: 'member',
       });
+      dismiss();
       useAlert(t('GROUP.MEMBERS.DEMOTE_SUCCESS'));
     }
   } catch (error) {
+    dismiss();
     const serverError = error?.response?.data?.error;
     if (serverError === 'group_creator_not_modifiable') {
       useAlert(t('GROUP.MEMBERS.GROUP_CREATOR_NOT_MODIFIABLE'));
@@ -480,6 +493,7 @@ const fetchPendingRequests = async () => {
 
 const handleJoinRequest = async (request, action) => {
   loadingRequestJid.value = request.jid;
+  const dismiss = usePendingAlert(t('GROUP.JOIN_REQUESTS.PROCESSING'));
   try {
     await GroupMembersAPI.handleJoinRequest(props.contact.id, {
       participants: [request.jid],
@@ -492,8 +506,10 @@ const handleJoinRequest = async (request, action) => {
       action === 'approve'
         ? 'GROUP.JOIN_REQUESTS.APPROVE_SUCCESS'
         : 'GROUP.JOIN_REQUESTS.REJECT_SUCCESS';
+    dismiss();
     useAlert(t(msgKey));
   } catch {
+    dismiss();
     useAlert(t('GROUP.JOIN_REQUESTS.ACTION_ERROR'));
   } finally {
     loadingRequestJid.value = null;
@@ -504,15 +520,16 @@ const handleJoinRequest = async (request, action) => {
 const toggleAnnouncementMode = async () => {
   isTogglingAnnouncement.value = true;
   try {
-    const setting = isAnnouncementMode.value
-      ? 'not_announcement'
-      : 'announcement';
-    await GroupMembersAPI.updateGroupSetting(props.contact.id, { setting });
+    const enabled = !isAnnouncementMode.value;
+    await GroupMembersAPI.updateGroupProperty(props.contact.id, {
+      property: 'announce',
+      enabled,
+    });
     await store.dispatch('contacts/update', {
       id: props.contact.id,
       additional_attributes: {
         ...props.contact.additional_attributes,
-        announce: !isAnnouncementMode.value,
+        announce: enabled,
       },
     });
     useAlert(t('GROUP.SETTINGS.UPDATE_SUCCESS'));
@@ -526,13 +543,16 @@ const toggleAnnouncementMode = async () => {
 const toggleLockedMode = async () => {
   isTogglingLocked.value = true;
   try {
-    const setting = isLockedMode.value ? 'unlocked' : 'locked';
-    await GroupMembersAPI.updateGroupSetting(props.contact.id, { setting });
+    const enabled = !isLockedMode.value;
+    await GroupMembersAPI.updateGroupProperty(props.contact.id, {
+      property: 'restrict',
+      enabled,
+    });
     await store.dispatch('contacts/update', {
       id: props.contact.id,
       additional_attributes: {
         ...props.contact.additional_attributes,
-        restrict: !isLockedMode.value,
+        restrict: enabled,
       },
     });
     useAlert(t('GROUP.SETTINGS.UPDATE_SUCCESS'));
@@ -565,11 +585,14 @@ const toggleJoinApproval = async () => {
 
 const leaveGroup = async () => {
   isLeavingGroup.value = true;
+  const dismiss = usePendingAlert(t('GROUP.SETTINGS.LEAVING'));
   try {
     await GroupMembersAPI.leaveGroup(props.contact.id);
     showLeaveConfirm.value = false;
+    dismiss();
     useAlert(t('GROUP.SETTINGS.LEAVE_SUCCESS'));
   } catch {
+    dismiss();
     useAlert(t('GROUP.SETTINGS.LEAVE_ERROR'));
   } finally {
     isLeavingGroup.value = false;

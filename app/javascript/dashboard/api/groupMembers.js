@@ -63,7 +63,7 @@ class GroupMembersAPI extends ApiClient {
     return axios.post(`${this.url}/${contactId}/group_settings/leave`);
   }
 
-  updateGroupSetting(contactId, params) {
+  updateGroupProperty(contactId, params) {
     return axios.patch(`${this.url}/${contactId}/group_settings`, params);
   }
 

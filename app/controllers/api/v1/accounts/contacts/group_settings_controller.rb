@@ -1,4 +1,6 @@
 class Api::V1::Accounts::Contacts::GroupSettingsController < Api::V1::Accounts::Contacts::BaseController
+  VALID_PROPERTIES = %w[announce restrict].freeze
+
   def leave
     authorize @contact, :update?
     channel.group_leave(@contact.identifier)
@@ -10,12 +12,12 @@ class Api::V1::Accounts::Contacts::GroupSettingsController < Api::V1::Accounts::
 
   def update
     authorize @contact, :update?
-    setting = setting_params[:setting]
-    valid_settings = %w[announcement not_announcement locked unlocked]
-    return render json: { error: 'invalid_setting' }, status: :unprocessable_entity unless setting.in?(valid_settings)
+    property = property_params[:property]
+    enabled = ActiveModel::Type::Boolean.new.cast(property_params[:enabled])
+    return render json: { error: 'invalid_property' }, status: :unprocessable_entity unless property.in?(VALID_PROPERTIES)
 
-    channel.group_setting_update(@contact.identifier, setting)
-    update_contact_setting(setting)
+    channel.group_setting_update(@contact.identifier, property, enabled)
+    update_contact_attribute(property, enabled)
     head :ok
   rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
     render json: { error: e.message }, status: :unprocessable_entity
@@ -35,8 +37,8 @@ class Api::V1::Accounts::Contacts::GroupSettingsController < Api::V1::Accounts::
 
   private
 
-  def setting_params
-    params.permit(:setting)
+  def property_params
+    params.permit(:property, :enabled)
   end
 
   def join_approval_params
@@ -51,19 +53,6 @@ class Api::V1::Accounts::Contacts::GroupSettingsController < Api::V1::Accounts::
     Current.account.conversations
            .where(contact_id: @contact.id, group_type: :group, status: %i[open pending])
            .find_each { |c| c.update!(status: :resolved) }
-  end
-
-  def update_contact_setting(setting)
-    case setting
-    when 'announcement'
-      update_contact_attribute('announce', true)
-    when 'not_announcement'
-      update_contact_attribute('announce', false)
-    when 'locked'
-      update_contact_attribute('restrict', true)
-    when 'unlocked'
-      update_contact_attribute('restrict', false)
-    end
   end
 
   def update_contact_attribute(key, value)

@@ -4231,7 +4231,7 @@
         ],
         "operationId": "contact-group-settings-update",
         "summary": "Update Group Settings",
-        "description": "Updates a WhatsApp group setting. \"announcement\" makes the group announce-only (only admins can send messages). \"locked\" restricts group info editing to admins only.",
+        "description": "Updates a WhatsApp group property. \"announce\" controls whether only admins can send messages. \"restrict\" controls whether only admins can edit group info.",
         "security": [
           {
             "userApiKey": []
@@ -4244,18 +4244,21 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "setting"
+                  "property",
+                  "enabled"
                 ],
                 "properties": {
-                  "setting": {
+                  "property": {
                     "type": "string",
                     "enum": [
-                      "announcement",
-                      "not_announcement",
-                      "locked",
-                      "unlocked"
+                      "announce",
+                      "restrict"
                     ],
-                    "description": "The setting to apply"
+                    "description": "The group property to update"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether to enable or disable the property"
                   }
                 }
               }
@@ -4264,7 +4267,7 @@
         },
         "responses": {
           "200": {
-            "description": "Setting updated successfully"
+            "description": "Property updated successfully"
           },
           "401": {
             "description": "Unauthorized"

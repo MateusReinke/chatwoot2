@@ -192,7 +192,15 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     raise ProviderUnavailableError unless process_response(response)
   end
 
-  def group_setting_update(group_jid, setting)
+  PROPERTY_TO_SETTING = {
+    ['announce', true] => 'announcement',
+    ['announce', false] => 'not_announcement',
+    ['restrict', true] => 'locked',
+    ['restrict', false] => 'unlocked'
+  }.freeze
+
+  def group_setting_update(group_jid, property, enabled)
+    setting = PROPERTY_TO_SETTING[[property, enabled]]
     response = HTTParty.post(
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-setting-update",
       headers: api_headers,
