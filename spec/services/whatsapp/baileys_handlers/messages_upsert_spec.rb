@@ -455,15 +455,6 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
     let(:group_source_id) { '123456789123456789' }
     let(:sender_phone) { '5511912345678' }
     let(:sender_lid) { '12345678' }
-    let(:group_metadata_response) do
-      {
-        subject: 'Test Group',
-        participants: [
-          { id: "#{sender_lid}@lid", phoneNumber: "#{sender_phone}@s.whatsapp.net", admin: nil },
-          { id: '11111111@lid', phoneNumber: '5511911111111@s.whatsapp.net', admin: 'admin' }
-        ]
-      }
-    end
 
     def build_group_raw_message(id:, text:, sender_participant: "#{sender_lid}@lid", sender_alt: "#{sender_phone}@s.whatsapp.net")
       {
@@ -478,13 +469,7 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
       { webhookVerifyToken: webhook_verify_token, event: 'messages.upsert', data: { type: 'notify', messages: [raw_message] } }
     end
 
-    def stub_group_metadata
-      stub_request(:get, /group-metadata/)
-        .to_return(status: 200, body: group_metadata_response.to_json, headers: { 'content-type' => 'application/json' })
-    end
-
     it 'creates a group conversation where the message sender is a group member' do
-      stub_group_metadata
       params = build_params(build_group_raw_message(id: 'grp_msg_001', text: 'Hello group'))
 
       expect do
@@ -504,9 +489,7 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
       expect(GroupMember.where(group_contact: group_contact).active.pluck(:contact_id)).to include(message.sender_id)
     end
 
-    it 'syncs group participants as conversation group members' do
-      stub_group_metadata
-
+    it 'adds only the message sender as a group member' do
       params = build_params(build_group_raw_message(id: 'grp_msg_002', text: 'Hi'))
 
       Whatsapp::IncomingMessageBaileysService.new(inbox: inbox, params: params).perform
@@ -515,16 +498,13 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
       group_contact = conversation.contact
       members = GroupMember.where(group_contact: group_contact).active
 
-      expect(members.count).to eq(2)
-      admin_member = members.find { |m| m.contact.phone_number == '+5511911111111' }
-      expect(admin_member.role).to eq('admin')
-      regular_member = members.find { |m| m.contact.phone_number == "+#{sender_phone}" }
-      expect(regular_member.role).to eq('member')
+      expect(members.count).to eq(1)
+      sender_member = members.first
+      expect(sender_member.contact.phone_number).to eq("+#{sender_phone}")
+      expect(sender_member.role).to eq('member')
     end
 
     it 'creates message with correct sender when different members send messages' do
-      stub_group_metadata
-
       other_phone = '5511911111111'
       other_lid = '11111111'
 
@@ -551,7 +531,6 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
     end
 
     it 'processes a group image message with attachment' do
-      stub_group_metadata
       stub_request(:get, whatsapp_channel.media_url('grp_img_001'))
         .to_return(status: 200, body: 'fake image data')
 

@@ -51,8 +51,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler
       ).perform
 
       reset_group_left_flag(group_contact_inbox.contact)
-      conversation = find_or_create_group_conversation(group_contact_inbox)
-      sync_newly_created_group(conversation)
+      find_or_create_group_conversation(group_contact_inbox)
     end
   end
 
@@ -68,12 +67,6 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler
     provider_service.try_update_group_avatar(group_contact, force: true)
   rescue StandardError => e
     Rails.logger.error "[GROUP_ICON] Failed to update avatar for #{group_contact.identifier}: #{e.message}"
-  end
-
-  def sync_newly_created_group(conversation)
-    inbox.channel.sync_group(conversation)
-  rescue StandardError => e
-    Rails.logger.error "[GROUP_CREATE] Failed to sync group #{conversation.contact.identifier}: #{e.message}"
   end
 
   def parse_membership_request_action(stub_params)

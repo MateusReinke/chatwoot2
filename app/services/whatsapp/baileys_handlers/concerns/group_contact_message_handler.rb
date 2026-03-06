@@ -26,7 +26,6 @@ module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop
   end
 
   def process_group_message
-    fetch_group_metadata
     @group_contact_inbox, @group_contact = find_or_create_group_contact
 
     consolidate_contact(baileys_sender_phone, baileys_sender_lid, baileys_sender_identifier)
@@ -37,32 +36,13 @@ module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop
     end
 
     @conversation = find_or_create_group_conversation(@group_contact_inbox)
-    sync_group_participants_as_members
+    add_group_member(@group_contact, @sender_contact) if @sender_contact
 
     build_and_save_message(
       conversation: @conversation,
       sender: @sender_contact,
       attach_media: should_attach_media?
     )
-  end
-
-  def fetch_group_metadata
-    @group_metadata = inbox.channel.provider_service.group_metadata(extract_group_jid)
-  rescue StandardError => e
-    Rails.logger.error "Failed to fetch group metadata for #{extract_group_jid}: #{e.message}"
-    @group_metadata = nil
-  end
-
-  def sync_group_participants_as_members
-    return if @group_metadata.blank? || @group_metadata[:participants].blank?
-
-    @group_metadata[:participants].each do |participant|
-      contact = find_or_create_participant_contact(participant)
-      next if contact.blank?
-
-      role = participant[:admin].in?(%w[admin superadmin]) ? :admin : :member
-      add_group_member(@group_contact, contact, role: role)
-    end
   end
 
   def find_or_create_participant_contact(participant)
@@ -142,7 +122,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop
   end
 
   def extract_group_name
-    @group_metadata&.dig(:subject) || extract_group_jid.split('@').first
+    extract_group_jid.split('@').first
   end
 
   def extract_sender_identifier
