@@ -169,6 +169,15 @@ export default {
       if (!senderId) return {};
       return this.$store.getters['contacts/getContact'](senderId);
     },
+    isGroupConversation() {
+      return this.currentChat?.group_type === 'group';
+    },
+    groupContactId() {
+      return this.currentChat?.meta?.sender?.id || null;
+    },
+    inboxPhoneNumber() {
+      return this.inbox?.phone_number || null;
+    },
     shouldShowReplyToMessage() {
       return (
         this.inReplyTo?.id &&
@@ -1369,6 +1378,9 @@ export default {
           :signature-separator-override="signatureSeparator"
           :channel-type="channelType"
           :medium="inbox.medium"
+          :is-group-conversation="isGroupConversation"
+          :group-contact-id="groupContactId"
+          :inbox-phone-number="inboxPhoneNumber"
           @typing-off="onTypingOff"
           @typing-on="onTypingOn"
           @focus="onFocus"

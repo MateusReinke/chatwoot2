@@ -1,0 +1,948 @@
+{
+  "project": "chatwoot",
+  "branchName": "ralph/group-conversations-full-feature",
+  "description": "Full group conversations feature \u2014 backend refactor, serialization, filtering, GroupContactInfo sidebar, group management (create/members/metadata/invite/join requests), group message bubbles, @mention system, real-time updates, group settings refinements (You badge, inbox_contact_id removal, admin settings toggles, leave group, inline edit fix). Phase 2: GroupMember restructure \u2014 migrate membership from ConversationGroupMember (conversation-level) to GroupMember (contact-level) as single source of truth.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Rename conversation_type to group_type on conversations",
+      "description": "As a developer, I need to rename the conversation_type column on conversations to group_type to avoid collisions with the frontend routing conversationType concept.",
+      "acceptanceCriteria": [
+        "New migration renames column conversation_type to group_type on the conversations table",
+        "Conversation model enum updated: enum group_type: { individual: 0, group: 1 }",
+        "All backend references updated: model, concerns (GroupConversationHandler), services (WhatsappBaileysService, baileys_handlers/*), controllers, specs, JBuilder serializers",
+        "Frontend references to conversation_type (routing concept with values mention/participating/unattended) remain untouched",
+        "bundle exec rspec passes with no failures",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Serialize group_type fields in API responses",
+      "description": "As a frontend consumer, I need group_type in both conversation and contact JSON responses so the UI can distinguish groups from individual conversations.",
+      "acceptanceCriteria": [
+        "group_type field added to app/views/api/v1/conversations/partials/_conversation.json.jbuilder (outputs 'individual' or 'group')",
+        "group_type field added to app/views/api/v1/models/_contact.json.jbuilder (outputs 'individual' or 'group')",
+        "Existing conversation and contact API responses include the new fields without regression",
+        "bundle exec rspec spec/controllers passes",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Backend \u2014 group_type filter on conversations index",
+      "description": "As a developer, I need the conversations index endpoint to accept a group_type query param so the basic filter dropdown can filter by conversation type.",
+      "acceptanceCriteria": [
+        "GET /api/v1/accounts/:account_id/conversations accepts group_type param with values 'individual' and 'group'",
+        "When group_type param is present, results are filtered by the group_type column",
+        "When group_type param is absent or 'all', no filter is applied (existing behavior unchanged)",
+        "bundle exec rspec spec/controllers/api/v1/accounts/conversations_controller_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Backend \u2014 add group_type to filter_keys.yml and FilterService",
+      "description": "As a developer, I need group_type supported in the advanced filter system so agents can build complex filters including conversation type.",
+      "acceptanceCriteria": [
+        "group_type added to lib/filters/filter_keys.yml under conversations: with attribute_type: standard, data_type: text, filter_operators: [equal_to, not_equal_to]",
+        "FilterService correctly applies group_type filters against the conversations.group_type column",
+        "POST /api/v1/accounts/:account_id/conversations/filter with group_type filter returns only matching conversations",
+        "bundle exec rspec spec/services/filter_service_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Backend \u2014 group creation endpoint",
+      "description": "As an agent, I want to create a new WhatsApp group from Chatwoot so I can start group conversations directly.",
+      "acceptanceCriteria": [
+        "POST /api/v1/accounts/:account_id/groups accepts { inbox_id, subject, participants: [phone_numbers] }",
+        "Service delegates to channel provider (WhatsappBaileysService) which calls Baileys groupCreate(subject, participants)",
+        "On success: creates Contact (group_type: group), ContactInbox, Conversation (group_type: group), and ConversationGroupMember records for all participants",
+        "Returns the created conversation with group metadata",
+        "Returns 403 if agent does not have access to the inbox",
+        "Returns 422 with error message if provider is unavailable",
+        "bundle exec rspec spec/controllers/api/v1/accounts/groups_controller_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Backend \u2014 add/remove members and role management endpoints",
+      "description": "As an agent, I want to add/remove members from a group and promote/demote admins via the API.",
+      "acceptanceCriteria": [
+        "POST /api/v1/accounts/:account_id/contacts/:id/group_members accepts { participants: [phone_numbers] } and adds members via Baileys groupParticipantsUpdate with action add",
+        "DELETE /api/v1/accounts/:account_id/contacts/:id/group_members accepts { participants: [phone_numbers] } and removes members via Baileys groupParticipantsUpdate with action remove",
+        "PATCH /api/v1/accounts/:account_id/contacts/:id/group_members/:member_id accepts { role: 'admin' | 'member' } and calls Baileys groupParticipantsUpdate with action promote or demote",
+        "Backend updates ConversationGroupMember records accordingly (create, soft-delete via is_active, update role)",
+        "Returns 422 with error message if provider is unavailable",
+        "bundle exec rspec spec/controllers/api/v1/accounts/contacts/group_members_controller_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Backend \u2014 group metadata update endpoint",
+      "description": "As an agent, I want to edit group name and description via the API so agents can manage group metadata.",
+      "acceptanceCriteria": [
+        "PATCH /api/v1/accounts/:account_id/contacts/:id/group_metadata accepts { subject, description }",
+        "Service calls Baileys groupUpdateSubject when subject is present",
+        "Service calls Baileys groupUpdateDescription when description is present",
+        "Backend updates Contact record: name from subject, additional_attributes.description from description",
+        "Avatar upload for group contacts uses existing contacts#update with avatar param, which calls Baileys updateProfilePicture",
+        "Returns 422 with error message if provider is unavailable",
+        "bundle exec rspec spec/controllers/api/v1/accounts/contacts/group_metadata_controller_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Backend \u2014 invite link management endpoints",
+      "description": "As an agent, I want to get and revoke the group invite link via the API.",
+      "acceptanceCriteria": [
+        "GET /api/v1/accounts/:account_id/contacts/:id/group_invite returns { invite_code, invite_url } by calling Baileys groupInviteCode(jid)",
+        "POST /api/v1/accounts/:account_id/contacts/:id/group_invite/revoke revokes the current link and returns a new { invite_code, invite_url } by calling Baileys groupRevokeInvite(jid)",
+        "Returns 422 with error message if provider is unavailable",
+        "bundle exec rspec spec/controllers/api/v1/accounts/contacts/group_invite_controller_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Backend \u2014 join request management endpoints",
+      "description": "As an agent/admin, I want to list and approve/reject pending join requests via the API.",
+      "acceptanceCriteria": [
+        "GET /api/v1/accounts/:account_id/contacts/:id/group_join_requests lists pending join requests by calling Baileys groupRequestParticipantsList(jid)",
+        "POST /api/v1/accounts/:account_id/contacts/:id/group_join_requests/handle accepts { participants: [jids], action: 'approve' | 'reject' } and calls Baileys groupRequestParticipantsUpdate(jid, participants, action)",
+        "Returns 422 with error message if provider is unavailable",
+        "bundle exec rspec spec/controllers/api/v1/accounts/contacts/group_join_requests_controller_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Backend \u2014 extend MentionService for contact mentions",
+      "description": "As a developer, I need the backend MentionService to handle mention://contact/ID/Name URIs in group messages and create Mention records for mentioned contacts.",
+      "acceptanceCriteria": [
+        "Messages::MentionService extracts mention://contact/ID/EncodedName URIs from message content",
+        "Creates Mention records (or equivalent) for each mentioned contact ID",
+        "Existing mention://user/ and mention://team/ handling is unchanged",
+        "bundle exec rspec spec/services/messages/mention_service_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Frontend \u2014 API clients for all group endpoints",
+      "description": "As a developer, I need frontend API client methods for all group-related backend endpoints.",
+      "acceptanceCriteria": [
+        "New file app/javascript/dashboard/api/groupMembers.js exists",
+        "Exports: getGroupMembers(accountId, contactId), syncGroup(accountId, contactId), createGroup(accountId, params), updateGroupMetadata(accountId, contactId, params), addMembers(accountId, contactId, participants), removeMembers(accountId, contactId, participants), updateMemberRole(accountId, contactId, memberId, role), getInviteLink(accountId, contactId), revokeInviteLink(accountId, contactId), getPendingRequests(accountId, contactId), handleJoinRequest(accountId, contactId, params)",
+        "All methods follow existing ApiClient patterns from app/javascript/dashboard/api/contacts.js",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Frontend \u2014 Vuex store module groupMembers",
+      "description": "As a developer, I need a Vuex store module to manage group member state so components can reactively access and mutate group data.",
+      "acceptanceCriteria": [
+        "New file app/javascript/dashboard/store/modules/groupMembers.js exists",
+        "State: records (object keyed by contactId \u2192 array of members), uiFlags: { isFetching, isSyncing, isUpdating }",
+        "Getter getGroupMembers(contactId) returns members array for the given contactId",
+        "Action fetch({ contactId }) calls getGroupMembers API and commits SET_GROUP_MEMBERS",
+        "Action sync({ contactId }) calls syncGroup API and then re-fetches via fetch",
+        "Actions addMembers, removeMembers, updateMemberRole call corresponding API methods and update store",
+        "Module registered in app/javascript/dashboard/store/index.js",
+        "pnpm test app/javascript/dashboard/store/modules/groupMembers.spec.js passes",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Frontend \u2014 i18n keys for group features (en + pt-BR)",
+      "description": "As a developer, I need all group-related UI strings defined in i18n so no bare strings are used in components.",
+      "acceptanceCriteria": [
+        "New or updated JSON file(s) in app/javascript/dashboard/i18n/locale/en/ with keys for: group info header, member list section title, admin badge label, sync button label, sync success message, sync error message, empty member list state, filter type label (All/Individual/Group), group creation modal labels, edit metadata labels (name/description/avatar), invite link section labels (copy/revoke), member management labels (add/remove/promote/demote), join request labels (approve/reject/pending count), mention dropdown header",
+        "All same keys added to app/javascript/dashboard/i18n/locale/pt_BR/ with Portuguese translations",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Frontend \u2014 add group_type filter to ConversationBasicFilter",
+      "description": "As an agent, I want a Type filter section in the basic filter dropdown to quickly show only individual or group conversations.",
+      "acceptanceCriteria": [
+        "ConversationBasicFilter.vue has a new Type section in the dropdown, alongside Status and Sort Order",
+        "Options: All (default), Individual, Group \u2014 using i18n labels",
+        "Selected value is stored in UI settings under conversations_filter_by.group_type and restored on reload",
+        "Filter value is included in conversationFilters and passed as group_type query param to the fetch API call",
+        "Selecting Individual shows only conversations with group_type individual, selecting Group shows only group_type group, All shows all",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Frontend \u2014 add group_type to advanced filter system",
+      "description": "As an agent, I want group_type available as a filter attribute in the advanced filter so I can build complex filter rules.",
+      "acceptanceCriteria": [
+        "New entry in advancedFilterItems/index.js: attributeKey group_type, inputType multi_select, filterOperators OPERATOR_TYPES_1 (equal_to, not_equal_to), attributeModel standard",
+        "Added to filterAttributeGroups under Standard Filters",
+        "Filter options for group_type: individual and group with i18n labels",
+        "Advanced filter correctly sends group_type in filter payload and the backend returns matching conversations",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Frontend \u2014 GroupContactInfo basic display",
+      "description": "As an agent, I want to see a group-specific info panel in the sidebar with the group avatar, name, member count, and member list with skeleton loading.",
+      "acceptanceCriteria": [
+        "New component app/javascript/dashboard/routes/dashboard/conversation/contact/GroupContactInfo.vue using <script setup> and Composition API",
+        "Displays group avatar (using existing Avatar component), group name, and active member count",
+        "Member list shows each active member with: Avatar, name, Admin badge (only for role admin \u2014 no badge for member)",
+        "Skeleton loading placeholders appear while isFetching is true in the groupMembers store",
+        "Empty state message shown when fetch completes with zero members",
+        "On mount, dispatches groupMembers/fetch with the group contact ID",
+        "Only active members (is_active: true) are displayed",
+        "Tailwind only, no custom or scoped CSS",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Frontend \u2014 GroupContactInfo sync button",
+      "description": "As an agent, I want a Sync button in GroupContactInfo to refresh the member list from the provider.",
+      "acceptanceCriteria": [
+        "GroupContactInfo has a Sync button (using NextButton component) with sync/refresh icon",
+        "Clicking Sync dispatches groupMembers/sync action and shows spinner on the button while isSyncing is true",
+        "On sync success, shows a success alert using the existing useAlert composable",
+        "On sync error, shows an error alert with a user-friendly message",
+        "Button is disabled while sync is in progress",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Frontend \u2014 integrate GroupContactInfo in ContactPanel",
+      "description": "As a system, I need ContactPanel to render GroupContactInfo instead of ContactInfo when the current conversation is a group conversation.",
+      "acceptanceCriteria": [
+        "ContactPanel.vue imports GroupContactInfo",
+        "When currentChat.group_type === 'group', renders GroupContactInfo with the contact prop instead of ContactInfo",
+        "When currentChat.group_type is 'individual' or absent, renders existing ContactInfo (no regression)",
+        "Sidebar title changes: shows 'Group' (i18n key) for group conversations, existing 'Contact' for individual",
+        "contact_notes and contact_attributes accordion sections remain visible for group conversations",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Frontend \u2014 group creation UI modal",
+      "description": "As an agent, I want a modal to create a new WhatsApp group by selecting an inbox, entering a group name, and choosing initial participants.",
+      "acceptanceCriteria": [
+        "New component for group creation modal accessible from a relevant UI entry point",
+        "Inbox selector shows only inboxes that support groups (Baileys/WhatsApp channel type)",
+        "Group name text input field (required)",
+        "Participant selector with search by contact name or phone number",
+        "Submit calls createGroup API (via store action), shows loading state on the submit button",
+        "On success: shows success notification and navigates to the new group conversation",
+        "On error: shows error notification with the error message",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Frontend \u2014 member management UI in GroupContactInfo",
+      "description": "As an agent, I want to add/remove members and change roles directly from the GroupContactInfo sidebar.",
+      "acceptanceCriteria": [
+        "Add member button in GroupContactInfo opens a contact search/select input",
+        "Selecting a contact and confirming calls addMembers store action; member appears in list on success",
+        "Each member row has a context menu or action buttons: Promote to admin (if member), Demote to member (if admin), Remove from group",
+        "Each action calls the corresponding store action and shows loading state on the row",
+        "Success and error alerts shown after each action",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Frontend \u2014 group metadata editing UI",
+      "description": "As an agent, I want to edit the group name, description, and avatar inline from the GroupContactInfo sidebar.",
+      "acceptanceCriteria": [
+        "Group name is inline-editable: click to activate edit input, press Enter or blur to save",
+        "Description field is editable: click to activate textarea, blur to save",
+        "Avatar element is clickable and opens a file picker; selected image is uploaded via existing contact avatar update flow",
+        "Each save calls updateGroupMetadata API (name/description) or contacts#update (avatar)",
+        "Loading state on the field during save; success and error alerts shown",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Frontend \u2014 invite link management UI",
+      "description": "As an agent, I want to view, copy, and revoke the group invite link from the sidebar.",
+      "acceptanceCriteria": [
+        "Invite Link section in GroupContactInfo is always visible (not collapsed)",
+        "On section mount, fetches the invite link via getInviteLink API and displays it",
+        "Copy button copies the invite URL to the clipboard and shows a brief confirmation",
+        "Revoke & Regenerate button calls revokeInviteLink API, shows loading state, and displays the new link on success",
+        "Error alert shown if fetch or revoke fails",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Frontend \u2014 join request management UI",
+      "description": "As an agent, I want to see and act on pending join requests in the sidebar when join approval is enabled.",
+      "acceptanceCriteria": [
+        "Pending Requests section in GroupContactInfo is only rendered when there are pending requests",
+        "On mount, fetches pending requests via getPendingRequests API",
+        "Each request shows requester name/phone with Approve and Reject buttons",
+        "Approve button calls handleJoinRequest with action approve; Reject with action reject",
+        "Handled requests are removed from the list; success/error alerts shown",
+        "Section disappears when list becomes empty",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Frontend \u2014 group message bubbles: sender name with color",
+      "description": "As an agent, I want group message bubbles to show the sender's name above the text with a deterministic color per sender.",
+      "acceptanceCriteria": [
+        "In group conversations (group_type === 'group'), incoming message bubbles display the sender's name above the message content",
+        "Sender name color is deterministic: index = sender.name.length % 6, color taken from the same AVATAR_COLORS palette used by the Avatar component",
+        "Sender name is NOT shown for consecutive messages from the same sender within the same render block",
+        "Individual conversation bubbles are unchanged (no sender name shown)",
+        "Implementation in components-next/ message bubble components",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Frontend \u2014 group message bubbles: sender avatar",
+      "description": "As an agent, I want to see the sender's avatar next to group message bubbles to visually identify who sent each message.",
+      "acceptanceCriteria": [
+        "In group conversations, each incoming message shows the sender's avatar to the left of the bubble",
+        "Avatar uses sender's thumbnail if available; otherwise shows initials placeholder with the same name-length color from US-024",
+        "Avatar is NOT repeated for consecutive messages from the same sender (show only on the first of a group)",
+        "Individual conversation bubbles unchanged",
+        "Implementation in components-next/ message bubble components",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Frontend \u2014 @mention dropdown for group conversations",
+      "description": "As an agent, I want typing @ in a group conversation to show a dropdown of group members so I can mention them in messages.",
+      "acceptanceCriteria": [
+        "Typing @ in the message editor for a group conversation (group_type === 'group') triggers a mention suggestion dropdown",
+        "Dropdown lists group members from the groupMembers store for the current conversation's group contact",
+        "Dropdown filters by the text typed after @ (matches on name or phone number)",
+        "Each dropdown item shows Avatar, name, and phone number",
+        "Selecting an item inserts a mention node: [@DisplayName](mention://contact/ID/EncodedName) into the ProseMirror editor",
+        "In individual conversations (or private notes), the existing agent mention behavior is unchanged",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Frontend \u2014 mention rendering in group message bubbles",
+      "description": "As an agent, I want @mention tags in group messages to be visually highlighted in the message bubble.",
+      "acceptanceCriteria": [
+        "mention://contact/ID/EncodedName URIs in message content are rendered as highlighted/styled mention chips in the bubble",
+        "Mention chip shows @DisplayName with a distinct background or text color",
+        "The markdown-it link plugin (or equivalent renderer) handles the mention://contact scheme",
+        "Existing mention://user and mention://team rendering is unchanged",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Frontend \u2014 ActionCable handler for contact.group_synced event",
+      "description": "As a system, when a contact.group_synced event arrives via ActionCable, the group member list should update reactively without a page refresh.",
+      "acceptanceCriteria": [
+        "ActionCable message handler listens for events with type contact.group_synced",
+        "On receiving the event, the handler extracts group member data directly from the event payload (no additional API call)",
+        "Commits the data to the groupMembers store using SET_GROUP_MEMBERS mutation for the affected contactId",
+        "GroupContactInfo member list updates reactively in the sidebar",
+        "pnpm test passes for the handler file",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Backend \u2014 ensure group_type is set on existing contacts and conversations",
+      "description": "As a developer, I need the group message handler to enforce group_type: :group on contact and conversation records even when they already exist, because some groups incorrectly render as individual contacts in the frontend.",
+      "acceptanceCriteria": [
+        "GroupConversationHandler#update_group_contact_info now also ensures contact.group_type = :group if it is not already (adds group_type: :group to the update_params)",
+        "GroupConversationHandler#find_or_create_group_conversation updates the existing conversation's group_type to :group if it is currently :individual before returning it",
+        "Existing group conversations that were incorrectly typed as individual are corrected upon the next incoming group message",
+        "Frontend renders GroupContactInfo (not ContactInfo) for these corrected conversations",
+        "Group message bubbles show sender name and avatar after the fix",
+        "bundle exec rspec passes (no regressions)",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": true,
+      "notes": "Root cause: ContactInboxWithContactBuilder returns early when source_id matches an existing contact_inbox (line 17-18), never reaching create_contact where group_type is assigned. Fix must be in GroupConversationHandler (update_group_contact_info and find_or_create_group_conversation), not in the shared builder."
+    },
+    {
+      "id": "US-029",
+      "title": "i18n \u2014 add keys for You badge and group settings (en + pt-BR)",
+      "description": "As a developer, I need i18n keys for the new UI features so no bare strings appear.",
+      "acceptanceCriteria": [
+        "Add GROUP.INFO.YOU_BADGE with value 'You' (en) / 'Voc\u00ea' (pt-BR)",
+        "Add GROUP.SETTINGS.SECTION_TITLE \u2014 'Group Settings' / 'Configura\u00e7\u00f5es do Grupo'",
+        "Add GROUP.SETTINGS.ANNOUNCEMENT_MODE \u2014 'Announcement Mode' / 'Modo An\u00fancio'",
+        "Add GROUP.SETTINGS.ANNOUNCEMENT_MODE_DESC \u2014 'Only admins can send messages' / 'Apenas admins podem enviar mensagens'",
+        "Add GROUP.SETTINGS.LOCKED_MODE \u2014 'Edit Restricted' / 'Edi\u00e7\u00e3o Restrita'",
+        "Add GROUP.SETTINGS.LOCKED_MODE_DESC \u2014 'Only admins can edit group info' / 'Apenas admins podem editar informa\u00e7\u00f5es do grupo'",
+        "Add GROUP.SETTINGS.JOIN_APPROVAL \u2014 'Admin Approval to Join' / 'Aprova\u00e7\u00e3o do Admin para Entrar'",
+        "Add GROUP.SETTINGS.JOIN_APPROVAL_DESC \u2014 'New members need admin approval' / 'Novos membros precisam de aprova\u00e7\u00e3o do admin'",
+        "Add GROUP.SETTINGS.LEAVE_GROUP \u2014 'Leave Group' / 'Sair do Grupo'",
+        "Add GROUP.SETTINGS.LEAVE_CONFIRM \u2014 'Are you sure you want to leave this group? The conversation will be resolved.' / 'Tem certeza que deseja sair deste grupo? A conversa ser\u00e1 resolvida.'",
+        "Add GROUP.SETTINGS.LEAVE_SUCCESS \u2014 'You have left the group.' / 'Voc\u00ea saiu do grupo.'",
+        "Add GROUP.SETTINGS.LEAVE_ERROR \u2014 'Failed to leave group.' / 'Falha ao sair do grupo.'",
+        "Add GROUP.SETTINGS.UPDATE_SUCCESS \u2014 'Group setting updated.' / 'Configura\u00e7\u00e3o do grupo atualizada.'",
+        "Add GROUP.SETTINGS.UPDATE_ERROR \u2014 'Failed to update group setting.' / 'Falha ao atualizar configura\u00e7\u00e3o do grupo.'",
+        "Remove INBOX_MGMT.TABS.INBOX_CONTACT and INBOX_MGMT.SETTINGS_POPUP.INBOX_CONTACT.* from en/inboxMgmt.json and pt_BR/inboxMgmt.json",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Backend \u2014 fix Baileys API route/method mismatches",
+      "description": "As a developer, I need the WhatsappBaileysService methods to match the actual Baileys REST API endpoints documented in ROUTES_SUMMARY.md.",
+      "acceptanceCriteria": [
+        "update_group_participants: HTTP method changed from PATCH to POST; body sends singular 'participant' key; iterates Array(participants) making one POST per participant",
+        "group_invite_code: response dig changed from dig('data', 'code') to dig('data', 'inviteCode')",
+        "revoke_group_invite: response dig changed from dig('data', 'code') to dig('data', 'inviteCode')",
+        "group_join_requests: route changed from 'group-join-requests' to 'group-request-participants-list'",
+        "handle_group_join_requests: route changed from 'group-join-requests-handle' to 'group-request-participants-update'",
+        "on_whatsapp: response parsing changed from response.parsed_response&.first to response.parsed_response&.dig('data')&.first; spec stubs updated to wrap response in { data: [...] }",
+        "bundle exec rspec spec/services/whatsapp/providers/whatsapp_baileys_service_spec.rb passes",
+        "bundle exec rubocop app/services/whatsapp/providers/whatsapp_baileys_service.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Backend \u2014 add group_leave, group_setting_update, group_join_approval_mode methods",
+      "description": "As a developer, I need new methods in WhatsappBaileysService to call the Baileys API for leaving groups and managing group settings.",
+      "acceptanceCriteria": [
+        "group_leave(group_jid) added: POST /connections/{phone}/group-leave with body { jid: group_jid }",
+        "group_setting_update(group_jid, setting) added: POST /connections/{phone}/group-setting-update with body { jid: group_jid, setting: setting } (setting is one of: announcement, not_announcement, locked, unlocked)",
+        "group_join_approval_mode(group_jid, mode) added: POST /connections/{phone}/group-join-approval-mode with body { jid: group_jid, mode: mode } (mode is 'on' or 'off')",
+        "All three methods raise ProviderUnavailableError on non-2xx responses",
+        "All three methods added to with_error_handling list",
+        "Delegates added in Channel::Whatsapp for the three new methods",
+        "bundle exec rspec spec/services/whatsapp/providers/whatsapp_baileys_service_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 32,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Backend \u2014 persist group settings, invite code, and profile picture during sync",
+      "description": "As a developer, I need sync_group and groups_update webhook handler to persist group settings, invite code, and group profile picture in contact.additional_attributes and avatar.",
+      "acceptanceCriteria": [
+        "update_group_contact_info in whatsapp_baileys_service.rb now also persists announce, restrict, joinApprovalMode, memberAddMode from group_metadata response into contact.additional_attributes",
+        "sync_group calls group_invite_code and persists the result as invite_code in contact.additional_attributes",
+        "sync_group calls get_profile_pic(group_contact.identifier) to fetch the group profile picture URL and enqueues Avatar::AvatarFromUrlJob to attach it to the group contact (same pattern as try_update_participant_avatar for individual contacts)",
+        "groups_update.rb process_group_settings_changes now persists setting values (boolean) into contact.additional_attributes alongside creating activity messages",
+        "groups_update.rb process_single_group_update persists inviteCode value into contact.additional_attributes['invite_code'] when present",
+        "bundle exec rspec spec/services/whatsapp/providers/whatsapp_baileys_service_spec.rb passes",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Backend \u2014 GroupSettingsController with leave, update, toggle",
+      "description": "As an agent, I need API endpoints to leave a group, toggle group settings, and toggle join approval mode.",
+      "acceptanceCriteria": [
+        "New controller Api::V1::Accounts::Contacts::GroupSettingsController at app/controllers/api/v1/accounts/contacts/group_settings_controller.rb",
+        "POST .../group_settings/leave action: calls channel.group_leave(@contact.identifier), then resolves the conversation (sets status to :resolved). Returns 200. Returns 422 on ProviderUnavailableError.",
+        "PATCH .../group_settings action: accepts { setting: 'announcement|not_announcement|locked|unlocked' }, calls channel.group_setting_update. Updates contact.additional_attributes accordingly. Returns 200. Returns 422 on error.",
+        "POST .../group_settings/toggle_join_approval action: accepts { mode: 'on|off' }, calls channel.group_join_approval_mode. Updates contact.additional_attributes['joinApprovalMode']. Returns 200. Returns 422 on error.",
+        "Routes added in config/routes.rb under the contacts scope: resource :group_settings, only: [:update] do; post :leave, on: :member; post :toggle_join_approval, on: :member; end",
+        "bundle exec rubocop passes for the new controller",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Backend \u2014 remove inbox_contact_id from provider_config and jbuilder",
+      "description": "As a developer, I need to remove the inbox_contact_id concept from the backend: the link_inbox_contact method, the jbuilder serialization, and the call in sync_group.",
+      "acceptanceCriteria": [
+        "link_inbox_contact private method removed from whatsapp_baileys_service.rb",
+        "Call to link_inbox_contact(inbox, participant_contacts) removed from sync_group method",
+        "json.inbox_contact_id line removed from app/views/api/v1/models/_inbox.json.jbuilder",
+        "No remaining references to inbox_contact_id in Ruby backend code (except possible migration cleanup \u2014 not needed)",
+        "bundle exec rspec passes (any specs referencing inbox_contact_id are updated or removed)",
+        "Typecheck passes"
+      ],
+      "priority": 35,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Frontend \u2014 refactor TagGroupMembers to phone_number matching",
+      "description": "As a developer, I need to replace excludeContactId prop with excludePhoneNumber in TagGroupMembers so it no longer depends on inbox_contact_id.",
+      "acceptanceCriteria": [
+        "TagGroupMembers.vue: prop renamed from excludeContactId (Number|String) to excludePhoneNumber (String)",
+        "Filter changed from member.contact?.id !== props.excludeContactId to member.contact?.phone_number !== props.excludePhoneNumber",
+        "Editor.vue: prop renamed from inboxContactId to inboxPhoneNumber; passes it to TagGroupMembers as exclude-phone-number",
+        "ReplyBox.vue: computed inboxContactId renamed to inboxPhoneNumber, returns this.inbox?.phone_number instead of this.inbox?.inbox_contact_id",
+        "@mention self-exclusion still works: the inbox's own phone is excluded from the mentions dropdown",
+        "Typecheck passes"
+      ],
+      "priority": 36,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Frontend \u2014 remove InboxContact.vue and settings tab",
+      "description": "As a developer, I need to remove the InboxContact component and its tab in inbox settings since inbox_contact_id is being removed.",
+      "acceptanceCriteria": [
+        "app/javascript/dashboard/routes/dashboard/settings/inbox/components/InboxContact.vue file deleted",
+        "Settings.vue: import of InboxContact removed, component registration removed, tab entry { key: 'inbox-contact', ... } removed from visibleToAllChannelTabs for Baileys/Zapi channels, template <InboxContact :inbox='inbox' /> block removed",
+        "i18n keys INBOX_MGMT.TABS.INBOX_CONTACT and INBOX_MGMT.SETTINGS_POPUP.INBOX_CONTACT.* already removed in US-029",
+        "No remaining imports or references to InboxContact in the frontend",
+        "Typecheck passes"
+      ],
+      "priority": 37,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Frontend \u2014 add You badge in GroupContactInfo member list",
+      "description": "As an agent, I want to see a 'You' badge next to my own contact in the group member list so I can identify myself.",
+      "acceptanceCriteria": [
+        "In the member list loop in GroupContactInfo.vue, a new badge is displayed next to a member when member.contact?.phone_number === inboxPhone (the inboxPhone computed already exists)",
+        "Badge styled similarly to the Admin badge: px-1.5 py-0.5 text-xs font-medium rounded with distinct color (e.g. bg-n-blue-3 text-n-blue-11)",
+        "Badge text uses i18n key GROUP.INFO.YOU_BADGE",
+        "Badge appears alongside Admin badge when the inbox contact is also an admin (both badges shown)",
+        "Tailwind only, no custom CSS",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 38,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Frontend \u2014 fix inline edit for group name and description",
+      "description": "As an admin agent, I want inline editing of group name and description to work again in the GroupContactInfo sidebar.",
+      "acceptanceCriteria": [
+        "The isInboxAdmin computed in GroupContactInfo.vue normalizes phone numbers before comparison (strip + prefix from both sides) to handle format mismatches between inbox.phone_number and member.contact.phone_number",
+        "Clicking the group name activates the inline edit input when user is admin",
+        "Clicking the description activates the inline edit textarea when user is admin",
+        "Saving name calls updateGroupMetadata with subject param and updates the contact name locally",
+        "Saving description calls updateGroupMetadata with description param and updates contact.additional_attributes.description locally",
+        "Non-admin users see name and description as read-only text",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 39,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Frontend \u2014 group settings section UI with toggles",
+      "description": "As an admin agent, I want to see and toggle group settings (announcement mode, locked mode, join approval) from the GroupContactInfo sidebar.",
+      "acceptanceCriteria": [
+        "New 'Group Settings' section added in GroupContactInfo below the join requests section, visible only to inbox admins",
+        "Section shows three toggle switches reading from contact.additional_attributes: announce (boolean), restrict (boolean), joinApprovalMode (boolean)",
+        "Each toggle displays its label and a short description from i18n (GROUP.SETTINGS.ANNOUNCEMENT_MODE, etc.)",
+        "Toggling announcement calls API PATCH .../group_settings with setting: 'announcement'/'not_announcement'",
+        "Toggling locked calls API with setting: 'locked'/'unlocked'",
+        "Toggling join approval calls API POST .../group_settings/toggle_join_approval with mode: 'on'/'off'",
+        "On success: update contact.additional_attributes locally and show success alert",
+        "On error: revert toggle and show error alert",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 40,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Frontend \u2014 leave group UI with confirmation and auto-resolve",
+      "description": "As an agent, I want a 'Leave Group' button in the GroupContactInfo sidebar that leaves the WhatsApp group and resolves the conversation.",
+      "acceptanceCriteria": [
+        "'Leave Group' button at the bottom of GroupContactInfo, always visible (not admin-only), styled as a destructive action (red/ruby color)",
+        "Clicking shows a confirmation dialog with the text from GROUP.SETTINGS.LEAVE_CONFIRM",
+        "Confirming calls POST .../group_settings/leave API",
+        "On success: shows success alert, conversation is resolved (status updates reactively via existing store), navigates to conversation list",
+        "On error: shows error alert",
+        "Tailwind only, <script setup> and Composition API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 41,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-050",
+      "title": "Create GroupMember model and migration",
+      "description": "As a developer, I need a new group_members table to store the relationship between a group contact and individual contacts, replacing ConversationGroupMember as the source of truth.",
+      "acceptanceCriteria": [
+        "Create migration for group_members table with columns: group_contact_id (bigint, not null, FK to contacts), contact_id (bigint, not null, FK to contacts), role (integer, default 0/member, not null), is_active (boolean, default true, not null), timestamps",
+        "Add unique index on (group_contact_id, contact_id)",
+        "Add index on (group_contact_id, is_active)",
+        "Add index on contact_id",
+        "Add index on group_contact_id",
+        "Create GroupMember model with: belongs_to :group_contact (class_name: Contact), belongs_to :contact, enum role (member: 0, admin: 1), validates uniqueness of group_contact_id scoped to contact_id, scopes active and inactive",
+        "Add has_many :group_memberships (class_name: GroupMember, foreign_key: :group_contact_id, dependent: :destroy_async) to Contact model for group contacts",
+        "Add has_many :group_member_contacts (through: :group_memberships, source: :contact) to Contact model for group contacts",
+        "Add has_many :group_participations (class_name: GroupMember, dependent: :destroy_async) to Contact model for individual contacts",
+        "Migration runs successfully",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 42,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-064",
+      "title": "Helper method to find channel from group contact",
+      "description": "As a developer, I need a reliable way to find the channel/inbox for a group contact without depending on conversations, since multiple controllers need this.",
+      "acceptanceCriteria": [
+        "Add a method (e.g. channel_for_group_contact or on the Contact model) that finds the inbox/channel through contact_inboxes for a group contact",
+        "Use this helper in GroupMembersController, GroupSettingsController, and any other controller that needs to send commands to the provider",
+        "The helper handles the case where the group contact has multiple contact_inboxes (selects the appropriate one for the current inbox context)",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 43,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-052",
+      "title": "Update GroupConversationHandler to use GroupMember",
+      "description": "As a developer, I need the shared concern GroupConversationHandler to create/update/remove GroupMember records instead of ConversationGroupMember records.",
+      "acceptanceCriteria": [
+        "add_group_member now operates on GroupMember using group_contact instead of conversation",
+        "remove_group_member now operates on GroupMember using group_contact",
+        "update_group_member_role now operates on GroupMember using group_contact",
+        "sync_group_members now operates on GroupMember using group_contact; syncs against group_contact.group_memberships instead of conversation.group_members",
+        "All callers of these methods (baileys handlers, baileys service) are updated to pass the group contact instead of conversation",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 44,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-053",
+      "title": "Update WhatsappBaileysService sync_group to use GroupMember",
+      "description": "As a developer, I need the sync_group method and its helper sync_group_members in WhatsappBaileysService to write to GroupMember instead of ConversationGroupMember.",
+      "acceptanceCriteria": [
+        "sync_group fetches the group contact (or receives it from the conversation) and passes it to sync_group_members",
+        "sync_group_members creates/updates GroupMember records by group_contact + contact instead of conversation + contact",
+        "Deactivated members are marked is_active: false on the GroupMember record",
+        "Roles (admin/member) are correctly persisted on GroupMember",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 45,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-063",
+      "title": "Update GroupContactMessageHandler concern",
+      "description": "As a developer, I need the GroupContactMessageHandler concern to use GroupMember for member operations when processing incoming group messages.",
+      "acceptanceCriteria": [
+        "The concern's method for adding the sender as a group member calls add_group_member(group_contact, sender_contact) using the group contact, not the conversation",
+        "Any method that looked up members via conversation now looks up via group contact",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 46,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-054",
+      "title": "Update GroupParticipantsUpdate handler",
+      "description": "As a developer, I need the GroupParticipantsUpdate baileys handler to add/remove/promote/demote members via GroupMember instead of ConversationGroupMember.",
+      "acceptanceCriteria": [
+        "process_group_participants_update resolves the group contact from the group JID",
+        "apply_participant_action calls add_group_member(group_contact, contact), remove_group_member(group_contact, contact), etc. using the updated GroupConversationHandler methods",
+        "Activity messages are still created on the conversation",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 47,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-055",
+      "title": "Update GroupsUpdate handler to use GroupMember",
+      "description": "As a developer, I need the GroupsUpdate baileys handler to use the new GroupMember model when relevant (e.g., group sync operations triggered by update events).",
+      "acceptanceCriteria": [
+        "Any member-related operations in group update events use GroupMember",
+        "Settings updates still persist in contact.additional_attributes (no change to this part)",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 48,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-056",
+      "title": "Update MessagesUpsert handler for group member ops",
+      "description": "As a developer, I need the MessagesUpsert handler to use GroupMember when adding senders as group members on incoming group messages.",
+      "acceptanceCriteria": [
+        "When a message arrives from a group, the sender is added/confirmed as a GroupMember of the group contact (not the conversation)",
+        "The GroupContactMessageHandler concern is updated to use the new add_group_member(group_contact, contact) signature",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 49,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-057",
+      "title": "Update GroupMembersController to query GroupMember",
+      "description": "As a developer, I need Api::V1::Accounts::Contacts::GroupMembersController to query GroupMember instead of ConversationGroupMember.",
+      "acceptanceCriteria": [
+        "index action queries GroupMember.active.where(group_contact: @contact).includes(:contact) instead of searching through conversations",
+        "create action creates GroupMember records after calling the provider",
+        "update action (role change) updates the GroupMember record",
+        "destroy action sets is_active: false on the GroupMember record",
+        "The channel/provider is resolved from the group contact's contact_inbox/inbox (using the helper from US-064)",
+        "API response format stays the same (jbuilder view updated to read from GroupMember but returns the same JSON structure)",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 50,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-058",
+      "title": "Update GroupSettingsController to not depend on conversations",
+      "description": "As a developer, I need Api::V1::Accounts::Contacts::GroupSettingsController to find the channel/inbox from the group contact's contact_inbox instead of querying for open/pending conversations.",
+      "acceptanceCriteria": [
+        "channel helper finds inbox through @contact.contact_inboxes instead of searching conversations",
+        "leave action resolves all open/pending conversations for the group and resolves them",
+        "update and toggle_join_approval work without depending on conversation lookup",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 51,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-060",
+      "title": "Update group_members jbuilder views",
+      "description": "As a developer, I need to update the jbuilder views to render GroupMember records instead of ConversationGroupMember.",
+      "acceptanceCriteria": [
+        "app/views/api/v1/accounts/contacts/group_members/index.json.jbuilder renders GroupMember records",
+        "Response still includes id, role, is_active, and nested contact object with id, name, phone_number, identifier, thumbnail",
+        "Remove conversation_id from the response (no longer relevant)",
+        "app/views/api/v1/accounts/contacts/sync_group.json.jbuilder renders GroupMember records if it exists",
+        "bundle exec rubocop -a passes"
+      ],
+      "priority": 52,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-061",
+      "title": "Update sync_group action on conversations controller",
+      "description": "As a developer, I need the sync_group action in ConversationsController and ContactsController to use the new GroupMember model.",
+      "acceptanceCriteria": [
+        "sync_group calls conversation.inbox.channel.sync_group(conversation) which internally writes to GroupMember",
+        "The response still returns updated contact and group members data",
+        "Also update/add the sync_group on the contacts controller (contacts/:id/sync_group) to work with GroupMember",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 53,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-059",
+      "title": "Remove group_members association from Conversation model",
+      "description": "As a developer, I need to remove the group_members and group_contacts associations from the Conversation model since membership is now stored at the contact level.",
+      "acceptanceCriteria": [
+        "Remove has_many :group_members (class_name: ConversationGroupMember, dependent: :destroy_async) from Conversation",
+        "Remove has_many :group_contacts (through: :group_members, source: :contact) from Conversation",
+        "Any code that accessed conversation.group_members or conversation.group_contacts is updated to use conversation.contact.group_memberships",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 54,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-051",
+      "title": "Remove ConversationGroupMember model and table",
+      "description": "As a developer, I need to remove the old ConversationGroupMember model and drop the conversation_group_members table since membership is now stored in group_members.",
+      "acceptanceCriteria": [
+        "Create migration to drop conversation_group_members table",
+        "Remove app/models/conversation_group_member.rb",
+        "Remove has_many :conversation_group_memberships and has_many :group_conversations associations from Contact model",
+        "No remaining references to ConversationGroupMember in Ruby backend code",
+        "bundle exec rubocop -a passes",
+        "bundle exec rspec passes"
+      ],
+      "priority": 55,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-062",
+      "title": "Update frontend groupMembers store for new response",
+      "description": "As a developer, I need to ensure the frontend groupMembers Vuex store and API client work correctly after the backend removes conversation_id from the response.",
+      "acceptanceCriteria": [
+        "GroupMembersAPI endpoints remain the same (no URL changes needed)",
+        "groupMembers store mutations and getters work without conversation_id in the payload",
+        "GroupContactInfo.vue renders members correctly from the updated response",
+        "TagGroupMembers.vue (mention dropdown) works correctly",
+        "Editor mention integration works correctly for group conversations",
+        "Typecheck passes"
+      ],
+      "priority": 56,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

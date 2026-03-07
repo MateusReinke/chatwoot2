@@ -190,6 +190,16 @@ class ActionCableListener < BaseListener # rubocop:disable Metrics/ClassLength
     broadcast(account, [account_token(account)], CONTACT_DELETED, contact_data)
   end
 
+  def contact_group_synced(event)
+    contact, account = extract_contact_and_account(event)
+    payload = contact.push_event_data.merge(
+      group_members: group_members_data(contact, account),
+      inbox_phone_number: contact.group_channel&.phone_number
+    )
+
+    broadcast(account, [account_token(account)], CONTACT_GROUP_SYNCED, payload)
+  end
+
   def conversation_mentioned(event)
     conversation, account = extract_conversation_and_account(event)
     user = event.data[:user]
@@ -226,6 +236,16 @@ class ActionCableListener < BaseListener # rubocop:disable Metrics/ClassLength
     contact = contact_inbox.contact
 
     contact_inbox.hmac_verified? ? contact.contact_inboxes.where(hmac_verified: true).filter_map(&:pubsub_token) : [contact_inbox.pubsub_token]
+  end
+
+  def group_members_data(contact, _account)
+    GroupMember.active.where(group_contact: contact).includes(:contact).map do |member|
+      {
+        id: member.id, role: member.role, is_active: member.is_active, group_contact_id: member.group_contact_id,
+        contact: { id: member.contact.id, name: member.contact.name, phone_number: member.contact.phone_number,
+                   identifier: member.contact.identifier, thumbnail: member.contact.avatar_url }
+      }
+    end
   end
 
   def broadcast(account, tokens, event_name, data)

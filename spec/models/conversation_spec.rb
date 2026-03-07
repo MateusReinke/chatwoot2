@@ -1084,4 +1084,14 @@ RSpec.describe Conversation do
       end
     end
   end
+
+  describe 'group_type' do
+    it 'provides type check methods' do
+      individual_conversation = create(:conversation, group_type: :individual)
+      group_conversation = create(:conversation, group_type: :group)
+
+      expect(individual_conversation).to be_group_type_individual
+      expect(group_conversation).to be_group_type_group
+    end
+  end
 end

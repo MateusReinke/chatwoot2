@@ -55,6 +55,10 @@ const allMessages = computed(() => {
 
 const currentChat = useMapGetter('getSelectedChat');
 
+const isGroupConversation = computed(
+  () => currentChat.value?.group_type === 'group'
+);
+
 // Cache for fetched reply messages to avoid duplicate API calls
 const fetchedReplyMessages = reactive(new Map());
 
@@ -180,6 +184,10 @@ const getInReplyToMessage = parentMessage => {
         :is-email-inbox="isAnEmailChannel"
         :in-reply-to="getInReplyToMessage(message)"
         :group-with-next="shouldGroupWithNext(index, allMessages)"
+        :group-with-previous="
+          index > 0 && shouldGroupWithNext(index - 1, allMessages)
+        "
+        :is-group-conversation="isGroupConversation"
         :inbox-supports-reply-to="inboxSupportsReplyTo"
         :inbox-supports-edit="inboxSupportsEdit"
         :current-user-id="currentUserId"
