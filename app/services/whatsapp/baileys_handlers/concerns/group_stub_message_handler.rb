@@ -53,7 +53,12 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler # rubocop:di
 
       reset_group_left_flag(group_contact_inbox.contact)
       find_or_create_group_conversation(group_contact_inbox)
+      enqueue_group_sync(group_contact_inbox.contact)
     end
+  end
+
+  def enqueue_group_sync(group_contact)
+    Contacts::SyncGroupJob.set(wait: 5.seconds).perform_later(group_contact)
   end
 
   def reset_group_left_flag(group_contact)
@@ -64,8 +69,10 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler # rubocop:di
   end
 
   def update_group_avatar(group_contact)
-    provider_service = group_contact.group_channel
-    provider_service.try_update_group_avatar(group_contact, force: true)
+    provider = group_contact.group_channel&.provider_service
+    return if provider.blank?
+
+    provider.try_update_group_avatar(group_contact, force: true)
   rescue StandardError => e
     Rails.logger.error "[GROUP_ICON] Failed to update avatar for #{group_contact.identifier}: #{e.message}"
   end
