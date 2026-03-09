@@ -5,6 +5,8 @@ import { useAlert } from 'dashboard/composables';
 import { useI18n } from 'vue-i18n';
 import GroupMembersAPI from 'dashboard/api/groupMembers';
 import Switch from 'dashboard/components-next/switch/Switch.vue';
+import NextButton from 'dashboard/components-next/button/Button.vue';
+import ConfirmationModal from 'dashboard/components/widgets/modal/ConfirmationModal.vue';
 
 const props = defineProps({
   contact: {
@@ -39,6 +41,8 @@ const isTogglingRestrict = ref(false);
 const isTogglingAnnounce = ref(false);
 const isTogglingMemberAdd = ref(false);
 const isTogglingJoinApproval = ref(false);
+const isResettingInviteLink = ref(false);
+const confirmDialog = ref(null);
 
 const updateContactAttribute = async (key, value) => {
   await store.dispatch('contacts/update', {
@@ -88,17 +92,42 @@ const toggleSendMessages = async () => {
   }
 };
 
+const resetInviteLink = async () => {
+  isResettingInviteLink.value = true;
+  try {
+    await GroupMembersAPI.revokeInviteLink(props.contact.id);
+    useAlert(t('GROUP.BAILEYS_OPTIONS.RESET_INVITE_LINK_SUCCESS'));
+  } catch {
+    useAlert(t('GROUP.BAILEYS_OPTIONS.RESET_INVITE_LINK_ERROR'));
+  } finally {
+    isResettingInviteLink.value = false;
+  }
+};
+
 const toggleAddMembers = async () => {
+  // NOTE: member_add_mode: true = all members can add, false = only admins
+  const currentValue =
+    props.contact.additional_attributes?.member_add_mode !== false;
+  const newValue = !currentValue;
+
+  // When disabling (restricting to admins only), confirm and also reset invite link
+  if (!newValue) {
+    const confirmed = await confirmDialog.value.showConfirmation();
+    if (!confirmed) return;
+  }
+
   isTogglingMemberAdd.value = true;
   try {
-    // NOTE: member_add_mode: true = all members can add, false = only admins
-    const currentValue =
-      props.contact.additional_attributes?.member_add_mode !== false;
-    const newValue = !currentValue;
     await GroupMembersAPI.updateGroupProperty(props.contact.id, {
       property: 'member_add_mode',
       enabled: newValue,
     });
+
+    // Also revoke invite link when restricting member additions
+    if (!newValue) {
+      await GroupMembersAPI.revokeInviteLink(props.contact.id);
+    }
+
     await updateContactAttribute('member_add_mode', newValue);
     useAlert(t('GROUP.SETTINGS.UPDATE_SUCCESS'));
   } catch {
@@ -196,18 +225,21 @@ const toggleJoinApproval = async () => {
           </div>
         </div>
 
-        <!-- Invite via link or QR code (placeholder — no route yet) -->
-        <div class="flex items-center justify-between py-1 opacity-50">
+        <div class="flex items-center justify-between py-1">
           <div class="flex flex-col pr-2">
             <span class="text-sm text-n-slate-12">
-              {{ t('GROUP.BAILEYS_OPTIONS.INVITE_VIA_LINK') }}
-              <span class="text-xs text-n-slate-9">
-                {{ t('GROUP.BAILEYS_OPTIONS.NOT_AVAILABLE') }}
-              </span>
+              {{ t('GROUP.BAILEYS_OPTIONS.RESET_INVITE_LINK') }}
             </span>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <Switch model-value disabled />
+            <NextButton
+              size="xs"
+              faded
+              :is-loading="isResettingInviteLink"
+              :label="t('GROUP.BAILEYS_OPTIONS.RESET_INVITE_LINK')"
+              icon="i-lucide-refresh-cw"
+              @click="resetInviteLink"
+            />
           </div>
         </div>
       </div>
@@ -241,5 +273,16 @@ const toggleJoinApproval = async () => {
         </div>
       </div>
     </div>
+    <ConfirmationModal
+      ref="confirmDialog"
+      :title="t('GROUP.BAILEYS_OPTIONS.DISABLE_ADD_MEMBERS_CONFIRM_TITLE')"
+      :description="
+        t('GROUP.BAILEYS_OPTIONS.DISABLE_ADD_MEMBERS_CONFIRM_DESCRIPTION')
+      "
+      :confirm-label="
+        t('GROUP.BAILEYS_OPTIONS.DISABLE_ADD_MEMBERS_CONFIRM_YES')
+      "
+      :cancel-label="t('GROUP.BAILEYS_OPTIONS.DISABLE_ADD_MEMBERS_CONFIRM_NO')"
+    />
   </div>
 </template>
