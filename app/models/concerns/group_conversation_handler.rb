@@ -21,7 +21,7 @@ module GroupConversationHandler # rubocop:disable Metrics/ModuleLength
       source_id: extract_group_source_id,
       inbox: inbox,
       contact_attributes: {
-        name: extract_group_name,
+        name: extract_group_name || extract_group_source_id,
         identifier: extract_group_identifier,
         group_type: :group
       }

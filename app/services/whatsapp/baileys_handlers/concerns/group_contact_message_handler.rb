@@ -122,7 +122,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupContactMessageHandler # rubocop
   end
 
   def extract_group_name
-    extract_group_jid.split('@').first
+    nil
   end
 
   def extract_sender_identifier
