@@ -201,11 +201,16 @@ export default {
       const inboxPhone = meta.inbox_phone_number || this.inboxPhoneNumber;
       return isInboxAdminInGroup(inboxPhone, this.groupMembers);
     },
+    isGroupMembersLoaded() {
+      const meta = this.groupMembersMeta;
+      return meta.is_inbox_admin != null || this.groupMembers.length > 0;
+    },
     isAnnouncementModeRestricted() {
       return (
         this.isAWhatsAppBaileysChannel &&
         this.isGroupConversation &&
         this.currentContact?.additional_attributes?.announce === true &&
+        this.isGroupMembersLoaded &&
         !this.isInboxAdminInCurrentGroup
       );
     },
@@ -577,6 +582,21 @@ export default {
     message() {
       // Autosave the current message draft.
       this.doAutoSaveDraft();
+    },
+    groupContactId: {
+      immediate: true,
+      handler(contactId) {
+        if (
+          contactId &&
+          this.isAWhatsAppBaileysChannel &&
+          this.isGroupConversation &&
+          !this.isGroupMembersLoaded
+        ) {
+          this.$store.dispatch('groupMembers/fetch', {
+            contactId,
+          });
+        }
+      },
     },
     replyType(updatedReplyType, oldReplyType) {
       this.setToDraft(this.conversationIdByRoute, oldReplyType);
