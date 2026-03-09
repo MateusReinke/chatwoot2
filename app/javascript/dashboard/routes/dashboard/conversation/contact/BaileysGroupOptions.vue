@@ -95,7 +95,16 @@ const toggleSendMessages = async () => {
 const resetInviteLink = async () => {
   isResettingInviteLink.value = true;
   try {
-    await GroupMembersAPI.revokeInviteLink(props.contact.id);
+    const { data } = await GroupMembersAPI.revokeInviteLink(props.contact.id);
+    if (data.invite_code) {
+      store.dispatch('contacts/updateContact', {
+        ...props.contact,
+        additional_attributes: {
+          ...props.contact.additional_attributes,
+          invite_code: data.invite_code,
+        },
+      });
+    }
     useAlert(t('GROUP.BAILEYS_OPTIONS.RESET_INVITE_LINK_SUCCESS'));
   } catch {
     useAlert(t('GROUP.BAILEYS_OPTIONS.RESET_INVITE_LINK_ERROR'));

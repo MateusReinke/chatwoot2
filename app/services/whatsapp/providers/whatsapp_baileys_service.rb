@@ -698,7 +698,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
   def try_update_group_avatar(group_contact, force: false)
     if force
-      group_contact.avatar.purge if group_contact.avatar.attached?
+      reset_avatar_state(group_contact)
     elsif group_contact.avatar.attached?
       return
     end
@@ -708,6 +708,12 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     ::Avatar::AvatarFromUrlJob.perform_later(group_contact, profile_pic_url) if profile_pic_url
   rescue StandardError => e
     Rails.logger.error "Failed to update avatar for group #{group_contact.identifier}: #{e.message}"
+  end
+
+  def reset_avatar_state(group_contact)
+    group_contact.avatar.purge if group_contact.avatar.attached?
+    attrs = (group_contact.additional_attributes || {}).except('last_avatar_sync_at', 'avatar_url_hash')
+    group_contact.update_columns(additional_attributes: attrs) # rubocop:disable Rails/SkipsModelValidations
   end
 
   def try_update_participant_avatar(contact)

@@ -264,9 +264,23 @@ const loadingMemberId = ref(null);
 const menuPosition = ref({ top: 0, left: 0 });
 
 // Invite link state
-const inviteUrl = ref('');
+const storedInviteCode = computed(
+  () => props.contact.additional_attributes?.invite_code
+);
+const inviteUrl = ref(
+  storedInviteCode.value
+    ? `https://chat.whatsapp.com/${storedInviteCode.value}`
+    : ''
+);
 const isFetchingInvite = ref(false);
 const hasInviteLink = computed(() => !!inviteUrl.value);
+
+// Keep invite URL in sync with store updates (e.g. via ActionCable)
+watch(storedInviteCode, newCode => {
+  if (newCode) {
+    inviteUrl.value = `https://chat.whatsapp.com/${newCode}`;
+  }
+});
 
 // Join requests state
 const pendingRequests = computed(
@@ -591,7 +605,10 @@ const leaveGroup = async () => {
 const fetchGroupData = contactId => {
   if (!contactId) return;
   store.dispatch('groupMembers/fetch', { contactId });
-  fetchInviteLink();
+  // Only fetch from API if we don't already have a stored invite code
+  if (!storedInviteCode.value) {
+    fetchInviteLink();
+  }
 };
 
 watch(
