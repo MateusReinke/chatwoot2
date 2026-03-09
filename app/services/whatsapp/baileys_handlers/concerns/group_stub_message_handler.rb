@@ -1,4 +1,4 @@
-module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler
+module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler # rubocop:disable Metrics/ModuleLength
   MEMBERSHIP_REQUEST_STUB = 'GROUP_MEMBERSHIP_JOIN_APPROVAL_REQUEST_NON_ADMIN_ADD'.freeze
   ICON_CHANGE_STUB = 'GROUP_CHANGE_ICON'.freeze
   GROUP_CREATE_STUB = 'GROUP_CREATE'.freeze
@@ -19,6 +19,7 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler
       group_contact_inbox = find_or_create_group_contact_inbox_by_jid(group_jid)
       conversation = find_or_create_group_conversation(group_contact_inbox)
       create_group_activity(conversation, action, contact_name: contact_name)
+      update_pending_join_requests(group_contact_inbox.contact, stub_params, action)
     end
   end
 
@@ -103,5 +104,40 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler
 
   def format_fallback_name(lid, phone)
     phone ? "+#{phone}" : lid
+  end
+
+  def update_pending_join_requests(group_contact, stub_params, action)
+    participant_data = JSON.parse(stub_params.first)
+    lid = participant_data['lid']
+    current_requests = group_contact.additional_attributes&.dig('pending_join_requests') || []
+    updated = current_requests.reject { |r| r['jid'] == lid }
+    updated << build_join_request_entry(participant_data) if action == 'membership_request_created'
+
+    new_attrs = (group_contact.additional_attributes || {}).merge('pending_join_requests' => updated)
+    group_contact.update!(additional_attributes: new_attrs)
+  rescue JSON::ParserError, TypeError => e
+    Rails.logger.error "[GROUP_STUB] Failed to update pending join requests: #{e.message}"
+  end
+
+  def build_join_request_entry(participant_data)
+    contact = find_or_create_requester_contact(participant_data['lid'], participant_data['pn'])
+    { 'jid' => participant_data['lid'], 'contact_id' => contact&.id, 'request_time' => Time.current.to_i.to_s }
+  end
+
+  def find_or_create_requester_contact(lid_jid, phone_jid)
+    lid = extract_jid_user(lid_jid)
+    phone = extract_jid_user(phone_jid)
+    source_id = lid || phone
+    return if source_id.blank?
+
+    contact_inbox = ::ContactInboxWithContactBuilder.new(
+      source_id: source_id, inbox: inbox,
+      contact_attributes: requester_contact_attributes(lid, phone)
+    ).perform
+    contact_inbox&.contact
+  end
+
+  def requester_contact_attributes(lid, phone)
+    { name: phone ? "+#{phone}" : lid, phone_number: ("+#{phone}" if phone), identifier: ("#{lid}@lid" if lid) }.compact
   end
 end

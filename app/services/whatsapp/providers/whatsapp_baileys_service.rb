@@ -167,9 +167,12 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
       format: :json
     )
 
+    return [] if response.code == 403
+
     raise ProviderUnavailableError unless process_response(response)
 
-    response.parsed_response&.dig('data') || []
+    parsed = response.parsed_response
+    parsed.is_a?(Array) ? parsed : (parsed&.dig('data') || [])
   end
 
   def handle_group_join_requests(group_jid, participants, action)
@@ -243,6 +246,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     update_group_contact_info(group_contact, metadata)
     persist_group_settings(group_contact, metadata)
     persist_invite_code(group_contact)
+    persist_pending_join_requests(group_contact, inbox)
     try_update_group_avatar(group_contact)
 
     participant_contacts = build_participant_contacts(metadata[:participants], inbox)
@@ -675,6 +679,21 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     group_contact.update!(additional_attributes: new_attrs) if new_attrs != group_contact.additional_attributes
   rescue StandardError => e
     Rails.logger.error "Failed to fetch invite code for group #{group_contact.identifier}: #{e.message}"
+  end
+
+  def persist_pending_join_requests(group_contact, inbox)
+    raw_requests = group_join_requests(group_contact.identifier)
+    requests = raw_requests.filter_map do |req|
+      contact = find_or_create_participant_contact({ id: req['jid'], phoneNumber: req['phone_number'] }, inbox)
+      next if contact.blank?
+
+      { 'jid' => req['jid'], 'contact_id' => contact.id, 'request_time' => req['request_time'] }
+    end
+
+    new_attrs = (group_contact.additional_attributes || {}).merge('pending_join_requests' => requests)
+    group_contact.update!(additional_attributes: new_attrs) if new_attrs != group_contact.additional_attributes
+  rescue StandardError => e
+    Rails.logger.error "Failed to fetch pending join requests for group #{group_contact.identifier}: #{e.message}"
   end
 
   def try_update_group_avatar(group_contact, force: false)
