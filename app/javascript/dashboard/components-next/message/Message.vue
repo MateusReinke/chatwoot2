@@ -645,7 +645,7 @@ provideMessageContext({
       <div class="[grid-area:bubble]" @contextmenu="openContextMenu($event)">
         <span
           v-if="showGroupSenderName"
-          class="text-xs font-medium mb-0.5 block ltr:mr-8 rtl:ml-8 cursor-pointer hover:underline dark:!text-[var(--dark-sender-color)]"
+          class="text-xs font-medium mb-0.5 inline-block ltr:mr-8 rtl:ml-8 cursor-pointer hover:underline dark:!text-[var(--dark-sender-color)]"
           :style="senderNameStyle"
           @click="navigateToGroupSender($event)"
         >
