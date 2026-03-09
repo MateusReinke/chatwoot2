@@ -625,11 +625,15 @@ provideMessageContext({
     >
       <div
         v-if="showGroupSenderAvatar"
-        v-tooltip.right-end="avatarTooltip"
-        class="[grid-area:avatar] flex items-end cursor-pointer"
-        @click="navigateToGroupSender($event)"
+        class="[grid-area:avatar] flex items-end"
       >
-        <Avatar v-bind="avatarInfo" :size="24" />
+        <Avatar
+          v-tooltip.right-end="avatarTooltip"
+          v-bind="avatarInfo"
+          :size="24"
+          class="cursor-pointer"
+          @click="navigateToGroupSender($event)"
+        />
       </div>
       <div
         v-if="!shouldGroupWithNext && shouldShowAvatar"
