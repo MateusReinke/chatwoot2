@@ -28,6 +28,7 @@ import { useUISettings } from 'dashboard/composables/useUISettings';
 import { useAlert } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useMessageFormatter } from 'shared/composables/useMessageFormatter';
+import { vOnClickOutside } from '@vueuse/components';
 
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import {

@@ -1022,7 +1022,7 @@ useEventListener(sidebarScrollRef, 'scroll', closeMemberMenu);
               <NextButton
                 icon="i-lucide-check"
                 variant="ghost"
-                color="green"
+                color="teal"
                 size="xs"
                 @click="handleJoinRequest(request, 'approve')"
               />
