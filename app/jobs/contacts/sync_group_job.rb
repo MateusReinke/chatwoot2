@@ -3,8 +3,8 @@ class Contacts::SyncGroupJob < ApplicationJob
 
   SYNC_COOLDOWN = 15.minutes
 
-  def perform(contact)
-    return if recently_synced?(contact)
+  def perform(contact, force: false)
+    return if !force && recently_synced?(contact)
 
     Contacts::SyncGroupService.new(contact: contact).perform
   rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e

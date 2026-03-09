@@ -51,14 +51,34 @@ module Whatsapp::BaileysHandlers::Concerns::GroupStubMessageHandler # rubocop:di
         }
       ).perform
 
-      reset_group_left_flag(group_contact_inbox.contact)
+      group_contact = group_contact_inbox.contact
+      was_group_left = group_contact.additional_attributes&.dig('group_left').present?
+      reset_group_left_flag(group_contact)
       find_or_create_group_conversation(group_contact_inbox)
-      enqueue_group_sync(group_contact_inbox.contact)
+      handle_group_rejoin(group_contact) if was_group_left
+      enqueue_group_sync(group_contact, force: was_group_left)
     end
   end
 
-  def enqueue_group_sync(group_contact)
-    Contacts::SyncGroupJob.set(wait: 5.seconds).perform_later(group_contact)
+  def handle_group_rejoin(group_contact)
+    add_inbox_contact_as_member(group_contact)
+    dispatch_group_synced_event(group_contact)
+  end
+
+  def enqueue_group_sync(group_contact, force: false)
+    Contacts::SyncGroupJob.set(wait: 5.seconds).perform_later(group_contact, force: force)
+  end
+
+  def add_inbox_contact_as_member(group_contact)
+    inbox_phone = inbox.channel.phone_number&.delete('+')
+    return if inbox_phone.blank?
+
+    contact = Contact.where(account_id: inbox.account_id)
+                     .where("REPLACE(phone_number, '+', '') = ?", inbox_phone)
+                     .first
+    return if contact.blank?
+
+    add_group_member(group_contact, contact)
   end
 
   def reset_group_left_flag(group_contact)

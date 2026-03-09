@@ -38,6 +38,17 @@ RSpec.describe Contacts::SyncGroupJob do
       expect(Contacts::SyncGroupService).not_to have_received(:new)
     end
 
+    it 'calls SyncGroupService when recently synced but force is true' do
+      contact.update!(additional_attributes: { 'group_last_synced_at' => 5.minutes.ago.to_i })
+
+      service = instance_double(Contacts::SyncGroupService, perform: contact)
+      allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact).and_return(service)
+
+      described_class.perform_now(contact, force: true)
+
+      expect(Contacts::SyncGroupService).to have_received(:new).with(contact: contact)
+    end
+
     it 'rescues ProviderUnavailableError without re-raising' do
       allow(Contacts::SyncGroupService).to receive(:new).and_raise(
         Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError, 'Provider offline'
