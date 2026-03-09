@@ -53,6 +53,7 @@ import { appendSignature } from 'dashboard/helper/editorHelper';
 import { useCopilotReply } from 'dashboard/composables/useCopilotReply';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { isFileTypeAllowedForChannel } from 'shared/helpers/FileHelper';
+import { isInboxAdminInGroup } from 'dashboard/helper/phoneHelper';
 
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { LocalStorage } from 'shared/helpers/localStorage';
@@ -178,6 +179,35 @@ export default {
     inboxPhoneNumber() {
       return this.inbox?.phone_number || null;
     },
+    groupMembers() {
+      if (!this.groupContactId) return [];
+      return (
+        this.$store.getters['groupMembers/getGroupMembers'](
+          this.groupContactId
+        ) || []
+      );
+    },
+    groupMembersMeta() {
+      if (!this.groupContactId) return {};
+      return (
+        this.$store.getters['groupMembers/getGroupMembersMeta'](
+          this.groupContactId
+        ) || {}
+      );
+    },
+    isInboxAdminInCurrentGroup() {
+      const inboxPhone =
+        this.groupMembersMeta.inbox_phone_number || this.inboxPhoneNumber;
+      return isInboxAdminInGroup(inboxPhone, this.groupMembers);
+    },
+    isAnnouncementModeRestricted() {
+      return (
+        this.isAWhatsAppBaileysChannel &&
+        this.isGroupConversation &&
+        this.currentContact?.additional_attributes?.announce === true &&
+        !this.isInboxAdminInCurrentGroup
+      );
+    },
     shouldShowReplyToMessage() {
       return (
         this.inReplyTo?.id &&
@@ -220,6 +250,9 @@ export default {
       return this.$store.getters['inboxes/getInbox'](this.inboxId);
     },
     messagePlaceHolder() {
+      if (this.isAnnouncementModeRestricted && !this.isOnPrivateNote) {
+        return this.$t('CONVERSATION.FOOTER.ANNOUNCEMENT_MODE_RESTRICTED');
+      }
       if (this.isEditorDisabled) {
         return this.isAWhatsAppChannel
           ? this.$t('CONVERSATION.FOOTER.MESSAGING_RESTRICTED_WHATSAPP')
@@ -455,6 +488,9 @@ export default {
       return !this.showAudioRecorderEditor && !this.copilot.isActive.value;
     },
     isEditorDisabled() {
+      if (this.isAnnouncementModeRestricted && !this.isOnPrivateNote) {
+        return true;
+      }
       return (
         this.isAWhatsAppChannel &&
         !this.isOnPrivateNote &&

@@ -18,6 +18,7 @@ import { useExpandableContent } from 'shared/composables/useExpandableContent';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
 import ContactsAPI from 'dashboard/api/contacts';
 import GroupMembersAPI from 'dashboard/api/groupMembers';
+import { phonesMatch } from 'dashboard/helper/phoneHelper';
 import Avatar from 'next/avatar/Avatar.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
@@ -72,16 +73,6 @@ const hasMoreMembers = computed(() => {
   if (!meta.total_count || !meta.page || !meta.per_page) return false;
   return meta.page * meta.per_page < meta.total_count;
 });
-
-// Compare phone numbers flexibly to handle format differences
-// (e.g. Brazilian 9th digit: +5587988465072 vs +558788465072)
-const phonesMatch = (phoneA, phoneB) => {
-  const a = phoneA?.replace(/\D/g, '');
-  const b = phoneB?.replace(/\D/g, '');
-  if (!a || !b) return false;
-  if (a === b) return true;
-  return a.length >= 8 && b.length >= 8 && a.slice(-8) === b.slice(-8);
-};
 
 const isInboxAdmin = computed(() => {
   if (!inboxPhone.value) return false;

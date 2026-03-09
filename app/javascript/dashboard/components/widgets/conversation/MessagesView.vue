@@ -38,6 +38,7 @@ import wootConstants from 'dashboard/constants/globals';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import WhatsappLinkDeviceModal from '../../../routes/dashboard/settings/inbox/components/WhatsappLinkDeviceModal.vue';
+import { isInboxAdminInGroup } from 'dashboard/helper/phoneHelper';
 
 export default {
   components: {
@@ -257,6 +258,46 @@ export default {
     inboxSupportsEdit() {
       // Currently only Baileys WhatsApp channel supports message editing
       return this.isAWhatsAppBaileysChannel;
+    },
+    currentContact() {
+      const senderId = this.currentChat?.meta?.sender?.id;
+      if (!senderId) return {};
+      return this.$store.getters['contacts/getContact'](senderId);
+    },
+    isGroupConversation() {
+      return this.currentChat?.group_type === 'group';
+    },
+    groupContactId() {
+      return this.currentChat?.meta?.sender?.id || null;
+    },
+    groupMembers() {
+      if (!this.groupContactId) return [];
+      return (
+        this.$store.getters['groupMembers/getGroupMembers'](
+          this.groupContactId
+        ) || []
+      );
+    },
+    groupMembersMeta() {
+      if (!this.groupContactId) return {};
+      return (
+        this.$store.getters['groupMembers/getGroupMembersMeta'](
+          this.groupContactId
+        ) || {}
+      );
+    },
+    isInboxAdminInCurrentGroup() {
+      const inboxPhone =
+        this.groupMembersMeta.inbox_phone_number || this.inbox?.phone_number;
+      return isInboxAdminInGroup(inboxPhone, this.groupMembers);
+    },
+    isAnnouncementModeRestricted() {
+      return (
+        this.isAWhatsAppBaileysChannel &&
+        this.isGroupConversation &&
+        this.currentContact?.additional_attributes?.announce === true &&
+        !this.isInboxAdminInCurrentGroup
+      );
     },
     inboxProviderConnection() {
       return this.currentInbox.provider_connection?.connection;
@@ -536,6 +577,12 @@ export default {
       color-scheme="alert"
       class="mx-2 mt-2 overflow-hidden rounded-lg"
       :banner-message="$t('CONVERSATION.OLD_INSTAGRAM_INBOX_REPLY_BANNER')"
+    />
+    <Banner
+      v-else-if="isAnnouncementModeRestricted"
+      color-scheme="alert"
+      class="mx-2 mt-2 overflow-hidden rounded-lg"
+      :banner-message="$t('CONVERSATION.ANNOUNCEMENT_MODE_BANNER')"
     />
     <MessageList
       ref="conversationPanelRef"
