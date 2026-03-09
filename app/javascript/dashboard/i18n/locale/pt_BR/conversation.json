@@ -44,6 +44,7 @@
     "TWILIO_WHATSAPP_CAN_REPLY": "Você só pode responder a esta conversa usando um modelo de mensagem devido a",
     "TWILIO_WHATSAPP_24_HOURS_WINDOW": "Restrições de janela de mensagem de 24 horas",
     "ANNOUNCEMENT_MODE_BANNER": "Apenas administradores têm permissão para enviar mensagens neste grupo",
+    "GROUP_LEFT_BANNER": "Você não faz mais parte deste grupo e não pode enviar mensagens nele",
     "OLD_INSTAGRAM_INBOX_REPLY_BANNER": "Esta conta do Instagram foi migrada para a nova caixa de entrada do canal do Instagram. Todas as novas mensagens serão mostradas lá. Você não poderá mais enviar mensagens desta conversa.",
     "REPLYING_TO": "Você está respondendo a:",
     "REMOVE_SELECTION": "Remover seleção",
@@ -194,7 +195,8 @@
       "MESSAGE_SIGNATURE_NOT_CONFIGURED": "A assinatura da mensagem não está configurada. Por favor, configure-a nas configurações do perfil.",
       "CLICK_HERE": "Clique aqui para atualizar",
       "WHATSAPP_TEMPLATES": "Templates do Whatsapp",
-      "ANNOUNCEMENT_MODE_RESTRICTED": "Apenas administradores têm permissão para enviar mensagens neste grupo"
+      "ANNOUNCEMENT_MODE_RESTRICTED": "Apenas administradores têm permissão para enviar mensagens neste grupo",
+      "GROUP_LEFT_RESTRICTED": "Você não faz mais parte deste grupo e não pode enviar mensagens nele"
     },
     "REPLYBOX": {
       "REPLY": "Responder",

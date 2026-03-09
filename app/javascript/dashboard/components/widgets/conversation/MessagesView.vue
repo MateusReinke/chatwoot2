@@ -287,8 +287,9 @@ export default {
       );
     },
     isInboxAdminInCurrentGroup() {
-      const inboxPhone =
-        this.groupMembersMeta.inbox_phone_number || this.inbox?.phone_number;
+      const meta = this.groupMembersMeta;
+      if (meta.is_inbox_admin != null) return meta.is_inbox_admin;
+      const inboxPhone = meta.inbox_phone_number || this.inbox?.phone_number;
       return isInboxAdminInGroup(inboxPhone, this.groupMembers);
     },
     isAnnouncementModeRestricted() {
@@ -297,6 +298,13 @@ export default {
         this.isGroupConversation &&
         this.currentContact?.additional_attributes?.announce === true &&
         !this.isInboxAdminInCurrentGroup
+      );
+    },
+    isGroupLeft() {
+      return (
+        this.isAWhatsAppBaileysChannel &&
+        this.isGroupConversation &&
+        this.currentContact?.additional_attributes?.group_left === true
       );
     },
     inboxProviderConnection() {
@@ -577,6 +585,12 @@ export default {
       color-scheme="alert"
       class="mx-2 mt-2 overflow-hidden rounded-lg"
       :banner-message="$t('CONVERSATION.OLD_INSTAGRAM_INBOX_REPLY_BANNER')"
+    />
+    <Banner
+      v-else-if="isGroupLeft"
+      color-scheme="alert"
+      class="mx-2 mt-2 overflow-hidden rounded-lg"
+      :banner-message="$t('CONVERSATION.GROUP_LEFT_BANNER')"
     />
     <Banner
       v-else-if="isAnnouncementModeRestricted"

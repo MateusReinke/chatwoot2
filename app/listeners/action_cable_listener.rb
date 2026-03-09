@@ -192,9 +192,11 @@ class ActionCableListener < BaseListener # rubocop:disable Metrics/ClassLength
 
   def contact_group_synced(event)
     contact, account = extract_contact_and_account(event)
+    inbox_phone = contact.group_channel&.phone_number
     payload = contact.push_event_data.merge(
       group_members: group_members_data(contact, account),
-      inbox_phone_number: contact.group_channel&.phone_number
+      inbox_phone_number: inbox_phone,
+      is_inbox_admin: inbox_admin_in_group?(contact, inbox_phone)
     )
 
     broadcast(account, [account_token(account)], CONTACT_GROUP_SYNCED, payload)
@@ -246,6 +248,17 @@ class ActionCableListener < BaseListener # rubocop:disable Metrics/ClassLength
                    identifier: member.contact.identifier, thumbnail: member.contact.avatar_url }
       }
     end
+  end
+
+  def inbox_admin_in_group?(contact, inbox_phone)
+    return false if inbox_phone.blank?
+
+    clean = inbox_phone.delete('+')
+    GroupMember.active
+               .where(group_contact: contact, role: :admin)
+               .joins(:contact)
+               .exists?(['REPLACE(contacts.phone_number, \'+\', \'\') = ? OR RIGHT(REPLACE(contacts.phone_number, \'+\', \'\'), 8) = RIGHT(?, 8)',
+                         clean, clean])
   end
 
   def broadcast(account, tokens, event_name, data)

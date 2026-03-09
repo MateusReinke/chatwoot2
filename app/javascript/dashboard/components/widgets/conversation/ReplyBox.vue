@@ -196,8 +196,9 @@ export default {
       );
     },
     isInboxAdminInCurrentGroup() {
-      const inboxPhone =
-        this.groupMembersMeta.inbox_phone_number || this.inboxPhoneNumber;
+      const meta = this.groupMembersMeta;
+      if (meta.is_inbox_admin != null) return meta.is_inbox_admin;
+      const inboxPhone = meta.inbox_phone_number || this.inboxPhoneNumber;
       return isInboxAdminInGroup(inboxPhone, this.groupMembers);
     },
     isAnnouncementModeRestricted() {
@@ -206,6 +207,13 @@ export default {
         this.isGroupConversation &&
         this.currentContact?.additional_attributes?.announce === true &&
         !this.isInboxAdminInCurrentGroup
+      );
+    },
+    isGroupLeft() {
+      return (
+        this.isAWhatsAppBaileysChannel &&
+        this.isGroupConversation &&
+        this.currentContact?.additional_attributes?.group_left === true
       );
     },
     shouldShowReplyToMessage() {
@@ -250,6 +258,9 @@ export default {
       return this.$store.getters['inboxes/getInbox'](this.inboxId);
     },
     messagePlaceHolder() {
+      if (this.isGroupLeft && !this.isOnPrivateNote) {
+        return this.$t('CONVERSATION.FOOTER.GROUP_LEFT_RESTRICTED');
+      }
       if (this.isAnnouncementModeRestricted && !this.isOnPrivateNote) {
         return this.$t('CONVERSATION.FOOTER.ANNOUNCEMENT_MODE_RESTRICTED');
       }
@@ -488,6 +499,9 @@ export default {
       return !this.showAudioRecorderEditor && !this.copilot.isActive.value;
     },
     isEditorDisabled() {
+      if (this.isGroupLeft && !this.isOnPrivateNote) {
+        return true;
+      }
       if (this.isAnnouncementModeRestricted && !this.isOnPrivateNote) {
         return true;
       }

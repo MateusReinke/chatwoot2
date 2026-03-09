@@ -19,4 +19,5 @@ json.meta do
   json.page @page
   json.per_page @per_page
   json.inbox_phone_number @inbox_phone_number
+  json.is_inbox_admin @is_inbox_admin
 end

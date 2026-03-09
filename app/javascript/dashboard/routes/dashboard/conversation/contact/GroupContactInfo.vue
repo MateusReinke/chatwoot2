@@ -75,6 +75,8 @@ const hasMoreMembers = computed(() => {
 });
 
 const isInboxAdmin = computed(() => {
+  if (membersMeta.value.is_inbox_admin != null)
+    return membersMeta.value.is_inbox_admin;
   if (!inboxPhone.value) return false;
   return members.value.some(
     m =>

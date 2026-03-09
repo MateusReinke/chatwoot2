@@ -14,6 +14,7 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
     @page = [(params[:page] || 1).to_i, 1].max
     @per_page = (params[:per_page] || DEFAULT_PER_PAGE).to_i.clamp(1, 100)
     @inbox_phone_number = inbox_phone_number
+    @is_inbox_admin = inbox_admin?
 
     paginated = base_query.order(role: :desc, id: :asc)
                           .offset((@page - 1) * @per_page)
@@ -89,6 +90,12 @@ class Api::V1::Accounts::Contacts::GroupMembersController < Api::V1::Accounts::C
 
   def inbox_phone_number
     channel&.phone_number
+  end
+
+  def inbox_admin?
+    return false if @inbox_phone_number.blank?
+
+    find_own_member&.role == 'admin'
   end
 
   def pin_own_member_on_first_page(paginated)

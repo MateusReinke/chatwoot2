@@ -26,7 +26,10 @@ export const getters = {
 };
 
 export const actions = {
-  setGroupMembers({ commit }, { contactId, members, inboxPhoneNumber }) {
+  setGroupMembers(
+    { commit },
+    { contactId, members, inboxPhoneNumber, isInboxAdmin }
+  ) {
     commit(types.SET_GROUP_MEMBERS, { contactId, members });
     commit(types.SET_GROUP_MEMBERS_META, {
       contactId,
@@ -35,6 +38,7 @@ export const actions = {
         page: 1,
         per_page: members.length,
         inbox_phone_number: inboxPhoneNumber || null,
+        is_inbox_admin: isInboxAdmin ?? null,
       },
     });
   },
