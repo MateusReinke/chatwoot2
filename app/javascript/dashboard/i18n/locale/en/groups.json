@@ -82,6 +82,18 @@
       "EVERYONE": "Everyone",
       "EVERYONE_DESCRIPTION": "Notify all members"
     },
+    "BAILEYS_OPTIONS": {
+      "MEMBERS_CAN": "Group members can:",
+      "ADMINS_CAN": "Group admins can:",
+      "EDIT_GROUP_SETTINGS": "Edit group settings",
+      "EDIT_GROUP_SETTINGS_DESCRIPTION": "Includes group name, image, description, disappearing messages duration, advanced conversation privacy, and allows pinning and saving messages in the conversation or reverting this action.",
+      "SEND_MESSAGES": "Send new messages",
+      "ADD_MEMBERS": "Add members",
+      "INVITE_VIA_LINK": "Invite via link or QR code",
+      "APPROVE_MEMBERS": "Approve new members",
+      "APPROVE_MEMBERS_DESCRIPTION": "While this option is enabled, admins must approve new members joining the group.",
+      "NOT_AVAILABLE": "(coming soon)"
+    },
     "SETTINGS": {
       "SECTION_TITLE": "Group Settings",
       "ANNOUNCEMENT_MODE": "Announcement Mode",

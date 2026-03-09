@@ -21,9 +21,9 @@ import GroupMembersAPI from 'dashboard/api/groupMembers';
 import Avatar from 'next/avatar/Avatar.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
-import Switch from 'dashboard/components-next/switch/Switch.vue';
 import Accordion from 'dashboard/components-next/Accordion/Accordion.vue';
 import TeleportWithDirection from 'dashboard/components-next/TeleportWithDirection.vue';
+import BaileysGroupOptions from './BaileysGroupOptions.vue';
 
 const props = defineProps({
   contact: {
@@ -276,23 +276,67 @@ const isFetchingInvite = ref(false);
 const hasInviteLink = computed(() => !!inviteUrl.value);
 
 // Join requests state
-const pendingRequests = ref([]);
-const isFetchingRequests = ref(false);
+const pendingRequests = computed(
+  () => props.contact.additional_attributes?.pending_join_requests || []
+);
+const REQUESTS_PAGE_SIZE = 2;
+const visibleRequestCount = ref(REQUESTS_PAGE_SIZE);
+const visibleRequests = computed(() =>
+  pendingRequests.value.slice(0, visibleRequestCount.value)
+);
+const hasMoreRequests = computed(
+  () => pendingRequests.value.length > visibleRequestCount.value
+);
 const loadingRequestJid = ref(null);
+const requestsSentinelRef = ref(null);
+const requestContacts = ref({});
+let requestsObserver = null;
 
-// Group settings state
-const isAnnouncementMode = computed(
-  () => props.contact.additional_attributes?.announce === true
-);
-const isLockedMode = computed(
-  () => props.contact.additional_attributes?.restrict === true
-);
-const isJoinApprovalEnabled = computed(
-  () => props.contact.additional_attributes?.join_approval_mode === true
-);
-const isTogglingAnnouncement = ref(false);
-const isTogglingLocked = ref(false);
-const isTogglingJoinApproval = ref(false);
+const fetchRequestContacts = async requests => {
+  const ids = requests
+    .map(r => r.contact_id)
+    .filter(id => id && !requestContacts.value[id]);
+  if (!ids.length) return;
+
+  const results = {};
+  await Promise.all(
+    ids.map(async id => {
+      try {
+        const { data } = await ContactsAPI.show(id);
+        results[id] = data.payload || data;
+      } catch {
+        // contact might have been deleted — ignore
+      }
+    })
+  );
+  requestContacts.value = { ...requestContacts.value, ...results };
+};
+
+const getRequestContact = request =>
+  requestContacts.value[request.contact_id] || null;
+
+watch(pendingRequests, fetchRequestContacts, { immediate: true });
+
+const loadMoreRequests = () => {
+  if (!hasMoreRequests.value) return;
+  visibleRequestCount.value += REQUESTS_PAGE_SIZE;
+};
+
+const setupRequestsObserver = () => {
+  if (requestsObserver) requestsObserver.disconnect();
+  if (!requestsSentinelRef.value) return;
+  requestsObserver = new IntersectionObserver(entries => {
+    if (entries[0]?.isIntersecting) loadMoreRequests();
+  });
+  requestsObserver.observe(requestsSentinelRef.value);
+};
+
+watch(requestsSentinelRef, setupRequestsObserver);
+
+onBeforeUnmount(() => {
+  if (requestsObserver) requestsObserver.disconnect();
+});
+
 const isLeavingGroup = ref(false);
 const showLeaveConfirm = ref(false);
 
@@ -504,18 +548,6 @@ const copyInviteLink = async () => {
 };
 
 // Join request methods
-const fetchPendingRequests = async () => {
-  isFetchingRequests.value = true;
-  try {
-    const { data } = await GroupMembersAPI.getPendingRequests(props.contact.id);
-    pendingRequests.value = data.payload || [];
-  } catch {
-    pendingRequests.value = [];
-  } finally {
-    isFetchingRequests.value = false;
-  }
-};
-
 const handleJoinRequest = async (request, action) => {
   loadingRequestJid.value = request.jid;
   const dismiss = usePendingAlert(t('GROUP.JOIN_REQUESTS.PROCESSING'));
@@ -524,9 +556,15 @@ const handleJoinRequest = async (request, action) => {
       participants: [request.jid],
       request_action: action,
     });
-    pendingRequests.value = pendingRequests.value.filter(
-      r => r.jid !== request.jid
-    );
+    // Optimistic local update — remove handled request from additional_attributes
+    const updated = pendingRequests.value.filter(r => r.jid !== request.jid);
+    await store.dispatch('contacts/update', {
+      id: props.contact.id,
+      additional_attributes: {
+        ...props.contact.additional_attributes,
+        pending_join_requests: updated,
+      },
+    });
     const msgKey =
       action === 'approve'
         ? 'GROUP.JOIN_REQUESTS.APPROVE_SUCCESS'
@@ -538,73 +576,6 @@ const handleJoinRequest = async (request, action) => {
     useAlert(t('GROUP.JOIN_REQUESTS.ACTION_ERROR'));
   } finally {
     loadingRequestJid.value = null;
-  }
-};
-
-// Group settings methods
-const toggleAnnouncementMode = async () => {
-  isTogglingAnnouncement.value = true;
-  try {
-    const enabled = !isAnnouncementMode.value;
-    await GroupMembersAPI.updateGroupProperty(props.contact.id, {
-      property: 'announce',
-      enabled,
-    });
-    await store.dispatch('contacts/update', {
-      id: props.contact.id,
-      additional_attributes: {
-        ...props.contact.additional_attributes,
-        announce: enabled,
-      },
-    });
-    useAlert(t('GROUP.SETTINGS.UPDATE_SUCCESS'));
-  } catch {
-    useAlert(t('GROUP.SETTINGS.UPDATE_ERROR'));
-  } finally {
-    isTogglingAnnouncement.value = false;
-  }
-};
-
-const toggleLockedMode = async () => {
-  isTogglingLocked.value = true;
-  try {
-    const enabled = !isLockedMode.value;
-    await GroupMembersAPI.updateGroupProperty(props.contact.id, {
-      property: 'restrict',
-      enabled,
-    });
-    await store.dispatch('contacts/update', {
-      id: props.contact.id,
-      additional_attributes: {
-        ...props.contact.additional_attributes,
-        restrict: enabled,
-      },
-    });
-    useAlert(t('GROUP.SETTINGS.UPDATE_SUCCESS'));
-  } catch {
-    useAlert(t('GROUP.SETTINGS.UPDATE_ERROR'));
-  } finally {
-    isTogglingLocked.value = false;
-  }
-};
-
-const toggleJoinApproval = async () => {
-  isTogglingJoinApproval.value = true;
-  try {
-    const mode = isJoinApprovalEnabled.value ? 'off' : 'on';
-    await GroupMembersAPI.toggleJoinApproval(props.contact.id, { mode });
-    await store.dispatch('contacts/update', {
-      id: props.contact.id,
-      additional_attributes: {
-        ...props.contact.additional_attributes,
-        join_approval_mode: !isJoinApprovalEnabled.value,
-      },
-    });
-    useAlert(t('GROUP.SETTINGS.UPDATE_SUCCESS'));
-  } catch {
-    useAlert(t('GROUP.SETTINGS.UPDATE_ERROR'));
-  } finally {
-    isTogglingJoinApproval.value = false;
   }
 };
 
@@ -628,13 +599,13 @@ const fetchGroupData = contactId => {
   if (!contactId) return;
   store.dispatch('groupMembers/fetch', { contactId });
   fetchInviteLink();
-  fetchPendingRequests();
 };
 
 watch(
   () => props.contact.id,
   (newId, oldId) => {
     if (newId && newId !== oldId) {
+      visibleRequestCount.value = REQUESTS_PAGE_SIZE;
       fetchGroupData(newId);
     }
   }
@@ -992,26 +963,45 @@ useEventListener(sidebarScrollRef, 'scroll', closeMemberMenu);
             }}
           </span>
         </h4>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 overflow-y-auto max-h-28">
           <div
-            v-for="request in pendingRequests"
+            v-for="request in visibleRequests"
             :key="request.jid"
             class="flex items-center gap-3 py-1"
           >
-            <Avatar
-              :name="request.name || request.jid"
-              :size="32"
-              rounded-full
-            />
+            <a
+              v-if="getRequestContact(request)"
+              :href="`/app/accounts/${route.params.accountId}/contacts/${request.contact_id}`"
+              target="_blank"
+              rel="noopener nofollow noreferrer"
+              class="shrink-0"
+            >
+              <Avatar
+                :src="getRequestContact(request)?.thumbnail"
+                :name="getRequestContact(request)?.name || request.jid"
+                :size="32"
+                rounded-full
+              />
+            </a>
+            <Avatar v-else :name="request.jid" :size="32" rounded-full />
             <div class="flex flex-col flex-1 min-w-0">
-              <span class="text-sm truncate text-n-slate-12">
-                {{ request.name || request.jid }}
+              <a
+                v-if="getRequestContact(request)"
+                :href="`/app/accounts/${route.params.accountId}/contacts/${request.contact_id}`"
+                target="_blank"
+                rel="noopener nofollow noreferrer"
+                class="text-sm truncate text-n-slate-12 hover:text-n-brand"
+              >
+                {{ getRequestContact(request)?.name || request.jid }}
+              </a>
+              <span v-else class="text-sm truncate text-n-slate-12">
+                {{ request.jid }}
               </span>
               <span
-                v-if="request.phone_number || request.jid"
+                v-if="getRequestContact(request)?.phone_number"
                 class="text-xs text-n-slate-10"
               >
-                {{ request.phone_number || request.jid }}
+                {{ getRequestContact(request).phone_number }}
               </span>
             </div>
             <span
@@ -1020,14 +1010,13 @@ useEventListener(sidebarScrollRef, 'scroll', closeMemberMenu);
             />
             <div v-else class="flex items-center gap-1">
               <NextButton
-                :label="t('GROUP.JOIN_REQUESTS.APPROVE_BUTTON')"
                 icon="i-lucide-check"
                 variant="ghost"
+                color="green"
                 size="xs"
                 @click="handleJoinRequest(request, 'approve')"
               />
               <NextButton
-                :label="t('GROUP.JOIN_REQUESTS.REJECT_BUTTON')"
                 icon="i-lucide-x"
                 variant="ghost"
                 color="ruby"
@@ -1036,91 +1025,28 @@ useEventListener(sidebarScrollRef, 'scroll', closeMemberMenu);
               />
             </div>
           </div>
+          <div v-if="hasMoreRequests" ref="requestsSentinelRef" class="h-px" />
+          <div v-if="hasMoreRequests" class="flex flex-col gap-3 pt-1">
+            <div
+              v-for="i in REQUESTS_PAGE_SIZE"
+              :key="`req-skel-${i}`"
+              class="flex items-center gap-3"
+            >
+              <div class="rounded-full size-8 bg-n-slate-3 animate-pulse" />
+              <div class="flex flex-col flex-1 gap-1">
+                <div class="w-2/5 h-4 rounded bg-n-slate-3 animate-pulse" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Advanced Options (Settings + Leave) -->
       <Accordion
         v-if="!isGroupLeft"
         :title="t('GROUP.SETTINGS.ADVANCED_OPTIONS')"
         class="mt-4"
       >
-        <!-- Group Settings section (admin only) -->
-        <div v-if="isInboxAdmin">
-          <h4 class="mb-2 text-sm font-semibold text-n-slate-11">
-            {{ t('GROUP.SETTINGS.SECTION_TITLE') }}
-          </h4>
-          <div class="flex flex-col gap-2">
-            <!-- Announcement Mode -->
-            <div class="flex items-center justify-between py-1">
-              <div class="flex flex-col">
-                <span class="text-sm text-n-slate-12">
-                  {{ t('GROUP.SETTINGS.ANNOUNCEMENT_MODE') }}
-                </span>
-                <span class="text-xs text-n-slate-10">
-                  {{ t('GROUP.SETTINGS.ANNOUNCEMENT_MODE_DESCRIPTION') }}
-                </span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span
-                  v-if="isTogglingAnnouncement"
-                  class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
-                />
-                <Switch
-                  :model-value="isAnnouncementMode"
-                  :disabled="isTogglingAnnouncement"
-                  @change="toggleAnnouncementMode"
-                />
-              </div>
-            </div>
-
-            <!-- Locked Mode -->
-            <div class="flex items-center justify-between py-1">
-              <div class="flex flex-col">
-                <span class="text-sm text-n-slate-12">
-                  {{ t('GROUP.SETTINGS.LOCKED_MODE') }}
-                </span>
-                <span class="text-xs text-n-slate-10">
-                  {{ t('GROUP.SETTINGS.LOCKED_MODE_DESCRIPTION') }}
-                </span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span
-                  v-if="isTogglingLocked"
-                  class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
-                />
-                <Switch
-                  :model-value="isLockedMode"
-                  :disabled="isTogglingLocked"
-                  @change="toggleLockedMode"
-                />
-              </div>
-            </div>
-
-            <!-- Join Approval -->
-            <div class="flex items-center justify-between py-1">
-              <div class="flex flex-col">
-                <span class="text-sm text-n-slate-12">
-                  {{ t('GROUP.SETTINGS.JOIN_APPROVAL') }}
-                </span>
-                <span class="text-xs text-n-slate-10">
-                  {{ t('GROUP.SETTINGS.JOIN_APPROVAL_DESCRIPTION') }}
-                </span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span
-                  v-if="isTogglingJoinApproval"
-                  class="i-lucide-loader-2 animate-spin size-3 text-n-slate-10"
-                />
-                <Switch
-                  :model-value="isJoinApprovalEnabled"
-                  :disabled="isTogglingJoinApproval"
-                  @change="toggleJoinApproval"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <BaileysGroupOptions :contact="contact" :is-admin="isInboxAdmin" />
 
         <!-- Leave Group section -->
         <div class="mt-3">

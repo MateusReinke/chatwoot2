@@ -220,6 +220,16 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     raise ProviderUnavailableError unless process_response(response)
   end
 
+  def group_member_add_mode(group_jid, mode)
+    response = HTTParty.post(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-member-add-mode",
+      headers: api_headers,
+      body: { jid: group_jid, mode: mode }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+  end
+
   def sync_group(conversation)
     group_contact = conversation.contact
 
@@ -797,5 +807,6 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
                       :edit_message,
                       :group_leave,
                       :group_setting_update,
-                      :group_join_approval_mode
+                      :group_join_approval_mode,
+                      :group_member_add_mode
 end

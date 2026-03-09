@@ -66,13 +66,6 @@ class GroupMembersAPI extends ApiClient {
   updateGroupProperty(contactId, params) {
     return axios.patch(`${this.url}/${contactId}/group_admin`, params);
   }
-
-  toggleJoinApproval(contactId, params) {
-    return axios.post(
-      `${this.url}/${contactId}/group_admin/toggle_join_approval`,
-      params
-    );
-  }
 }
 
 export default new GroupMembersAPI();

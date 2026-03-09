@@ -11,8 +11,8 @@ patch:
   tags:
     - Groups
   operationId: contact-group-admin-update
-  summary: Update Group Settings
-  description: Updates a WhatsApp group property. "announce" controls whether only admins can send messages. "restrict" controls whether only admins can edit group info.
+  summary: Update Group Property
+  description: Updates a WhatsApp group property. "announce" controls whether only admins can send messages. "restrict" controls whether only admins can edit group info. "join_approval_mode" controls whether new members must be approved by an admin. "member_add_mode" controls whether all members or only admins can add new members.
   security:
     - userApiKey: []
   requestBody:
@@ -27,7 +27,7 @@ patch:
           properties:
             property:
               type: string
-              enum: ['announce', 'restrict']
+              enum: ['announce', 'restrict', 'join_approval_mode', 'member_add_mode']
               description: The group property to update
             enabled:
               type: boolean

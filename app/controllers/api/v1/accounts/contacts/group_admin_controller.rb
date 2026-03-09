@@ -1,5 +1,5 @@
 class Api::V1::Accounts::Contacts::GroupAdminController < Api::V1::Accounts::Contacts::BaseController
-  VALID_PROPERTIES = %w[announce restrict].freeze
+  VALID_PROPERTIES = %w[announce restrict join_approval_mode member_add_mode].freeze
 
   def leave
     authorize @contact, :update?
@@ -16,20 +16,8 @@ class Api::V1::Accounts::Contacts::GroupAdminController < Api::V1::Accounts::Con
     enabled = ActiveModel::Type::Boolean.new.cast(property_params[:enabled])
     return render json: { error: 'invalid_property' }, status: :unprocessable_entity unless property.in?(VALID_PROPERTIES)
 
-    channel.group_setting_update(@contact.identifier, property, enabled)
+    apply_property_change(property, enabled)
     update_contact_attribute(property, enabled)
-    head :ok
-  rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
-    render json: { error: e.message }, status: :unprocessable_entity
-  end
-
-  def toggle_join_approval
-    authorize @contact, :update?
-    mode = join_approval_params[:mode]
-    return render json: { error: 'invalid_mode' }, status: :unprocessable_entity unless mode.in?(%w[on off])
-
-    channel.group_join_approval_mode(@contact.identifier, mode)
-    update_contact_attribute('join_approval_mode', mode == 'on')
     head :ok
   rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
     render json: { error: e.message }, status: :unprocessable_entity
@@ -37,12 +25,19 @@ class Api::V1::Accounts::Contacts::GroupAdminController < Api::V1::Accounts::Con
 
   private
 
-  def property_params
-    params.permit(:property, :enabled)
+  def apply_property_change(property, enabled)
+    case property
+    when 'announce', 'restrict'
+      channel.group_setting_update(@contact.identifier, property, enabled)
+    when 'join_approval_mode'
+      channel.group_join_approval_mode(@contact.identifier, enabled ? 'on' : 'off')
+    when 'member_add_mode'
+      channel.group_member_add_mode(@contact.identifier, enabled ? 'all_member_add' : 'admin_add')
+    end
   end
 
-  def join_approval_params
-    params.permit(:mode)
+  def property_params
+    params.permit(:property, :enabled)
   end
 
   def channel

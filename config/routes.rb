@@ -204,7 +204,6 @@ Rails.application.routes.draw do
               end
               resource :group_admin, only: [:update], controller: 'group_admin' do
                 post :leave, on: :member
-                post :toggle_join_approval, on: :member
               end
               resources :labels, only: [:create, :index]
               resources :notes

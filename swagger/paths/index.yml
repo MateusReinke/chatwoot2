@@ -294,8 +294,6 @@
   $ref: ./application/contacts/group_admin.yml
 /api/v1/accounts/{account_id}/contacts/{id}/group_admin/leave:
   $ref: ./application/contacts/group_admin_leave.yml
-/api/v1/accounts/{account_id}/contacts/{id}/group_admin/toggle_join_approval:
-  $ref: ./application/contacts/group_admin_toggle_join_approval.yml
 
 # Groups
 /api/v1/accounts/{account_id}/groups:

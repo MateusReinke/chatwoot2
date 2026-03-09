@@ -4230,8 +4230,8 @@
           "Groups"
         ],
         "operationId": "contact-group-admin-update",
-        "summary": "Update Group Settings",
-        "description": "Updates a WhatsApp group property. \"announce\" controls whether only admins can send messages. \"restrict\" controls whether only admins can edit group info.",
+        "summary": "Update Group Property",
+        "description": "Updates a WhatsApp group property. \"announce\" controls whether only admins can send messages. \"restrict\" controls whether only admins can edit group info. \"join_approval_mode\" controls whether new members must be approved by an admin. \"member_add_mode\" controls whether all members or only admins can add new members.",
         "security": [
           {
             "userApiKey": []
@@ -4252,7 +4252,9 @@
                     "type": "string",
                     "enum": [
                       "announce",
-                      "restrict"
+                      "restrict",
+                      "join_approval_mode",
+                      "member_add_mode"
                     ],
                     "description": "The group property to update"
                   },
@@ -4315,76 +4317,6 @@
         "responses": {
           "200": {
             "description": "Left group successfully"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "422": {
-            "description": "Provider unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/bad_request_error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/accounts/{account_id}/contacts/{contact_id}/group_admin/toggle_join_approval": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/account_id"
-        },
-        {
-          "name": "contact_id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "number"
-          },
-          "description": "ID of the group contact"
-        }
-      ],
-      "post": {
-        "tags": [
-          "Groups"
-        ],
-        "operationId": "contact-group-admin-toggle-join-approval",
-        "summary": "Toggle Join Approval",
-        "description": "Enables or disables join approval mode for the WhatsApp group. When enabled, new members must be approved by an admin before joining.",
-        "security": [
-          {
-            "userApiKey": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "mode"
-                ],
-                "properties": {
-                  "mode": {
-                    "type": "string",
-                    "enum": [
-                      "on",
-                      "off"
-                    ],
-                    "description": "Whether to enable or disable join approval"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Join approval mode updated successfully"
           },
           "401": {
             "description": "Unauthorized"
