@@ -4,7 +4,7 @@ require 'net/imap'
 require 'concurrent'
 
 def connect_imap(channel, folder)
-  imap = Net::IMAP.new(channel.imap_address, port: channel.imap_port, ssl: true)
+  imap = Net::IMAP.new(channel.imap_address, port: channel.imap_port, ssl: channel.imap_enable_ssl, open_timeout: 30)
 
   if channel.google?
     token = Google::RefreshOauthTokenService.new(channel: channel).access_token
@@ -42,12 +42,12 @@ def validate_inbox(inbox_id)
   [inbox, channel]
 end
 
-def scan_new_email_seqs(imap, channel, seq_nums)
-  new_seqs = []
+def scan_new_email_uids(imap, channel, uids)
+  new_uids = []
   skipped = 0
 
-  seq_nums.each_slice(100) do |batch|
-    headers = imap.fetch(batch, 'BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)]')
+  uids.each_slice(100) do |batch|
+    headers = imap.uid_fetch(batch, 'BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)]')
     next if headers.blank?
 
     headers.each do |data|
@@ -55,19 +55,19 @@ def scan_new_email_seqs(imap, channel, seq_nums)
       if msg_id.blank? || channel.inbox.messages.exists?(source_id: msg_id)
         skipped += 1
       else
-        new_seqs << data.seqno
+        new_uids << data.attr['UID']
       end
     end
 
-    print "\r  Scanning headers... #{new_seqs.size} new, #{skipped} skipped (#{new_seqs.size + skipped}/#{seq_nums.size})   "
+    print "\r  Scanning headers... #{new_uids.size} new, #{skipped} skipped (#{new_uids.size + skipped}/#{uids.size})   "
   end
 
   puts ''
-  [new_seqs, skipped]
+  [new_uids, skipped]
 end
 
-def import_single_email(imap, channel, seq_no)
-  mail_data = imap.fetch(seq_no, 'RFC822')
+def import_single_email(imap, channel, uid)
+  mail_data = imap.uid_fetch(uid, 'RFC822')
   return false if mail_data.blank?
 
   mail_str = mail_data[0].attr['RFC822']
@@ -111,26 +111,27 @@ def backdate_conversations(inbox)
   puts "  Updated #{count} conversations."
 end
 
-def import_worker(channel, folder, seq_batch, progress)
+def import_worker(channel, folder, uid_batch, progress) # rubocop:disable Metrics/MethodLength
   ActiveRecord::Base.connection_pool.with_connection do
     imap = connect_imap(channel, folder)
+    begin
+      uid_batch.each do |uid|
+        import_single_email(imap, channel, uid)
 
-    seq_batch.each do |seq_no|
-      import_single_email(imap, channel, seq_no)
-
-      progress[:mutex].synchronize do
-        progress[:imported] += 1
-        print_import_progress(progress)
+        progress[:mutex].synchronize do
+          progress[:imported] += 1
+          print_import_progress(progress)
+        end
+      rescue StandardError => e
+        progress[:mutex].synchronize do
+          progress[:errors] += 1
+          print_import_progress(progress)
+        end
+        warn "\n  [ERROR] uid #{uid}: #{e.message}"
       end
-    rescue StandardError => e
-      progress[:mutex].synchronize do
-        progress[:errors] += 1
-        print_import_progress(progress)
-      end
-      warn "\n  [ERROR] seq #{seq_no}: #{e.message}"
+    ensure
+      imap&.logout
     end
-
-    imap.logout
   end
 rescue StandardError => e
   warn "\n  [WORKER ERROR] #{e.message}"
@@ -183,25 +184,25 @@ namespace :imap do # rubocop:disable Metrics/BlockLength
     since_date = (Time.zone.today - days).strftime('%d-%b-%Y')
 
     puts "Searching emails since #{since_date}..."
-    seq_nums = imap.search(['SINCE', since_date])
-    puts "Found #{seq_nums.length} emails in #{folder}."
+    uids = imap.uid_search(['SINCE', since_date])
+    puts "Found #{uids.length} emails in #{folder}."
 
-    new_seqs, skipped = scan_new_email_seqs(imap, channel, seq_nums)
+    new_uids, skipped = scan_new_email_uids(imap, channel, uids)
     imap.logout
 
-    if new_seqs.empty?
+    if new_uids.empty?
       puts 'Nothing new to import.'
       next
     end
 
-    puts "Importing #{new_seqs.size} emails with #{workers} parallel workers..."
+    puts "Importing #{new_uids.size} emails with #{workers} parallel workers..."
     progress = {
       imported: 0, skipped: skipped, errors: 0,
-      total: new_seqs.size + skipped, mutex: Mutex.new, started_at: Time.zone.now
+      total: new_uids.size + skipped, mutex: Mutex.new, started_at: Time.zone.now
     }
 
     # Phase 2: split work across N threads, each with its own IMAP connection
-    chunks = new_seqs.each_slice((new_seqs.size.to_f / workers).ceil).to_a
+    chunks = new_uids.each_slice((new_uids.size.to_f / workers).ceil).to_a
     threads = chunks.map do |chunk|
       Thread.new { import_worker(channel, folder, chunk, progress) }
     end
