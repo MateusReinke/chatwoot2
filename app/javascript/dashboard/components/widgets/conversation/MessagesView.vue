@@ -542,6 +542,9 @@ export default {
         return false;
       });
     },
+    onOpenGroupsEnabledLink() {
+      window.open('https://app.fazer.ai', '_blank');
+    },
     onOpenLinkDeviceModal() {
       this.showLinkDeviceModal = true;
     },
@@ -632,7 +635,7 @@ export default {
       :banner-message="$t('CONVERSATION.GROUPS_DISABLED_BANNER')"
       has-action-button
       :action-button-label="$t('CONVERSATION.GROUPS_DISABLED_CTA')"
-      @primary-action="$event => window.open('https://app.fazer.ai', '_blank')"
+      @primary-action="onOpenGroupsEnabledLink"
     />
     <MessageList
       ref="conversationPanelRef"
