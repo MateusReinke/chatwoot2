@@ -8,6 +8,11 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
   DEFAULT_CLIENT_NAME = ENV.fetch('BAILEYS_PROVIDER_DEFAULT_CLIENT_NAME', nil)
   DEFAULT_URL = ENV.fetch('BAILEYS_PROVIDER_DEFAULT_URL', nil)
   DEFAULT_API_KEY = ENV.fetch('BAILEYS_PROVIDER_DEFAULT_API_KEY', nil)
+  GROUPS_ENABLED = ENV.fetch('WHATSAPP_GROUPS_ENABLED', 'false') == 'true'
+
+  def self.groups_enabled?
+    GROUPS_ENABLED
+  end
 
   def self.status
     if DEFAULT_URL.blank? || DEFAULT_API_KEY.blank?
@@ -41,7 +46,8 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
         webhookUrl: whatsapp_channel.inbox.callback_webhook_url,
         webhookVerifyToken: whatsapp_channel.provider_config['webhook_verify_token'],
         # TODO: Remove on Baileys v2, default will be false
-        includeMedia: false
+        includeMedia: false,
+        groupsEnabled: GROUPS_ENABLED
       }.compact.to_json
     )
 

@@ -169,6 +169,12 @@ class Channel::Whatsapp < ApplicationRecord
     provider_service.respond_to?(:allow_group_creation?) && provider_service.allow_group_creation?
   end
 
+  def groups_enabled?
+    return true unless provider == 'baileys'
+
+    Whatsapp::Providers::WhatsappBaileysService.groups_enabled?
+  end
+
   delegate :setup_channel_provider, to: :provider_service
   delegate :send_message, to: :provider_service
   delegate :send_template, to: :provider_service
