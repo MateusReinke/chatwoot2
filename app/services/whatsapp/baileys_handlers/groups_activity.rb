@@ -17,6 +17,7 @@ module Whatsapp::BaileysHandlers::GroupsActivity
       next if conversation.blank?
 
       conversation.update_columns(last_activity_at: Time.current) # rubocop:disable Rails/SkipsModelValidations
+      conversation.dispatch_conversation_updated_event
     end
   end
 end
