@@ -103,3 +103,8 @@ CLAUDE.local.md
 .pnpm-store/*
 local/
 Procfile.worktree
+
+# Ralph-loops
+.claude/ralph-loop.local.md
+prd.md
+prd.json
