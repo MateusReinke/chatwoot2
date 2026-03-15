@@ -101,6 +101,7 @@ export default {
       currentUserId: 'getCurrentUserID',
       listLoadingStatus: 'getAllMessagesLoaded',
       currentAccountId: 'getCurrentAccountId',
+      globalConfig: 'globalConfig/get',
     }),
     currentInbox() {
       return this.$store.getters['inboxes/getInbox'](this.currentChat.inbox_id);
@@ -316,7 +317,7 @@ export default {
       return (
         this.isAWhatsAppBaileysChannel &&
         this.isGroupConversation &&
-        this.inbox?.groups_enabled === false
+        !this.globalConfig.baileysWhatsappGroupsEnabled
       );
     },
     inboxProviderConnection() {
@@ -543,7 +544,7 @@ export default {
       });
     },
     onOpenGroupsEnabledLink() {
-      window.open('https://app.fazer.ai', '_blank');
+      window.open(wootConstants.FAZER_AI_GUIDES_URL, '_blank');
     },
     onOpenLinkDeviceModal() {
       this.showLinkDeviceModal = true;

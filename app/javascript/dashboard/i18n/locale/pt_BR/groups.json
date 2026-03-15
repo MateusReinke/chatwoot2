@@ -30,7 +30,9 @@
       "PARTICIPANTS_REQUIRED": "Adicione pelo menos um participante",
       "SUBMIT_BUTTON": "Criar Grupo",
       "SUCCESS_MESSAGE": "Grupo criado com sucesso.",
-      "ERROR_MESSAGE": "Falha ao criar grupo. Por favor, tente novamente."
+      "ERROR_MESSAGE": "Falha ao criar grupo. Por favor, tente novamente.",
+      "GROUPS_DISABLED": "A criação de grupos está desativada. Ative o suporte a grupos do WhatsApp (gratuito) para criar grupos.",
+      "GROUPS_DISABLED_CTA": "Saiba como ativar (gratuito)"
     },
     "METADATA": {
       "EDIT_NAME_LABEL": "Nome do Grupo",

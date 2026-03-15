@@ -31,7 +31,7 @@ RSpec.describe Contacts::SyncGroupService do
 
       described_class.new(contact: contact).perform
 
-      expect(channel).to have_received(:sync_group).with(conversation)
+      expect(channel).to have_received(:sync_group).with(conversation, soft: false)
     end
 
     it 'dispatches contact_group_synced event' do

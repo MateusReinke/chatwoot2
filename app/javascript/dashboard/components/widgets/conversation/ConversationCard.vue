@@ -59,6 +59,7 @@ const currentChat = useMapGetter('getSelectedChat');
 const inboxesList = useMapGetter('inboxes/getInboxes');
 const activeInbox = useMapGetter('getSelectedInbox');
 const accountId = useMapGetter('getCurrentAccountId');
+const globalConfig = useMapGetter('globalConfig/get');
 
 const chatMetadata = computed(() => props.chat.meta || {});
 
@@ -81,7 +82,7 @@ const unreadCount = computed(() => props.chat.unread_count);
 const isGroupsDisabled = computed(() => {
   return (
     props.chat.group_type === 'group' &&
-    inbox.value?.groups_enabled === false
+    !globalConfig.value.baileysWhatsappGroupsEnabled
   );
 });
 

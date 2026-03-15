@@ -159,20 +159,14 @@ class Channel::Whatsapp < ApplicationRecord
     provider_service.edit_message(recipient_id, message, new_content)
   end
 
-  def sync_group(conversation)
+  def sync_group(conversation, soft: false)
     return unless provider_service.respond_to?(:sync_group)
 
-    provider_service.sync_group(conversation)
+    provider_service.sync_group(conversation, soft: soft)
   end
 
   def allow_group_creation?
     provider_service.respond_to?(:allow_group_creation?) && provider_service.allow_group_creation?
-  end
-
-  def groups_enabled?
-    return true unless provider == 'baileys'
-
-    Whatsapp::Providers::WhatsappBaileysService.groups_enabled?
   end
 
   delegate :setup_channel_provider, to: :provider_service
@@ -184,6 +178,7 @@ class Channel::Whatsapp < ApplicationRecord
   delegate :create_group, to: :provider_service
   delegate :update_group_subject, to: :provider_service
   delegate :update_group_description, to: :provider_service
+  delegate :update_group_picture, to: :provider_service
   delegate :update_group_participants, to: :provider_service
   delegate :group_invite_code, to: :provider_service
   delegate :revoke_group_invite, to: :provider_service

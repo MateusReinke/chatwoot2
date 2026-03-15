@@ -121,7 +121,6 @@ end
 
 json.provider resource.channel.try(:provider)
 json.allow_group_creation resource.channel.try(:allow_group_creation?) || false
-json.groups_enabled resource.channel.try(:groups_enabled?) || false
 
 ## Telegram Attributes
 json.bot_name resource.channel.try(:bot_name) if resource.telegram?

@@ -225,7 +225,7 @@ export default {
       return (
         this.isAWhatsAppBaileysChannel &&
         this.isGroupConversation &&
-        this.inbox?.groups_enabled === false
+        !this.globalConfig.baileysWhatsappGroupsEnabled
       );
     },
     shouldShowReplyToMessage() {

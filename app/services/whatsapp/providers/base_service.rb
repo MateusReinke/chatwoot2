@@ -43,6 +43,10 @@ class Whatsapp::Providers::BaseService
     raise 'Overwrite this method in child class'
   end
 
+  def update_group_picture(_group_jid, _image_base64)
+    raise 'Overwrite this method in child class'
+  end
+
   def group_invite_code(_group_jid)
     raise 'Overwrite this method in child class'
   end
