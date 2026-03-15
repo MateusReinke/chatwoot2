@@ -563,7 +563,7 @@ RSpec.describe Channel::Whatsapp do
 
       channel.sync_group(conversation)
 
-      expect(provider_double).to have_received(:sync_group).with(conversation)
+      expect(provider_double).to have_received(:sync_group).with(conversation, soft: false)
     end
 
     it 'does nothing when provider_service does not support sync_group' do
