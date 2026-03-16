@@ -451,6 +451,10 @@ describe Whatsapp::BaileysHandlers::MessagesUpsert do
   end
 
   describe 'group message handling' do
+    before do
+      allow(Whatsapp::Providers::WhatsappBaileysService).to receive(:groups_enabled?).and_return(true)
+    end
+
     let(:group_jid) { '123456789123456789@g.us' }
     let(:group_source_id) { '123456789123456789' }
     let(:sender_phone) { '5511912345678' }

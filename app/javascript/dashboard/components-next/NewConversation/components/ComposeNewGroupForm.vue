@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { debounce } from '@chatwoot/utils';
 import ContactsAPI from 'dashboard/api/contacts';
 
+import wootConstants from 'dashboard/constants/globals';
 import Button from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 import TagInput from 'dashboard/components-next/taginput/TagInput.vue';
@@ -11,6 +12,7 @@ import TagInput from 'dashboard/components-next/taginput/TagInput.vue';
 const props = defineProps({
   inboxes: { type: Array, default: () => [] },
   isCreating: { type: Boolean, default: false },
+  isGroupsDisabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['createGroup', 'discard']);
@@ -163,6 +165,23 @@ defineExpose({ resetForm });
   >
     <div class="flex-1 divide-y divide-n-strong overflow-visible">
       <div
+        v-if="isGroupsDisabled"
+        class="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-lg text-sm text-n-amber-11 bg-n-amber-2"
+      >
+        <span class="i-lucide-triangle-alert text-base flex-shrink-0" />
+        <span>
+          {{ t('GROUP.CREATE.GROUPS_DISABLED') }}
+          <a
+            :href="wootConstants.FAZER_AI_GUIDES_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline font-medium"
+          >
+            {{ t('GROUP.CREATE.GROUPS_DISABLED_CTA') }}
+          </a>
+        </span>
+      </div>
+      <div
         class="flex items-center flex-1 w-full gap-3 px-4 py-3 overflow-y-visible"
       >
         <label
@@ -276,7 +295,7 @@ defineExpose({ resetForm });
           :label="t('GROUP.CREATE.SUBMIT_BUTTON')"
           color="blue"
           size="sm"
-          :disabled="!isFormValid || isCreating"
+          :disabled="!isFormValid || isCreating || isGroupsDisabled"
           :is-loading="isCreating"
           @click="handleSubmit"
         />

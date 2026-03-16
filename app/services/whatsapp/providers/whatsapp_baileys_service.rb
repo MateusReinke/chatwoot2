@@ -8,6 +8,11 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
   DEFAULT_CLIENT_NAME = ENV.fetch('BAILEYS_PROVIDER_DEFAULT_CLIENT_NAME', nil)
   DEFAULT_URL = ENV.fetch('BAILEYS_PROVIDER_DEFAULT_URL', nil)
   DEFAULT_API_KEY = ENV.fetch('BAILEYS_PROVIDER_DEFAULT_API_KEY', nil)
+  GROUPS_ENABLED = ENV.fetch('BAILEYS_WHATSAPP_GROUPS_ENABLED', 'false') == 'true'
+
+  def self.groups_enabled?
+    GROUPS_ENABLED
+  end
 
   def self.status
     if DEFAULT_URL.blank? || DEFAULT_API_KEY.blank?
@@ -41,7 +46,8 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
         webhookUrl: whatsapp_channel.inbox.callback_webhook_url,
         webhookVerifyToken: whatsapp_channel.provider_config['webhook_verify_token'],
         # TODO: Remove on Baileys v2, default will be false
-        includeMedia: false
+        includeMedia: false,
+        groupsEnabled: GROUPS_ENABLED
       }.compact.to_json
     )
 
@@ -115,6 +121,16 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
       "#{provider_url}/connections/#{whatsapp_channel.phone_number}/group-description",
       headers: api_headers,
       body: { jid: group_jid, description: description }.to_json
+    )
+
+    raise ProviderUnavailableError unless process_response(response)
+  end
+
+  def update_group_picture(group_jid, image_base64)
+    response = HTTParty.post(
+      "#{provider_url}/connections/#{whatsapp_channel.phone_number}/update-profile-picture",
+      headers: api_headers,
+      body: { jid: group_jid, image: image_base64 }.to_json
     )
 
     raise ProviderUnavailableError unless process_response(response)
@@ -233,7 +249,7 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     raise ProviderUnavailableError unless process_response(response)
   end
 
-  def sync_group(conversation)
+  def sync_group(conversation, soft: false)
     group_contact = conversation.contact
 
     return true if group_contact.additional_attributes&.dig('group_left')
@@ -245,11 +261,11 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
 
     update_group_contact_info(group_contact, metadata)
     persist_group_settings(group_contact, metadata)
-    persist_invite_code(group_contact)
-    persist_pending_join_requests(group_contact, inbox)
-    try_update_group_avatar(group_contact)
+    persist_invite_code(group_contact) unless soft
+    persist_pending_join_requests(group_contact, inbox) unless soft
+    try_update_group_avatar(group_contact) unless soft
 
-    participant_contacts = build_participant_contacts(metadata[:participants], inbox)
+    participant_contacts = build_participant_contacts(metadata[:participants], inbox, skip_avatars: soft)
     sync_group_members(group_contact, participant_contacts)
     persist_sync_status(group_contact)
 
@@ -604,14 +620,14 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     @message.update!(external_created_at: external_created_at)
   end
 
-  def build_participant_contacts(participants, inbox)
+  def build_participant_contacts(participants, inbox, skip_avatars: false)
     return [] if participants.blank?
 
     participants.filter_map do |participant|
       contact = find_or_create_participant_contact(participant, inbox)
       next if contact.blank?
 
-      try_update_participant_avatar(contact)
+      try_update_participant_avatar(contact) unless skip_avatars
       { contact: contact, admin: participant[:admin] }
     end
   end
@@ -696,6 +712,8 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
     Rails.logger.error "Failed to fetch pending join requests for group #{group_contact.identifier}: #{e.message}"
   end
 
+  public
+
   def try_update_group_avatar(group_contact, force: false)
     if force
       reset_avatar_state(group_contact)
@@ -709,6 +727,8 @@ class Whatsapp::Providers::WhatsappBaileysService < Whatsapp::Providers::BaseSer
   rescue StandardError => e
     Rails.logger.error "Failed to update avatar for group #{group_contact.identifier}: #{e.message}"
   end
+
+  private
 
   def reset_avatar_state(group_contact)
     group_contact.avatar.purge if group_contact.avatar.attached?

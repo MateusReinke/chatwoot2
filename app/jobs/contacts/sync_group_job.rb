@@ -3,10 +3,10 @@ class Contacts::SyncGroupJob < ApplicationJob
 
   SYNC_COOLDOWN = 15.minutes
 
-  def perform(contact, force: false)
+  def perform(contact, force: false, soft: false)
     return if !force && recently_synced?(contact)
 
-    Contacts::SyncGroupService.new(contact: contact).perform
+    Contacts::SyncGroupService.new(contact: contact, soft: soft).perform
   rescue Whatsapp::Providers::WhatsappBaileysService::ProviderUnavailableError => e
     Rails.logger.error "SyncGroupJob failed for contact #{contact.id}: #{e.message}"
   end

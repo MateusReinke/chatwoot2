@@ -30,7 +30,9 @@
       "PARTICIPANTS_REQUIRED": "Add at least one participant",
       "SUBMIT_BUTTON": "Create Group",
       "SUCCESS_MESSAGE": "Group created successfully.",
-      "ERROR_MESSAGE": "Failed to create group. Please try again."
+      "ERROR_MESSAGE": "Failed to create group. Please try again.",
+      "GROUPS_DISABLED": "Group creation is disabled. Enable WhatsApp group support (free) to create groups.",
+      "GROUPS_DISABLED_CTA": "Learn how to enable (free)"
     },
     "METADATA": {
       "EDIT_NAME_LABEL": "Group Name",

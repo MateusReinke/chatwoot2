@@ -221,6 +221,13 @@ export default {
         this.currentContact?.additional_attributes?.group_left === true
       );
     },
+    isGroupsDisabled() {
+      return (
+        this.isAWhatsAppBaileysChannel &&
+        this.isGroupConversation &&
+        !this.globalConfig.baileysWhatsappGroupsEnabled
+      );
+    },
     shouldShowReplyToMessage() {
       return (
         this.inReplyTo?.id &&
@@ -263,6 +270,9 @@ export default {
       return this.$store.getters['inboxes/getInbox'](this.inboxId);
     },
     messagePlaceHolder() {
+      if (this.isGroupsDisabled && !this.isOnPrivateNote) {
+        return this.$t('CONVERSATION.FOOTER.GROUPS_DISABLED_RESTRICTED');
+      }
       if (this.isGroupLeft && !this.isOnPrivateNote) {
         return this.$t('CONVERSATION.FOOTER.GROUP_LEFT_RESTRICTED');
       }
@@ -504,6 +514,9 @@ export default {
       return !this.showAudioRecorderEditor && !this.copilot.isActive.value;
     },
     isEditorDisabled() {
+      if (this.isGroupsDisabled && !this.isOnPrivateNote) {
+        return true;
+      }
       if (this.isGroupLeft && !this.isOnPrivateNote) {
         return true;
       }

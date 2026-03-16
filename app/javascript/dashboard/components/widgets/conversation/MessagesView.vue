@@ -101,6 +101,7 @@ export default {
       currentUserId: 'getCurrentUserID',
       listLoadingStatus: 'getAllMessagesLoaded',
       currentAccountId: 'getCurrentAccountId',
+      globalConfig: 'globalConfig/get',
     }),
     currentInbox() {
       return this.$store.getters['inboxes/getInbox'](this.currentChat.inbox_id);
@@ -310,6 +311,13 @@ export default {
         this.isAWhatsAppBaileysChannel &&
         this.isGroupConversation &&
         this.currentContact?.additional_attributes?.group_left === true
+      );
+    },
+    isGroupsDisabled() {
+      return (
+        this.isAWhatsAppBaileysChannel &&
+        this.isGroupConversation &&
+        !this.globalConfig.baileysWhatsappGroupsEnabled
       );
     },
     inboxProviderConnection() {
@@ -573,6 +581,9 @@ export default {
         return false;
       });
     },
+    onOpenGroupsEnabledLink() {
+      window.open(wootConstants.FAZER_AI_GUIDES_URL, '_blank');
+    },
     onOpenLinkDeviceModal() {
       this.showLinkDeviceModal = true;
     },
@@ -655,6 +666,15 @@ export default {
       color-scheme="alert"
       class="mx-2 mt-2 overflow-hidden rounded-lg"
       :banner-message="$t('CONVERSATION.ANNOUNCEMENT_MODE_BANNER')"
+    />
+    <Banner
+      v-if="isGroupsDisabled"
+      color-scheme="warning"
+      class="mx-2 mt-2 overflow-hidden rounded-lg"
+      :banner-message="$t('CONVERSATION.GROUPS_DISABLED_BANNER')"
+      has-action-button
+      :action-button-label="$t('CONVERSATION.GROUPS_DISABLED_CTA')"
+      @primary-action="onOpenGroupsEnabledLink"
     />
     <MessageList
       ref="conversationPanelRef"
