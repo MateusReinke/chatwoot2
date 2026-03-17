@@ -5,7 +5,7 @@ import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
 import { useLabelSuggestions } from 'dashboard/composables/useLabelSuggestions';
 import { useSnakeCase } from 'dashboard/composables/useTransformKeys';
 import { useAdmin } from 'dashboard/composables/useAdmin';
-import { useAlert } from 'dashboard/composables';
+import { useAlert, usePendingAlert } from 'dashboard/composables';
 
 // components
 import ReplyBox from './ReplyBox.vue';
@@ -101,6 +101,7 @@ export default {
       currentUserId: 'getCurrentUserID',
       listLoadingStatus: 'getAllMessagesLoaded',
       currentAccountId: 'getCurrentAccountId',
+      globalConfig: 'globalConfig/get',
     }),
     currentInbox() {
       return this.$store.getters['inboxes/getInbox'](this.currentChat.inbox_id);
@@ -312,6 +313,13 @@ export default {
         this.currentContact?.additional_attributes?.group_left === true
       );
     },
+    isGroupsDisabled() {
+      return (
+        this.isAWhatsAppBaileysChannel &&
+        this.isGroupConversation &&
+        !this.globalConfig.baileysWhatsappGroupsEnabled
+      );
+    },
     inboxProviderConnection() {
       return this.currentInbox.provider_connection?.connection;
     },
@@ -417,9 +425,9 @@ export default {
         if (messageElement) {
           this.isProgrammaticScroll = true;
           messageElement.scrollIntoView({ behavior: 'smooth' });
-          this.fetchPreviousMessages();
           if (messageId) {
             emitter.emit(BUS_EVENTS.HIGHLIGHT_MESSAGE, { messageId });
+            this.clearMessageIdFromRoute();
           }
         } else if (messageId) {
           this.fetchAndScrollToMessage(messageId);
@@ -430,24 +438,37 @@ export default {
       this.makeMessagesRead();
     },
     async fetchAndScrollToMessage(messageId) {
+      const dismissSearch = usePendingAlert(
+        this.$t('SCHEDULED_MESSAGES.ITEM.SEARCHING_MESSAGE')
+      );
       try {
         await this.$store.dispatch('fetchPreviousMessages', {
           conversationId: this.currentChat.id,
           after: messageId,
         });
         this.$nextTick(() => {
+          dismissSearch();
           const messageElement = document.getElementById('message' + messageId);
           if (messageElement) {
             this.isProgrammaticScroll = true;
             messageElement.scrollIntoView({ behavior: 'smooth' });
             emitter.emit(BUS_EVENTS.HIGHLIGHT_MESSAGE, { messageId });
+            this.clearMessageIdFromRoute();
           } else {
             useAlert(this.$t('SCHEDULED_MESSAGES.ITEM.MESSAGE_NOT_FOUND'));
+            this.clearMessageIdFromRoute();
           }
         });
       } catch {
+        dismissSearch();
         useAlert(this.$t('SCHEDULED_MESSAGES.ITEM.MESSAGE_NOT_FOUND'));
+        this.clearMessageIdFromRoute();
       }
+    },
+    clearMessageIdFromRoute() {
+      if (!this.$route.query.messageId) return;
+      const { messageId: _, ...remainingQuery } = this.$route.query;
+      this.$router.replace({ ...this.$route, query: remainingQuery });
     },
     addScrollListener() {
       this.conversationPanel = this.$el.querySelector('.conversation-panel');
@@ -560,6 +581,9 @@ export default {
         return false;
       });
     },
+    onOpenGroupsEnabledLink() {
+      window.open(wootConstants.FAZER_AI_GUIDES_URL, '_blank');
+    },
     onOpenLinkDeviceModal() {
       this.showLinkDeviceModal = true;
     },
@@ -642,6 +666,15 @@ export default {
       color-scheme="alert"
       class="mx-2 mt-2 overflow-hidden rounded-lg"
       :banner-message="$t('CONVERSATION.ANNOUNCEMENT_MODE_BANNER')"
+    />
+    <Banner
+      v-if="isGroupsDisabled"
+      color-scheme="warning"
+      class="mx-2 mt-2 overflow-hidden rounded-lg"
+      :banner-message="$t('CONVERSATION.GROUPS_DISABLED_BANNER')"
+      has-action-button
+      :action-button-label="$t('CONVERSATION.GROUPS_DISABLED_CTA')"
+      @primary-action="onOpenGroupsEnabledLink"
     />
     <MessageList
       ref="conversationPanelRef"

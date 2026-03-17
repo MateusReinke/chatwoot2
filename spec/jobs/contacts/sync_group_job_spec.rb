@@ -10,22 +10,22 @@ RSpec.describe Contacts::SyncGroupJob do
   describe '#perform' do
     it 'calls SyncGroupService when group_last_synced_at is nil' do
       service = instance_double(Contacts::SyncGroupService, perform: contact)
-      allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact).and_return(service)
+      allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact, soft: false).and_return(service)
 
       described_class.perform_now(contact)
 
-      expect(Contacts::SyncGroupService).to have_received(:new).with(contact: contact)
+      expect(Contacts::SyncGroupService).to have_received(:new).with(contact: contact, soft: false)
     end
 
     it 'calls SyncGroupService when group_last_synced_at is older than 15 minutes' do
       contact.update!(additional_attributes: { 'group_last_synced_at' => 20.minutes.ago.to_i })
 
       service = instance_double(Contacts::SyncGroupService, perform: contact)
-      allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact).and_return(service)
+      allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact, soft: false).and_return(service)
 
       described_class.perform_now(contact)
 
-      expect(Contacts::SyncGroupService).to have_received(:new).with(contact: contact)
+      expect(Contacts::SyncGroupService).to have_received(:new).with(contact: contact, soft: false)
     end
 
     it 'skips SyncGroupService when group_last_synced_at is within the last 15 minutes' do
@@ -42,11 +42,11 @@ RSpec.describe Contacts::SyncGroupJob do
       contact.update!(additional_attributes: { 'group_last_synced_at' => 5.minutes.ago.to_i })
 
       service = instance_double(Contacts::SyncGroupService, perform: contact)
-      allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact).and_return(service)
+      allow(Contacts::SyncGroupService).to receive(:new).with(contact: contact, soft: false).and_return(service)
 
       described_class.perform_now(contact, force: true)
 
-      expect(Contacts::SyncGroupService).to have_received(:new).with(contact: contact)
+      expect(Contacts::SyncGroupService).to have_received(:new).with(contact: contact, soft: false)
     end
 
     it 'rescues ProviderUnavailableError without re-raising' do

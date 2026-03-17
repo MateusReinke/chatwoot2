@@ -100,6 +100,9 @@ const groupCreationInboxes = computed(() =>
 
 const isGroupMode = computed(() => composeMode.value === 'group');
 const hasGroupInboxes = computed(() => groupCreationInboxes.value.length > 0);
+const isGroupsDisabled = computed(
+  () => !globalConfig.value.baileysWhatsappGroupsEnabled
+);
 
 const resetContacts = () => {
   contacts.value = [];
@@ -467,6 +470,7 @@ useKeyboardEvents(keyboardEvents);
           class="!rounded-t-none !border-t-0"
           :inboxes="groupCreationInboxes"
           :is-creating="groupUiFlags.isCreating"
+          :is-groups-disabled="isGroupsDisabled"
           @create-group="createGroup"
           @discard="discardCompose"
         />

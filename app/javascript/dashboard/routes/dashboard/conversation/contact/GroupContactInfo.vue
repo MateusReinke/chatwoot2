@@ -237,10 +237,11 @@ const onAvatarSelected = async event => {
   if (!file) return;
   isSavingAvatar.value = true;
   try {
-    await store.dispatch('contacts/update', {
-      id: props.contact.id,
-      avatar: file,
-      isFormData: true,
+    const formData = new FormData();
+    formData.append('avatar', file);
+    await store.dispatch('groupMembers/updateGroupMetadata', {
+      contactId: props.contact.id,
+      params: formData,
     });
     useAlert(t('GROUP.METADATA.SAVE_SUCCESS'));
   } catch {

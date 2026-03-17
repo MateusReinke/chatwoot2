@@ -100,7 +100,8 @@ describe Whatsapp::Providers::WhatsappBaileysService do
               clientName: 'chatwoot-test',
               webhookUrl: whatsapp_channel.inbox.callback_webhook_url,
               webhookVerifyToken: whatsapp_channel.provider_config['webhook_verify_token'],
-              includeMedia: false
+              includeMedia: false,
+              groupsEnabled: Whatsapp::Providers::WhatsappBaileysService::GROUPS_ENABLED
             }.to_json
           )
           .to_return(status: 200)
@@ -120,7 +121,8 @@ describe Whatsapp::Providers::WhatsappBaileysService do
               clientName: 'chatwoot-test',
               webhookUrl: whatsapp_channel.inbox.callback_webhook_url,
               webhookVerifyToken: whatsapp_channel.provider_config['webhook_verify_token'],
-              includeMedia: false
+              includeMedia: false,
+              groupsEnabled: Whatsapp::Providers::WhatsappBaileysService::GROUPS_ENABLED
             }.to_json
           )
           .to_return(
@@ -1328,7 +1330,8 @@ describe Whatsapp::Providers::WhatsappBaileysService do
               clientName: 'chatwoot-test',
               webhookUrl: whatsapp_channel.inbox.callback_webhook_url,
               webhookVerifyToken: whatsapp_channel.provider_config['webhook_verify_token'],
-              includeMedia: false
+              includeMedia: false,
+              groupsEnabled: Whatsapp::Providers::WhatsappBaileysService::GROUPS_ENABLED
             }.to_json
           )
           .to_return(status: 200)
@@ -1346,7 +1349,8 @@ describe Whatsapp::Providers::WhatsappBaileysService do
               clientName: 'chatwoot-test',
               webhookUrl: whatsapp_channel.inbox.callback_webhook_url,
               webhookVerifyToken: whatsapp_channel.provider_config['webhook_verify_token'],
-              includeMedia: false
+              includeMedia: false,
+              groupsEnabled: Whatsapp::Providers::WhatsappBaileysService::GROUPS_ENABLED
             }.to_json
           )
           .to_return(status: 200)
@@ -1364,7 +1368,8 @@ describe Whatsapp::Providers::WhatsappBaileysService do
               clientName: 'chatwoot-test',
               webhookUrl: whatsapp_channel.inbox.callback_webhook_url,
               webhookVerifyToken: whatsapp_channel.provider_config['webhook_verify_token'],
-              includeMedia: false
+              includeMedia: false,
+              groupsEnabled: Whatsapp::Providers::WhatsappBaileysService::GROUPS_ENABLED
             }.to_json
           )
           .to_return(status: 400, body: 'reconnection failed')
@@ -1690,6 +1695,9 @@ describe Whatsapp::Providers::WhatsappBaileysService do
       stub_request(:get, "#{base_url}/profile-picture-url")
         .with(headers: stub_headers(whatsapp_channel), query: { jid: group_contact.identifier })
         .to_return(status: 200, body: { data: { profilePictureUrl: nil } }.to_json)
+      stub_request(:get, "#{base_url}/group-request-participants-list")
+        .with(headers: stub_headers(whatsapp_channel), query: { jid: group_contact.identifier })
+        .to_return(status: 200, body: [].to_json)
     end
 
     def stub_group_metadata(body)
