@@ -18,6 +18,8 @@ import DropdownSection from 'next/dropdown-menu/base/DropdownSection.vue';
 import DropdownItem from 'next/dropdown-menu/base/DropdownItem.vue';
 import WhatsappTemplates from 'dashboard/components/widgets/conversation/WhatsappTemplates/Modal.vue';
 import ScheduleDateShortcuts from './ScheduleDateShortcuts.vue';
+import RecurrenceDropdown from './RecurrenceDropdown.vue';
+import RecurrenceCustomModal from './RecurrenceCustomModal.vue';
 
 const props = defineProps({
   show: {
@@ -55,6 +57,11 @@ const inboxGetter = useMapGetter('inboxes/getInbox');
 const uiFlags = useMapGetter('scheduledMessages/getUIFlags');
 
 const isEditing = computed(() => !!props.scheduledMessage?.id);
+const isEditingRecurring = computed(
+  () =>
+    isEditing.value &&
+    String(props.scheduledMessage?.id).startsWith('recurring-')
+);
 const isCreating = computed(() => uiFlags.value.isCreating);
 const isUpdating = computed(() => uiFlags.value.isUpdating);
 const isSubmitting = computed(() => isCreating.value || isUpdating.value);
@@ -78,6 +85,8 @@ const showWhatsAppTemplatesModal = ref(false);
 const contentError = ref(false);
 const contentLengthError = ref(false);
 const dateTimeError = ref('');
+const recurrenceRule = ref(null);
+const showRecurrenceCustomModal = ref(false);
 
 // Original values for change detection
 const originalContent = ref('');
@@ -87,14 +96,18 @@ const originalHasAttachment = ref(false);
 // NOTE: Local ref to control modal visibility, prevents auto-close when unsaved changes exist
 const localShowModal = ref(false);
 
+const removedExistingAttachment = ref(false);
+
 const resetForm = () => {
   messageContent.value = '';
   scheduledDateTime.value = null;
   attachments.value = [];
   existingAttachment.value = null;
+  removedExistingAttachment.value = false;
   templateParams.value = null;
   contentError.value = false;
   dateTimeError.value = '';
+  recurrenceRule.value = null;
   // Reset original values
   originalContent.value = '';
   originalScheduledAt.value = null;
@@ -111,6 +124,7 @@ const setFormFromMessage = scheduledMessage => {
   templateParams.value = scheduledMessage.template_params || null;
   existingAttachment.value = scheduledMessage.attachment || null;
   attachments.value = [];
+  recurrenceRule.value = scheduledMessage.recurrence_rule || null;
 
   if (scheduledMessage.scheduled_at) {
     const dateValue = new Date(scheduledMessage.scheduled_at * 1000);
@@ -162,8 +176,29 @@ const hasTemplate = computed(
 );
 const hasExistingAttachment = computed(() => !!existingAttachment.value);
 const showAttachmentUpload = computed(
-  () => !hasNewAttachment.value && !hasTemplate.value
+  () =>
+    !hasNewAttachment.value &&
+    !hasExistingAttachment.value &&
+    !hasTemplate.value
 );
+
+const displayAttachments = computed(() => {
+  if (attachments.value.length) return attachments.value;
+  if (existingAttachment.value) {
+    return [
+      {
+        id: existingAttachment.value.id,
+        thumb: existingAttachment.value.file_url,
+        resource: {
+          id: existingAttachment.value.id,
+          content_type: existingAttachment.value.file_type,
+          filename: existingAttachment.value.filename,
+        },
+      },
+    ];
+  }
+  return [];
+});
 
 const templateName = computed(() => {
   return templateParams.value?.name || templateParams.value?.id || null;
@@ -258,6 +293,16 @@ const onAttachmentsChange = value => {
   attachments.value = value.slice(0, 1);
 };
 
+const onDisplayAttachmentsChange = value => {
+  if (value.length === 0) {
+    if (existingAttachment.value) removedExistingAttachment.value = true;
+    attachments.value = [];
+    existingAttachment.value = null;
+  } else {
+    onAttachmentsChange(value);
+  }
+};
+
 const resolveAttachmentPayload = () => {
   if (!attachments.value.length) return null;
   const attachment = attachments.value[0];
@@ -326,6 +371,8 @@ const buildPayload = status => {
   const attachmentPayload = resolveAttachmentPayload();
   if (attachmentPayload) {
     payload.attachment = attachmentPayload;
+  } else if (removedExistingAttachment.value) {
+    payload.removeAttachment = true;
   }
 
   return payload;
@@ -358,7 +405,54 @@ const submit = async status => {
   if (!validatePayload(status)) return;
 
   try {
-    if (isEditing.value) {
+    const hasRecurrence = !!recurrenceRule.value;
+    const existingRecurringId =
+      props.scheduledMessage?.recurring_scheduled_message_id;
+
+    if (hasRecurrence && status === 'pending') {
+      const recurringPayload = {
+        content: messageContent.value,
+        scheduledAt: scheduledAt.value ? scheduledAt.value.toISOString() : null,
+        recurrenceRule: recurrenceRule.value,
+        attachment: resolveAttachmentPayload(),
+        templateParams: templateParams.value,
+        status: 'active',
+      };
+
+      if (isEditing.value && existingRecurringId) {
+        // Update existing recurring series
+        await store.dispatch('recurringScheduledMessages/update', {
+          conversationId: props.conversationId,
+          recurringScheduledMessageId: existingRecurringId,
+          payload: recurringPayload,
+        });
+      } else {
+        // Create new recurring series (new message or standalone gaining recurrence)
+        await store.dispatch('recurringScheduledMessages/create', {
+          conversationId: props.conversationId,
+          payload: recurringPayload,
+        });
+        // If converting a standalone message, delete the old one
+        if (isEditing.value) {
+          await store.dispatch('scheduledMessages/delete', {
+            conversationId: props.conversationId,
+            scheduledMessageId: props.scheduledMessage.id,
+          });
+        }
+      }
+    } else if (isEditing.value) {
+      // Editing without recurrence - if it had a recurring parent and user removed it, cancel the series
+      if (existingRecurringId && !hasRecurrence) {
+        await store.dispatch('recurringScheduledMessages/delete', {
+          conversationId: props.conversationId,
+          recurringScheduledMessageId: existingRecurringId,
+        });
+        // If this was a direct recurring message edit, just close — no standalone to update
+        if (isEditingRecurring.value) {
+          closeModal();
+          return;
+        }
+      }
       await store.dispatch('scheduledMessages/update', {
         conversationId: props.conversationId,
         scheduledMessageId: props.scheduledMessage.id,
@@ -532,21 +626,11 @@ watch(
               @click="clearTemplate"
             />
           </div>
-          <span
-            v-if="existingAttachment && !attachments.length"
-            class="text-xs text-n-slate-11"
-          >
-            {{
-              t('SCHEDULED_MESSAGES.MODAL.ATTACHMENT_CURRENT', {
-                filename: existingAttachment.filename,
-              })
-            }}
-          </span>
           <AttachmentPreviews
-            v-if="attachments.length"
+            v-if="displayAttachments.length"
             class="!p-0"
-            :attachments="attachments"
-            @update:attachments="onAttachmentsChange"
+            :attachments="displayAttachments"
+            @update:attachments="onDisplayAttachmentsChange"
           />
         </div>
       </div>
@@ -564,6 +648,20 @@ watch(
           {{ dateTimeError }}
         </span>
       </div>
+
+      <RecurrenceDropdown
+        v-model="recurrenceRule"
+        :scheduled-date="scheduledDateTime"
+        @open-custom="showRecurrenceCustomModal = true"
+      />
+
+      <RecurrenceCustomModal
+        :show="showRecurrenceCustomModal"
+        :model-value="recurrenceRule"
+        :scheduled-date="scheduledDateTime"
+        @update:model-value="recurrenceRule = $event"
+        @close="showRecurrenceCustomModal = false"
+      />
 
       <div class="flex items-center justify-end gap-3">
         <NextButton
